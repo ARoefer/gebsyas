@@ -1,0 +1,8 @@
+std_msgs/Header header
+string id
+geometry_msgs/Pose pose
+geometry_msgs/Vector3 dimensions
+string semantic_class
+float64 probability_class
+float64 probability_position
+float64 probability_rotation
