@@ -3,7 +3,7 @@ from giskardpy.qp_problem_builder import SoftConstraint
 from giskard_affordances.grasp_affordances import *
 from giskard_affordances.object_input import ProbabilisticObjectInput as POInput
 
-import sympy as sp
+import symengine as sp
 
 class GraspAnyController(Controller):
     def __init__(self, robot, grippers, candidates):

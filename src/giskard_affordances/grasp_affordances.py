@@ -1,5 +1,5 @@
 from giskardpy.sympy_wrappers import *
-import sympy as sp
+import symengine as sp
 
 
 def ball_grasp_affordance(gripper, obj_input):

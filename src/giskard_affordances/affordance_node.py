@@ -50,7 +50,7 @@ class AffordanceCommandNode(object):
         print('Assebled candidates. Moving on to constructing controller...')
         start = rospy.Time.now()
         self.controller = GraspAnyController(self.robot, [self.robot.gripper], candidates)
-        print('Construction finished in {.3f} seconds.'.format((rospy.Time.now() - start).to_sec()))
+        print('Construction finished in {:4f} seconds.'.format((rospy.Time.now() - start).to_sec()))
 
     def js_callback(self, joint_state):
         self.robot.set_joint_state(joint_state)
@@ -63,7 +63,7 @@ class AffordanceCommandNode(object):
 
         command = self.controller.get_next_command()
         if not self.bInit:
-            print('Controller compiled in {.3f} seconds'.format((rospy.Time.now() - start).to_sec()))
+            print('Controller compiled in {:4f} seconds'.format((rospy.Time.now() - start).to_sec()))
             self.bInit = True
 
         cmdMsg = cmdDictToJointState(command)
