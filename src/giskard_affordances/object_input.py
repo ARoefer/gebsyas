@@ -1,4 +1,4 @@
-from giskardpy.input_system import ControllerInputArray, Frame3, Vec3, ScalarInput
+from giskardpy.input_system import ControllerInputArray, FrameInput, Vec3Input, ScalarInput
 
 def vector_to_tuple(vec):
     return (vec.x, vec.y, vec.z)
@@ -13,19 +13,19 @@ class ObjectInput(object):
     def __init__(self, name):
         super(ObjectInput, self).__init__()
 
-        self.frame = Frame3('{}{}frame'.format(name, ControllerInputArray.separator))
-        self.dimensions = Vec3('{}{}dimensions'.format(name, ControllerInputArray.separator))
+        self.frame = FrameInput('{}{}frame'.format(name, ControllerInputArray.separator))
+        self.dimensions = Vec3Input('{}{}dimensions'.format(name, ControllerInputArray.separator))
 
     def get_update_dict(self, frame, dimensions):
         frame_dict = self.frame.get_update_dict(*frame)
-        frame_dict.update(self.dimensions.get_update_dict(*dimensions))
+        #frame_dict.update(self.dimensions.get_update_dict(*dimensions))
         return frame_dict
 
     def get_frame(self):
         return self.frame.get_expression()
 
     def get_dimensions(self):
-        return self.dimensions.get_expression()
+        return self.dimensions #.get_expression()
 
 
 class ProbabilisticObjectInput(ObjectInput):
