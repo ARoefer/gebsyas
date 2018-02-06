@@ -5,12 +5,12 @@ from urdf_parser_py.urdf import URDF
 import numpy as np
 
 from fetch_giskard.fetch_robot import Gripper
-from giskard_affordances.grasp_affordances import BasicGraspAffordances as BGA
+from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
 from giskardpy.sympy_wrappers import *
 import symengine as sp
 from giskardpy.input_system import *
 
-PKG = 'giskard_affordances'
+PKG = 'gebsyas'
 
 def dict_union(*args):
     out = {}
