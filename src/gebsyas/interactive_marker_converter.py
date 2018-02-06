@@ -7,7 +7,7 @@ from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import InteractiveMarkerInit as IMIMsg
 from visualization_msgs.msg import InteractiveMarkerFeedback as IMFMsg
 from visualization_msgs.msg import Marker
-from giskard_affordances.msg import ProbabilisticObject as POMsg
+from gebsyas.msg import ProbabilisticObject as POMsg
 
 publisher = None
 objects = {}

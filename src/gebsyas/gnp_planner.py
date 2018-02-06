@@ -2,9 +2,9 @@ from giskardpy.qpcontroller import QPController
 from giskardpy.robot import Joint
 from giskardpy.symengine_wrappers import *
 from giskardpy.qp_problem_builder import JointConstraint, HardConstraint, SoftConstraint, BIG_NUMBER
-from giskard_affordances.grasp_affordances import BasicGraspAffordances as BGA
-from giskard_affordances.utils import subs_if_sym, JointState, jsDictToJSMsg
-from giskard_affordances.ros_visualizer import ROSVisualizer
+from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
+from gebsyas.utils import subs_if_sym, JointState, jsDictToJSMsg
+from gebsyas.ros_visualizer import ROSVisualizer
 from fetch_giskard.fetch_robot import Gripper
 from collections import OrderedDict, namedtuple
 

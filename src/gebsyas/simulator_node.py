@@ -4,12 +4,12 @@ import pybullet as pb
 from time import time
 from sensor_msgs.msg import JointState as JointStateMsg
 from iai_naive_kinematics_sim.srv import SetJointState, SetJointStateResponse
-from giskard_affordances.msg import ProbabilisticObject as PObject
-from giskard_affordances.numeric_scene_state import visualize_obj
-from giskard_affordances.ros_visualizer import ROSVisualizer
-from giskard_affordances.simulator import BulletSimulator, BodyData, AABB
-from giskard_affordances.utils import Blank, ros_msg_to_expr
-from giskard_affordances.dl_reasoning import DLIded
+from gebsyas.msg import ProbabilisticObject as PObject
+from gebsyas.numeric_scene_state import visualize_obj
+from gebsyas.ros_visualizer import ROSVisualizer
+from gebsyas.simulator import BulletSimulator, BodyData, AABB
+from gebsyas.utils import Blank, ros_msg_to_expr
+from gebsyas.dl_reasoning import DLIded
 from giskardpy.symengine_wrappers import translation3, norm, point3, vec3
 import symengine as sp
 
@@ -95,12 +95,12 @@ class SimulatorNode(BulletSimulator):
 		# 	sl = robot_data.joints[sj].linkName
 		# 	aabb = self.get_AABB(self.controlled_robot, sl)
 		# 	blownup_aabb = AABB(aabb.min - self.aabb_border, aabb.max + self.aabb_border)
-		# 	self.visualizer.draw_mesh('aabb', translation3((aabb.min + aabb.max) * 0.5), aabb.max - aabb.min, 'package://giskard_affordances/meshes/bounding_box.dae', r=1.0, a=1.0, use_mat=False)
-		# 	self.visualizer.draw_mesh('aabb_bigger', translation3((blownup_aabb.min + blownup_aabb.max) * 0.5), blownup_aabb.max - blownup_aabb.min, 'package://giskard_affordances/meshes/bounding_box.dae', r=0.01, g=1.0, b=1.0, a=1.0, use_mat=False)
+		# 	self.visualizer.draw_mesh('aabb', translation3((aabb.min + aabb.max) * 0.5), aabb.max - aabb.min, 'package://gebsyas/meshes/bounding_box.dae', r=1.0, a=1.0, use_mat=False)
+		# 	self.visualizer.draw_mesh('aabb_bigger', translation3((blownup_aabb.min + blownup_aabb.max) * 0.5), blownup_aabb.max - blownup_aabb.min, 'package://gebsyas/meshes/bounding_box.dae', r=0.01, g=1.0, b=1.0, a=1.0, use_mat=False)
 		# 	overlapping = self.get_overlapping(blownup_aabb, filter)
 		# 	for bodyId, linkId in overlapping:
 		# 		bodyAABB = self.get_AABB(bodyId, linkId)
-		# 		self.visualizer.draw_mesh('overlapping', translation3((bodyAABB.min + bodyAABB.max) * 0.5), bodyAABB.max - bodyAABB.min, 'package://giskard_affordances/meshes/bounding_box.dae', r=1.0, g=1.0, b=0.0, a=1.0, use_mat=False)
+		# 		self.visualizer.draw_mesh('overlapping', translation3((bodyAABB.min + bodyAABB.max) * 0.5), bodyAABB.max - bodyAABB.min, 'package://gebsyas/meshes/bounding_box.dae', r=1.0, g=1.0, b=0.0, a=1.0, use_mat=False)
 		# 		for cp in self.get_closest_points(self.controlled_robot, bodyId, sl):
 		# 			self.visualizer.draw_arrow('closest_points', cp.posOnB, cp.posOnA, g=0, b=0)
 

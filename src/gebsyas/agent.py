@@ -2,15 +2,15 @@ import rospy
 import sensor_msgs
 import std_msgs
 from control_msgs.msg import GripperCommandActionGoal
-from giskard_affordances.actions import Context, Logger, ActionManager
-from giskard_affordances.dl_reasoning import DLAtom, DLRigidObject, DLIded, SymbolicData
-from giskard_affordances.msg import ProbabilisticObject as PObject
-from giskard_affordances.numeric_scene_state import DataSceneState, DataDrivenPredicateState
-from giskard_affordances.ros_visualizer import ROSVisualizer
-from giskard_affordances.sensors import TopicSensor
-from giskard_affordances.simple_agent_actions import SimpleAgentIOAction
-from giskard_affordances.trackers import VisualObjectTracker, JointStateTracker
-from giskard_affordances.utils import StampedData, ros_msg_to_expr, cmdDictToJointState, Blank
+from gebsyas.actions import Context, Logger, ActionManager
+from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded, SymbolicData
+from gebsyas.msg import ProbabilisticObject as PObject
+from gebsyas.numeric_scene_state import DataSceneState, DataDrivenPredicateState
+from gebsyas.ros_visualizer import ROSVisualizer
+from gebsyas.sensors import TopicSensor
+from gebsyas.simple_agent_actions import SimpleAgentIOAction
+from gebsyas.trackers import VisualObjectTracker, JointStateTracker
+from gebsyas.utils import StampedData, ros_msg_to_expr, cmdDictToJointState, Blank
 from giskardpy.symengine_wrappers import *
 from copy import copy
 import yaml

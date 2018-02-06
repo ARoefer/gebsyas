@@ -2,7 +2,7 @@ from collections import namedtuple
 import symengine as spw
 from giskardpy.robot import Robot, Gripper, Camera
 from giskardpy.symengine_wrappers import *
-from giskard_affordances.utils import StampedData, JointState
+from gebsyas.utils import StampedData, JointState
 
 
 SymbolicData = namedtuple('SymbolicData', ['data', 'f_convert', 'args'])
@@ -562,7 +562,7 @@ BASIC_TBOX = BASIC_TBOX_LIST + [('Sphere', DLSphere),
 				   				DLInclusion(DLCamera(), DLPhysicalThing),
 				   				DLInclusion(DLManipulator, DLPhysicalThing)]
 
-from giskard_affordances.expression_parser import UnaryOp, BinaryOp, Function
+from gebsyas.expression_parser import UnaryOp, BinaryOp, Function
 
 def bool_expr_tree_to_dl(node, tbox):
 	tn = type(node)

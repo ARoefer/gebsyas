@@ -1,9 +1,9 @@
-from giskard_affordances.dl_reasoning import *
-from giskard_affordances.spatial_relations import SpatialRelations as SR
-from giskard_affordances.grasp_affordances import BasicGraspAffordances as BGA
+from gebsyas.dl_reasoning import *
+from gebsyas.spatial_relations import SpatialRelations as SR
+from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
 from giskardpy.qp_problem_builder import SoftConstraint as SC
 from giskardpy.symengine_wrappers import norm
-from giskard_affordances.trackers import SymbolicObjectPoseTracker
+from gebsyas.trackers import SymbolicObjectPoseTracker
 
 import symengine as spw
 

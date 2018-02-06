@@ -1,8 +1,8 @@
 import symengine as sp
 from giskardpy.symengine_wrappers import *
 from giskardpy.qp_problem_builder import SoftConstraint as SC
-from giskard_affordances.dl_reasoning import *
-from giskard_affordances.utils import *
+from gebsyas.dl_reasoning import *
+from gebsyas.utils import *
 
 # Only works for x > 0 so beware
 def crappyAtan2(x, y):

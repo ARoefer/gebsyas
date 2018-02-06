@@ -1,8 +1,8 @@
-from giskard_affordances.dl_reasoning import DLCompoundObject, DLRigidObject, DLShape, DLCube, DLSphere, DLCylinder, DLIded
+from gebsyas.dl_reasoning import DLCompoundObject, DLRigidObject, DLShape, DLCube, DLSphere, DLCylinder, DLIded
 from urdf_parser_py.urdf import Link, Joint, Collision, Visual, Pose, JointDynamics, JointLimit, Inertial, Sphere, Box, Cylinder, Inertia
 from giskardpy.symengine_wrappers import *
-from giskard_affordances.utils import rot3_to_rpy
-from giskard_affordances.simulator import vec3_to_list
+from gebsyas.utils import rot3_to_rpy
+from gebsyas.simulator import vec3_to_list
 
 def add_dl_object_to_urdf(urdf_model, attachment_link, dl_object, transform):
 	if not DLRigidObject.is_a(dl_object):

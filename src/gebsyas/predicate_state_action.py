@@ -1,14 +1,14 @@
-from giskard_affordances.grasp_affordances import BasicGraspAffordances as BGA
-from giskard_affordances.actions import Action
-from giskard_affordances.pnp_action import PNPAction
-from giskard_affordances.grasp_action import GraspAction
-from giskard_affordances.basic_controllers import InEqController, run_ineq_controller
+from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
+from gebsyas.actions import Action
+from gebsyas.pnp_action import PNPAction
+from gebsyas.grasp_action import GraspAction
+from gebsyas.basic_controllers import InEqController, run_ineq_controller
 from sensor_msgs.msg import JointState
 from giskardpy.symengine_wrappers import *
-from giskard_affordances.predicates import DLSpacialPredicate, DLGraspPredicate, Free
-from giskard_affordances.dl_reasoning import DLMultiManipulatorRobot, DLSingleManipulatorRobot, DLManipulationCapable, SymbolicData
-from giskard_affordances.numeric_scene_state import AssertionDrivenPredicateState
-from giskard_affordances.planner import PlanIterator
+from gebsyas.predicates import DLSpacialPredicate, DLGraspPredicate, Free
+from gebsyas.dl_reasoning import DLMultiManipulatorRobot, DLSingleManipulatorRobot, DLManipulationCapable, SymbolicData
+from gebsyas.numeric_scene_state import AssertionDrivenPredicateState
+from gebsyas.planner import PlanIterator
 
 class PSAction(Action):
 	def __init__(self, goal_dict):

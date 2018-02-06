@@ -1,12 +1,12 @@
 import rospy
-from giskard_affordances.ros_visualizer import ROSVisualizer
-from giskard_affordances.dl_reasoning import DLRigidObject, DLCube, DLSphere, DLCylinder, DLPhysicalThing, DLTransform, DLVector, DLScalar, DLObserver, DLDisjunction
-from giskard_affordances.utils import StampedData
+from gebsyas.ros_visualizer import ROSVisualizer
+from gebsyas.dl_reasoning import DLRigidObject, DLCube, DLSphere, DLCylinder, DLPhysicalThing, DLTransform, DLVector, DLScalar, DLObserver, DLDisjunction
+from gebsyas.utils import StampedData
 from giskardpy.input_system import ScalarInput, Vec3Input, FrameInputRPY
-from giskard_affordances.actions import Context, Logger
-from giskard_affordances.agent import Agent
-from giskard_affordances.basic_controllers import InEqController
-from giskard_affordances.numeric_scene_state import visualize_obj
+from gebsyas.actions import Context, Logger
+from gebsyas.agent import Agent
+from gebsyas.basic_controllers import InEqController
+from gebsyas.numeric_scene_state import visualize_obj
 from giskardpy.robot import Robot
 from giskardpy.qp_problem_builder import HardConstraint, JointConstraint
 from random import random
@@ -157,7 +157,7 @@ class PredicateTester(object):
 						if DLRigidObject.is_a(obj.data):
 							visualize_obj(obj.data, self.visualizer, obj.data.pose, color=color)
 						elif DLObserver.is_a(obj.data):
-							self.visualizer.draw_mesh('objects', obj.data.frame_of_reference, (0.4,0.4,0.4), 'package://giskard_affordances/meshes/camera.dae', r=color[0], g=color[1], b=color[2], a=color[3])
+							self.visualizer.draw_mesh('objects', obj.data.frame_of_reference, (0.4,0.4,0.4), 'package://gebsyas/meshes/camera.dae', r=color[0], g=color[1], b=color[2], a=color[3])
 					break
 			controller.qp_problem_builder.reset_solver()
 		self.visualizer.render()

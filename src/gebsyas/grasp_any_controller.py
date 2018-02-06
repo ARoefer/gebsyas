@@ -1,9 +1,9 @@
 from giskardpy.qpcontroller import QPController
 from giskardpy.qp_problem_builder import SoftConstraint
-from giskard_affordances.grasp_affordances import *
-from giskard_affordances.object_input import ProbabilisticObjectInput as POInput
-from giskard_affordances.object_input import vector_to_tuple
-from giskard_affordances.grasp_affordances import BasicGraspAffordances as BGA
+from gebsyas.grasp_affordances import *
+from gebsyas.object_input import ProbabilisticObjectInput as POInput
+from gebsyas.object_input import vector_to_tuple
+from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
 
 import symengine as sp
 

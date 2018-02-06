@@ -1,14 +1,14 @@
 from collections import namedtuple
 from time import time
 
-from giskard_affordances.basic_controllers import InEqController
-from giskard_affordances.dl_reasoning import DLSymbolic, SymbolicData, DLManipulator
-from giskard_affordances.ros_visualizer import ROSVisualizer
-from giskard_affordances.simulator import BulletSimulator, frame_tuple_to_sym_frame
-from giskard_affordances.utils import StampedData, rot3_to_quat
-from giskard_affordances.predicates import IsControlled, IsGrasped
-from giskard_affordances.closest_point_queries import ClosestPointQuery_AnyN, ClosestPointQuery_Specific_SA, ClosestPointQuery_Specific_BA
-from giskard_affordances.numeric_scene_state import visualize_obj
+from gebsyas.basic_controllers import InEqController
+from gebsyas.dl_reasoning import DLSymbolic, SymbolicData, DLManipulator
+from gebsyas.ros_visualizer import ROSVisualizer
+from gebsyas.simulator import BulletSimulator, frame_tuple_to_sym_frame
+from gebsyas.utils import StampedData, rot3_to_quat
+from gebsyas.predicates import IsControlled, IsGrasped
+from gebsyas.closest_point_queries import ClosestPointQuery_AnyN, ClosestPointQuery_Specific_SA, ClosestPointQuery_Specific_BA
+from gebsyas.numeric_scene_state import visualize_obj
 from giskardpy import print_wrapper
 from giskardpy.input_system import Point3Input, Vec3Input
 from giskardpy.qp_problem_builder import SoftConstraint as SC

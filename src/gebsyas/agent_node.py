@@ -7,13 +7,13 @@ from time import time
 
 from guppy import hpy
 h = hpy()
-from giskard_affordances.predicates import * # PREDICATE_TBOX, PREDICATES
-from giskard_affordances.agent import SimpleAgent
-from giskard_affordances.dl_reasoning import Reasoner, BASIC_TBOX, DLRobot, DLManipulationCapable, DLGripper
-from giskard_affordances.utils import Blank, StampedData
-from giskard_affordances.actions import Context
-from giskard_affordances.generic_motion_action import SimpleBinaryMoveAction, SimpleTrinaryMoveAction, UprightBinaryMoveAction, UprightTrinaryMoveAction, UnconditionalMotionAction
-from giskard_affordances.grasp_action import GraspActionInterface, LetGoActionInterface
+from gebsyas.predicates import * # PREDICATE_TBOX, PREDICATES
+from gebsyas.agent import SimpleAgent
+from gebsyas.dl_reasoning import Reasoner, BASIC_TBOX, DLRobot, DLManipulationCapable, DLGripper
+from gebsyas.utils import Blank, StampedData
+from gebsyas.actions import Context
+from gebsyas.generic_motion_action import SimpleBinaryMoveAction, SimpleTrinaryMoveAction, UprightBinaryMoveAction, UprightTrinaryMoveAction, UnconditionalMotionAction
+from gebsyas.grasp_action import GraspActionInterface, LetGoActionInterface
 
 from fetch_giskard.fetch_robot import Fetch
 from giskardpy.robot import Robot
@@ -28,9 +28,9 @@ if __name__ == '__main__':
 
 	rospy.init_node('agent_node')
 
-	from giskard_affordances.agent import TBOX as ATBOX
-	from giskard_affordances.sensors import TBOX as STBOX
-	from giskard_affordances.trackers import TBOX as TTBOX
+	from gebsyas.agent import TBOX as ATBOX
+	from gebsyas.sensors import TBOX as STBOX
+	from gebsyas.trackers import TBOX as TTBOX
 
 	tbox = BASIC_TBOX + ATBOX + STBOX + TTBOX + PREDICATE_TBOX
 	reasoner = Reasoner(tbox, {})

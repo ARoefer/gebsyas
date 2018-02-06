@@ -1,7 +1,7 @@
 from collections import namedtuple
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState as JointStateMsg
-from giskard_affordances.msg import ProbabilisticObject as PObject
+from gebsyas.msg import ProbabilisticObject as PObject
 from copy import deepcopy
 import symengine as sp
 import rospy

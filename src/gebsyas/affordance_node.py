@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import sys
 import rospy
-from giskard_affordances.grasp_any_controller import GraspAnyController
-from giskard_affordances.msg import ProbabilisticObject as POMsg
-from giskard_affordances.msg import StringArray
+from gebsyas.grasp_any_controller import GraspAnyController
+from gebsyas.msg import ProbabilisticObject as POMsg
+from gebsyas.msg import StringArray
 from fetch_giskard.fetch_robot import Fetch
 from sensor_msgs.msg import JointState
 from pprint import pprint

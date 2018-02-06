@@ -1,9 +1,9 @@
 import rospy
-from giskard_affordances.actions import Action
-from giskard_affordances.expression_parser import parse_bool_expr, parse_path, normalize, UnaryOp, BinaryOp, Function, parse_name
-from giskard_affordances.dl_reasoning import bool_expr_tree_to_dl, SymbolicData
-from giskard_affordances.predicate_state_action import PSAction
-from giskard_affordances.utils import YAML
+from gebsyas.actions import Action
+from gebsyas.expression_parser import parse_bool_expr, parse_path, normalize, UnaryOp, BinaryOp, Function, parse_name
+from gebsyas.dl_reasoning import bool_expr_tree_to_dl, SymbolicData
+from gebsyas.predicate_state_action import PSAction
+from gebsyas.utils import YAML
 import sys
 import traceback
 

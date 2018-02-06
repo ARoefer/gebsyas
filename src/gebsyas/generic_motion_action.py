@@ -1,14 +1,14 @@
 import traceback
 import string
-from giskard_affordances.constants import *
-from giskard_affordances.gnp_planner import GNPPlanner
-from giskard_affordances.basic_controllers import InEqController, run_ineq_controller
-from giskard_affordances.bullet_based_controller import InEqBulletController
-from giskard_affordances.actions import Action, PActionInterface
-from giskard_affordances.dl_reasoning import DLRigidObject
-from giskard_affordances.predicates import *
-from giskard_affordances.utils import saturate, tip_at_one
-from giskard_affordances.trackers import SymbolicObjectPoseTracker
+from gebsyas.constants import *
+from gebsyas.gnp_planner import GNPPlanner
+from gebsyas.basic_controllers import InEqController, run_ineq_controller
+from gebsyas.bullet_based_controller import InEqBulletController
+from gebsyas.actions import Action, PActionInterface
+from gebsyas.dl_reasoning import DLRigidObject
+from gebsyas.predicates import *
+from gebsyas.utils import saturate, tip_at_one
+from gebsyas.trackers import SymbolicObjectPoseTracker
 
 from giskardpy.symengine_wrappers import *
 from giskardpy.qpcontroller import QPController

@@ -1,11 +1,11 @@
 from collections import namedtuple
 from pprint import pprint
 
-from giskard_affordances.basic_controllers import InEqController, run_ineq_controller
-from giskard_affordances.dl_reasoning import DLDisjunction
-from giskard_affordances.numeric_scene_state import AssertionDrivenPredicateState, pfd_str
-from giskard_affordances.predicates import Predicate
-from giskard_affordances.ros_visualizer import ROSVisualizer
+from gebsyas.basic_controllers import InEqController, run_ineq_controller
+from gebsyas.dl_reasoning import DLDisjunction
+from gebsyas.numeric_scene_state import AssertionDrivenPredicateState, pfd_str
+from gebsyas.predicates import Predicate
+from gebsyas.ros_visualizer import ROSVisualizer
 import rospy
 
 

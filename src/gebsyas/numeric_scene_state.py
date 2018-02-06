@@ -1,9 +1,9 @@
 import rospy
 from collections import namedtuple
-from giskard_affordances.constants import LBA_BOUND, UBA_BOUND
-from giskard_affordances.dl_reasoning import SymbolicData, DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape
-from giskard_affordances.utils import StampedData, ros_msg_to_expr
-from giskard_affordances.predicates import Predicate
+from gebsyas.constants import LBA_BOUND, UBA_BOUND
+from gebsyas.dl_reasoning import SymbolicData, DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape
+from gebsyas.utils import StampedData, ros_msg_to_expr
+from gebsyas.predicates import Predicate
 from giskardpy.symengine_wrappers import pos_of
 from yaml import load, dump
 

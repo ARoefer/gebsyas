@@ -1,7 +1,7 @@
 import rospy
 from visualization_msgs.msg import Marker, MarkerArray
-from giskard_affordances.utils import expr_to_rosmsg
-from giskard_affordances.msg import FloatTable
+from gebsyas.utils import expr_to_rosmsg
+from gebsyas.msg import FloatTable
 from urdf_parser_py.urdf import Sphere, Cylinder, Box, Mesh
 
 def del_marker(Id, namespace):

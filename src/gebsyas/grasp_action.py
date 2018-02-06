@@ -1,12 +1,12 @@
 import traceback
-from giskard_affordances.constants import *
-from giskard_affordances.gnp_planner import GNPPlanner
-from giskard_affordances.basic_controllers import InEqController, InEqFFBRunner
-from giskard_affordances.actions import Action, PActionInterface
-from giskard_affordances.dl_reasoning import DLCube
-from giskard_affordances.predicates import Free, Graspable, IsControlled, IsGrasped, PInstance
-from giskard_affordances.utils import saturate, tip_at_one
-from giskard_affordances.trackers import SymbolicObjectPoseTracker
+from gebsyas.constants import *
+from gebsyas.gnp_planner import GNPPlanner
+from gebsyas.basic_controllers import InEqController, InEqFFBRunner
+from gebsyas.actions import Action, PActionInterface
+from gebsyas.dl_reasoning import DLCube
+from gebsyas.predicates import Free, Graspable, IsControlled, IsGrasped, PInstance
+from gebsyas.utils import saturate, tip_at_one
+from gebsyas.trackers import SymbolicObjectPoseTracker
 
 from giskardpy.symengine_wrappers import *
 from giskardpy.qpcontroller import QPController

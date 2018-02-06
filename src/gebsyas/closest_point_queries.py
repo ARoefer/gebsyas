@@ -1,6 +1,6 @@
 from giskardpy.symengine_wrappers import point3
 from giskardpy.input_system import Point3Input, Vec3Input
-from giskard_affordances.simulator import AABB, vec_add, vec_sub, vec3_to_list, frame_tuple_to_sym_frame, invert_transform
+from gebsyas.simulator import AABB, vec_add, vec_sub, vec3_to_list, frame_tuple_to_sym_frame, invert_transform
 
 class ClosestPointQuery(object):
 	def point_1_expression(self):

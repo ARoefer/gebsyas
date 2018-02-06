@@ -2,8 +2,8 @@ import pybullet as pb
 import rospkg
 import random
 from collections import namedtuple
-from giskard_affordances.dl_reasoning import DLRigidObject, DLCompoundObject, DLSphere, DLCube, DLCylinder, DLIded
-from giskard_affordances.utils import rot3_to_quat
+from gebsyas.dl_reasoning import DLRigidObject, DLCompoundObject, DLSphere, DLCube, DLCylinder, DLIded
+from gebsyas.utils import rot3_to_quat
 from giskardpy.symengine_wrappers import point3, frame3_quaternion, pos_of, vec3
 from pprint import pprint
 

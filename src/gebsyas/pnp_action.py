@@ -1,10 +1,10 @@
 from time import time
 
-from giskard_affordances.actions import Action
-from giskard_affordances.basic_controllers import InEqController, run_ineq_controller
-from giskard_affordances.constants import *
-from giskard_affordances.gnp_planner import GNPPlanner
-from giskard_affordances.grasp_action import GripperAction
+from gebsyas.actions import Action
+from gebsyas.basic_controllers import InEqController, run_ineq_controller
+from gebsyas.constants import *
+from gebsyas.gnp_planner import GNPPlanner
+from gebsyas.grasp_action import GripperAction
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState
 

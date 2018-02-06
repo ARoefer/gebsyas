@@ -4,13 +4,13 @@ import rospy
 
 from symengine import *
 
-from giskard_affordances.sensors import TopicSensor
-from giskard_affordances.msg import ProbabilisticObject as PObject
-from giskard_affordances.numeric_scene_state import DataSceneState
-from giskard_affordances.utils import Blank, bb
-from giskard_affordances.expression_parser import *
-from giskard_affordances.predicates import *
-from giskard_affordances.predicate_tester import PredicateTester
+from gebsyas.sensors import TopicSensor
+from gebsyas.msg import ProbabilisticObject as PObject
+from gebsyas.numeric_scene_state import DataSceneState
+from gebsyas.utils import Blank, bb
+from gebsyas.expression_parser import *
+from gebsyas.predicates import *
+from gebsyas.predicate_tester import PredicateTester
 from giskardpy.symengine_wrappers import *
 import std_msgs
 from pprint import pprint

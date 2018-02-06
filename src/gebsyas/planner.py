@@ -1,7 +1,7 @@
 import traceback
 from Queue import PriorityQueue
-from giskard_affordances.actions import PBasedActionSequence
-from giskard_affordances.numeric_scene_state import AssertionDrivenPredicateState
+from gebsyas.actions import PBasedActionSequence
+from gebsyas.numeric_scene_state import AssertionDrivenPredicateState
 
 class PlanningProblem:
 	def __init__(self, context, Id, initial, goal, lhs, rhs):

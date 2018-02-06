@@ -1,6 +1,6 @@
 import rospy
-from giskard_affordances.utils import StampedData, ros_msg_to_expr
-from giskard_affordances.dl_reasoning import DLAtom
+from gebsyas.utils import StampedData, ros_msg_to_expr
+from gebsyas.dl_reasoning import DLAtom
 
 
 class Sensor(object):

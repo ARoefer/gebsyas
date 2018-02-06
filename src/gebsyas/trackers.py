@@ -1,6 +1,6 @@
 import rospy
-from giskard_affordances.utils import StampedData, JointState
-from giskard_affordances.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject
+from gebsyas.utils import StampedData, JointState
+from gebsyas.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject
 from copy import copy
 
 class Tracker(object):
