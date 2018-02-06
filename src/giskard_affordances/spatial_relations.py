@@ -66,13 +66,6 @@ class SpatialRelations(object):
 		print('Classification of {} or {} for "on" expression generator has failed'.format(str(obj), str(location)))
 		return {}
 
-	@classmethod
-	def below(cls, context, obj, location):
-		raise Exception('Needs update to produce inequality constraints')
-		if location.below != None:
-			return location.below(obj)
-		else:
-			return {}
 
 	@classmethod
 	def inside(cls, context, obj, volume):
@@ -120,15 +113,16 @@ class SpatialRelations(object):
 			icosB = sp.sin(beta)
 			cosC  = sp.cos(gamma)
 			icosC = 1.0 - cosC
-			up_extend    = cosC * obj.width + icosC * obj.depth
-			depth_extend = cosC * obj.depth + icosC * obj.width
-			z = cosA * 0.5 * obj.height + icosA * obj.radius
+			up_extend    = cosC * obj.width  + icosC * obj.length
+			depth_extend = cosC * obj.length + icosC * obj.width
+			z = cosA * 0.5 * obj.height + icosA * obj.width
 			y = icosB * (icosA * 0.5 * obj.height + cosA * depth_extend) + cosB * up_extend
 			x = cosB  * (icosA * 0.5 * obj.height + cosA * up_extend) + icosB * depth_extend
 			return vec3(x,y,z)
 		elif DLSphere.is_a(obj):
 			return vec3(obj.radius, obj.radius, obj.radius)
 		raise Exception('Failed to construct AABB for object')
+
 
 	@classmethod
 	def next_to(cls, context, obj_a, obj_b, observer):
@@ -139,23 +133,74 @@ class SpatialRelations(object):
 			raise Exception('NextTo relation is only defined for rigid objects. However object B is not one.')
 
 		if DLCube.is_a(obj_a):
-			max_extent_a = max(obj_a.width, obj_b.height, obj_a.depth)
+			max_extent_a = max(obj_a.width, obj_b.height, obj_a.length)
 		elif DLCylinder.is_a(obj_a):
 			max_extent_a = max(obj_b.height, obj_a.radius)
 		elif DLSphere.is_a(obj_a):
 			max_extent_a = obj_a.radius
 
 		if DLCube.is_a(obj_b):
-			max_extent_b = max(obj_b.width, obj_b.height, obj_b.depth)
+			max_extent_b = max(obj_b.width, obj_b.height, obj_b.length)
 		elif DLCylinder.is_a(obj_b):
 			max_extent_b = max(obj_b.height, obj_b.radius)
 		elif DLSphere.is_a(obj_b):
 			max_extent_b = obj_b.radius
 
-
 		d = norm(pos_of(obj_a.pose) - pos_of(obj_b.pose))
 		return {'next_to': SC(-d, max(max_extent_a, max_extent_b) - d, 1, d)}
 
+
+	@classmethod
+	def above(cls, context, obj_a, obj_b, observer):
+		if not DLRigidObject.is_a(obj_a):
+			raise Exception('NextTo relation is only defined for rigid objects. However object A is not one.')
+
+		if not DLRigidObject.is_a(obj_b):
+			raise Exception('NextTo relation is only defined for rigid objects. However object B is not one.')
+
+		obs_frame = observer.frame_of_reference
+		b_hdim_in_obs = cls.max_aabb_expr(obj_b, obs_frame)
+
+		b2a = pos_of(obj_a.pose) - pos_of(obj_b.pose)
+		b2a_in_obs = vec3(dot(b2a, x_col(obs_frame)), dot(b2a, y_col(obs_frame)), dot(b2a, z_col(obs_frame)))
+
+		max_depth = b_hdim_in_obs[0]
+		min_depth = -max_depth
+
+		max_width = b_hdim_in_obs[1]
+		min_width = -max_width
+
+		out = cls.next_to(context, obj_a, obj_b, observer)
+		out.update({'above':      SC(b_hdim_in_obs[2] - b2a_in_obs[2],                      1000, 1, b2a_in_obs[2]),
+					'same_depth': SC(min_depth        - b2a_in_obs[0], max_depth - b2a_in_obs[0], 1, b2a_in_obs[0]),
+					'same_width': SC(min_width        - b2a_in_obs[1], max_width - b2a_in_obs[1], 1, b2a_in_obs[1])})
+		return out
+
+	@classmethod
+	def below(cls, context, obj_a, obj_b, observer):
+		if not DLRigidObject.is_a(obj_a):
+			raise Exception('NextTo relation is only defined for rigid objects. However object A is not one.')
+
+		if not DLRigidObject.is_a(obj_b):
+			raise Exception('NextTo relation is only defined for rigid objects. However object B is not one.')
+
+		obs_frame = observer.frame_of_reference
+		b_hdim_in_obs = cls.max_aabb_expr(obj_b, obs_frame)
+
+		b2a = pos_of(obj_a.pose) - pos_of(obj_b.pose)
+		b2a_in_obs = vec3(dot(b2a, x_col(obs_frame)), dot(b2a, y_col(obs_frame)), dot(b2a, z_col(obs_frame)))
+
+		max_depth = b_hdim_in_obs[0]
+		min_depth = -max_depth
+
+		max_width = b_hdim_in_obs[1]
+		min_width = -max_width
+
+		out = cls.next_to(context, obj_a, obj_b, observer)
+		out.update({'below':      SC(                    -1000, b_hdim_in_obs[2] - b2a_in_obs[2], 1, b2a_in_obs[2]),
+					'same_depth': SC(min_depth - b2a_in_obs[0],        max_depth - b2a_in_obs[0], 1, b2a_in_obs[0]),
+					'same_width': SC(min_width - b2a_in_obs[1],        max_width - b2a_in_obs[1], 1, b2a_in_obs[1])})
+		return out
 
 	@classmethod
 	def right_of(cls, context, obj_a, obj_b, observer):
@@ -164,7 +209,6 @@ class SpatialRelations(object):
 
 		obs_frame = observer.frame_of_reference
 		b_hdim_in_obs = cls.max_aabb_expr(obj_b, obs_frame)
-		a_hdim_in_obs = cls.max_aabb_expr(obj_a, obs_frame)
 
 		b2a = pos_of(obj_a.pose) - pos_of(obj_b.pose)
 		b2a_in_obs = vec3(dot(b2a, x_col(obs_frame)), dot(b2a, y_col(obs_frame)), dot(b2a, z_col(obs_frame)))
@@ -175,10 +219,10 @@ class SpatialRelations(object):
 		max_height = b_hdim_in_obs[2]
 		min_height = -max_height
 
-		out = cls.next_to(obj_a, obj_b, observer)
-		out.update({'right_of': SC(-1000, -b_hdim_in_obs[1] - b2a_in_obs[1], 1, b2a_in_obs[1]),
-					'same_depth': SC(min_depth - b2a_in_obs[0], max_depth - b2a_in_obs[0], 1, b2a_in_obs[0]),
-					'same_height': SC(min_height - b2a_in_obs[2], max_height - b2a_in_obs[2], 1, b2a_in_obs[2])})
+		out = cls.next_to(context, obj_a, obj_b, observer)
+		out.update({'right_of':    SC(                     -1000, -b_hdim_in_obs[1] - b2a_in_obs[1], 1, b2a_in_obs[1]),
+					'same_depth':  SC(min_depth  - b2a_in_obs[0],         max_depth - b2a_in_obs[0], 1, b2a_in_obs[0]),
+					'same_height': SC(min_height - b2a_in_obs[2],        max_height - b2a_in_obs[2], 1, b2a_in_obs[2])})
 		return out
 
 	@classmethod
@@ -188,7 +232,6 @@ class SpatialRelations(object):
 
 		obs_frame = observer.frame_of_reference
 		b_hdim_in_obs = cls.max_aabb_expr(obj_b, obs_frame)
-		a_hdim_in_obs = cls.max_aabb_expr(obj_a, obs_frame)
 
 		b2a = pos_of(obj_a.pose) - pos_of(obj_b.pose)
 		b2a_in_obs = vec3(dot(b2a, x_col(obs_frame)), dot(b2a, y_col(obs_frame)), dot(b2a, z_col(obs_frame)))
@@ -199,32 +242,61 @@ class SpatialRelations(object):
 		max_height = b_hdim_in_obs[2]
 		min_height = -max_height
 
-		out = cls.next_to(obj_a, obj_b, observer)
-		out.update({'left_of': SC(b_hdim_in_obs[1] - b2a_in_obs[1], 1000, 1, b2a_in_obs[1]),
-					'same_depth': SC(min_depth - b2a_in_obs[0], max_depth - b2a_in_obs[0], 1, b2a_in_obs[0]),
-					'same_height': SC(min_height - b2a_in_obs[2], max_height - b2a_in_obs[2], 1, b2a_in_obs[2])})
+		out = cls.next_to(context, obj_a, obj_b, observer)
+		out.update({'left_of':     SC(b_hdim_in_obs[1] - b2a_in_obs[1],                       1000, 1, b2a_in_obs[1]),
+					'same_depth':  SC(min_depth        - b2a_in_obs[0],  max_depth - b2a_in_obs[0], 1, b2a_in_obs[0]),
+					'same_height': SC(min_height       - b2a_in_obs[2], max_height - b2a_in_obs[2], 1, b2a_in_obs[2])})
 		return out
 
 	@classmethod
 	def in_front_of(cls, context, obj_a, obj_b, observer):
 		obs_frame = observer.frame_of_reference
+		b_hdim_in_obs = cls.max_aabb_expr(obj_b, obs_frame)
+
 		b2a = pos_of(obj_a.pose) - pos_of(obj_b.pose)
 		b2a_in_obs = vec3(dot(b2a, x_col(obs_frame)), dot(b2a, y_col(obs_frame)), dot(b2a, z_col(obs_frame)))
-		out = cls.next_to(obj_a, obj_b, observer)
-		out['in_front_of'] = SC(-1000, -b2a_in_obs[0], 1, b2a_in_obs[0])
+
+		max_width = b_hdim_in_obs[1]
+		min_width = -max_width
+
+		max_height = b_hdim_in_obs[2]
+		min_height = -max_height
+
+		out = cls.next_to(context, obj_a, obj_b, observer)
+		out.update({'in_front_of': SC(-1000, -b_hdim_in_obs[0] -b2a_in_obs[0], 1, b2a_in_obs[0]),
+					'same_height': SC(min_height       - b2a_in_obs[2], max_height - b2a_in_obs[2], 1, b2a_in_obs[2]),
+					'same_width':  SC(min_width        - b2a_in_obs[1], max_width  - b2a_in_obs[1], 1, b2a_in_obs[1])})
 		return out
 
 	@classmethod
 	def behind(cls, context, obj_a, obj_b, observer):
-		front_dict = cls.in_front_of(context, obj_a, obj_b, observer)
-		fo_sc = front_dict['in_front_of']
-		del front_dict['in_front_of']
-		front_dict['left_of'] = SC(fo_sc.upper, -fo_sc.lower, 1, fo_sc.expression)
-		return front_dict
+		obs_frame = observer.frame_of_reference
+		b_hdim_in_obs = cls.max_aabb_expr(obj_b, obs_frame)
+
+		b2a = pos_of(obj_a.pose) - pos_of(obj_b.pose)
+		b2a_in_obs = vec3(dot(b2a, x_col(obs_frame)), dot(b2a, y_col(obs_frame)), dot(b2a, z_col(obs_frame)))
+
+		max_width = b_hdim_in_obs[1]
+		min_width = -max_width
+
+		max_height = b_hdim_in_obs[2]
+		min_height = -max_height
+
+		out = cls.next_to(context, obj_a, obj_b, observer)
+		out.update({'behind_of':   SC(b_hdim_in_obs[0] - b2a_in_obs[0], 1000, 1, b2a_in_obs[0]),
+					'same_height': SC(min_height       - b2a_in_obs[2], max_height - b2a_in_obs[2], 1, b2a_in_obs[2]),
+					'same_width':  SC(min_width        - b2a_in_obs[1], max_width  - b2a_in_obs[1], 1, b2a_in_obs[1])})
+		return out
 
 	@classmethod
 	def upright(cls, context, obj):
 		expr = 1 - dot(unitZ, z_col(obj.pose))
 		return {'upright': SC(-expr, -expr, 1, expr)}
 
+	@classmethod
+	def pointing_at(cls, context, thing_a, thing_b):
+		goal_vec = pos_of(thing_b.pose) - pos_of(thing_a.pose)
+		dir_dot = dot(x_col(thing_a.pose), goal_vec)
+		ctrl = norm(goal_vec) - dir_dot
+		return {'pointing_at': SC(ctrl, ctrl, 1, dir_dot)}
 

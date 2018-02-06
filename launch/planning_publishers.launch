@@ -1,0 +1,29 @@
+<launch>
+  <node pkg="iai_naive_kinematics_sim" type="simulator" name="simulator_t0" output="screen">
+    <rosparam command="load" file="$(find fetch_giskard)/test_data/fetch_sim_config.yaml" />
+    <remap from="~joint_states" to="joint_states_t0" />
+  </node>
+
+	<node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_t0" output="screen">
+		<remap from="/joint_states" to="/joint_states_t0"/>
+		<param name="tf_prefix" type="string" value="t0"/>
+    </node>
+
+  <node pkg="iai_naive_kinematics_sim" type="simulator" name="simulator_t1" output="screen">
+    <rosparam command="load" file="$(find fetch_giskard)/test_data/fetch_sim_config.yaml" />
+    <remap from="~joint_states" to="joint_states_t1" />
+  </node>
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher_t1" output="screen">
+		<remap from="/joint_states" to="/joint_states_t1"/>
+		<param name="tf_prefix" type="string" value="t1"/>
+    </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="t0_base_link"
+        output="screen" args="0 0 0 0 0 0 base_link t0/base_link 100" />
+
+  <node pkg="tf" type="static_transform_publisher" name="t1_base_link"
+        output="screen" args="0 0 0 0 0 0 base_link t1/base_link 100" />
+
+
+</launch>

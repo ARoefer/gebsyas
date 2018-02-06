@@ -1,6 +1,7 @@
 import rospy
 from visualization_msgs.msg import Marker, MarkerArray
 from giskard_affordances.utils import expr_to_rosmsg
+from giskard_affordances.msg import FloatTable
 from urdf_parser_py.urdf import Sphere, Cylinder, Box, Mesh
 
 def del_marker(Id, namespace):
@@ -27,10 +28,11 @@ def blank_marker(Id, namespace, r, g, b, a, frame):
 
 
 class ROSVisualizer():
-	def __init__(self, vis_topic, base_frame='base_link'):
+	def __init__(self, vis_topic, base_frame='base_link', plot_topic='plot'):
 		self.ids     = {}
 		self.lastIds = {}
-		self.publisher = rospy.Publisher(vis_topic, MarkerArray, queue_size=10)
+		self.publisher = rospy.Publisher(vis_topic, MarkerArray, queue_size=1)
+		self.plot_publisher = rospy.Publisher(plot_topic, FloatTable, queue_size=1)
 		self.base_frame = base_frame
 		self.current_msg = None
 
@@ -151,4 +153,7 @@ class ROSVisualizer():
 				points += 1
 				#print('\n   '.join(['{:25}: {}'.format(name, pos) for name, pos in js_dict.items()]))
 
-		print('Rendered {} trajectory points. Original count: {}'.format(points, len(trajectory)))
+		#print('Rendered {} trajectory points. Original count: {}'.format(points, len(trajectory)))
+
+	#def draw_plot_point(self, name, value):
+

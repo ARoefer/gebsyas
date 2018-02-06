@@ -1,8 +1,9 @@
 import rospy
 from giskard_affordances.actions import Action
-from giskard_affordances.expression_parser import parse_bool_expr, parse_path, UnaryOp, BinaryOp, Function
+from giskard_affordances.expression_parser import parse_bool_expr, parse_path, normalize, UnaryOp, BinaryOp, Function, parse_name
 from giskard_affordances.dl_reasoning import bool_expr_tree_to_dl, SymbolicData
 from giskard_affordances.predicate_state_action import PSAction
+from giskard_affordances.utils import YAML
 import sys
 import traceback
 
@@ -26,14 +27,21 @@ screen."""
 
 getch = _Getch()
 
+def and_to_set(expr):
+	if type(expr) == BinaryOp and expr.op == 'and':
+		return and_to_set(expr.a).union(and_to_set(expr.b))
+	return {expr}
+
 
 class SimpleAgentIOAction(Action):
 	def __init__(self, agent):
 		super(SimpleAgentIOAction, self).__init__('{}\'s IO-Action'.format(agent.name))
-		self.classQuery   = 'Objects: '
-		self.objectQuery  = 'What is '
-		self.actionQuery  = 'Do: '
-		self.dumpQuery    = 'Dump: '
+		self.classQuery   = 'objects: '
+		self.objectQuery  = 'what is '
+		self.actionQuery  = 'do: '
+		self.dumpQuery    = 'dump: '
+		self.memorize     = 'memorize: '
+		self.type_structure_query = 'what makes a '
 		self.len_last_line = 0
 
 	def printstr(self, string):
@@ -82,7 +90,7 @@ class SimpleAgentIOAction(Action):
 			context.display.begin_draw_cycle()
 
 
-			command = 'Do: Grasped(gripper, box1)' #raw_input('> ') #
+			command =  raw_input('> ') #'Do: LeftOf(coke1, box1, me) and Free(gripper)'
 
 			if command == 'bye' or rospy.is_shutdown():
 				break
@@ -101,63 +109,93 @@ class SimpleAgentIOAction(Action):
 					traceback.print_exc()
 					self.printstr(str(e))
 					continue
-				results = []
-				for Id, obj in context.agent.get_data_state().get_data_map().items():
-					if concept.is_a(obj.data):
-						results.append(Id)
+				results = [Id for Id in context.agent.get_data_state().dl_iterator(concept)]
 
 				if results != []:
 					self.println('The objects with the following Ids are {}: \n   {}'.format(concept, '\n   '.join(results)))
 				else:
 					self.println('I know no objects which are {}'.format(concept))
 
+			elif command[:len(self.type_structure_query)].lower() == self.type_structure_query.lower() and command[-1] == '?':
+				parser_input = command[len(self.type_structure_query):-1]
+				try:
+					name, remainder = parse_name(parser_input)
+					if remainder == '':
+						concept = context.agent.get_tbox()[name]
+						self.println('Concept {} is subsumed by:\n  {}'.format(name, str(concept)))
+					else:
+						self.println('That is not a valid concept name')
+				except Exception as e:
+					traceback.print_exc()
+					self.println(str(e))
+					continue
 			elif command[:len(self.objectQuery)].lower() == self.objectQuery.lower() and command[-1] == '?':
 				parser_input = command[len(self.objectQuery):-1]
 				Id, remainder = parse_path(parser_input)
 				if remainder == '':
-					obj = context.agent.get_data_state()[Id]
-					if obj.data != None:
-						results = []
-						if type(obj.data) == SymbolicData:
-							obj = obj.data
-							results.append('Symbolic')
+					# Just for nicer interactions
+					if Id[:3] == 'you':
+						Id = 'me' + Id[3:]
+					elif Id[:2] == 'me':
+						Id = 'you' + Id[2:]
+					################
 
-						for k, c in context.agent.get_tbox().items():
-							if c.is_a(obj.data):
-								results.append(k)
-						if results != []:
-							self.println('{} is a... \n   {}'.format(Id, '\n   '.join(results)))
+					try:
+						obj = context.agent.get_data_state().find_by_path(Id, True)
+						if obj.data != None:
+							results = []
+							if type(obj.data) == SymbolicData:
+								obj = obj.data
+								results.append('Symbolic')
+
+							results.extend(context.agent.get_tbox().classify(obj.data))
+							if results != []:
+								self.println('{} is a... \n   {}'.format(Id, '\n   '.join([str(x) for x in results])))
+							else:
+								self.println('{} matches nothing in my TBox.'.format(Id))
 						else:
-							self.println('{} matches nothing in my TBox.'.format(Id))
-					else:
-						self.println('I don\'t know anything called "{}".'.format(Id))
+							self.println('I don\'t know anything called "{}".'.format(Id))
+					except Exception as e:
+						traceback.print_exc()
+						self.println(e)
+						continue
 				else:
 					self.println('That\'s not a valid Id. Remaining: {}'.format(remainder))
 			elif command[:len(self.actionQuery)].lower() == self.actionQuery.lower():
 				try:
 					expr = parse_bool_expr(command[len(self.actionQuery):])[0]
+					goal_set = and_to_set(normalize(expr))
+
+					pred_state = context.agent.get_predicate_state()
+					goal_state = {}
+
+					for s in goal_set:
+						ts = type(s)
+						truth = True
+						if ts == UnaryOp and s.op == 'not':
+							truth = False
+							s = s.a
+
+						if type(s) == Function:
+							if s.name in pred_state.predicates:
+								p = pred_state.predicates[s.name]
+								if p not in goal_state:
+									goal_state[p] = {}
+
+								if len(p.dl_args) != len(s.args):
+									raise Exception('The predicate {} requires {} arguments. You gave {}'.format(p.P, len(p.dl_args), len(s.args)))
+								goal_state[p][s.args] = truth
+							else:
+								raise Exception('I don\'t know any predicate called {}'.format(s.name))
+						else:
+							raise Exception('I can currently only do conjunctive goals, so please only use "and" and "not".')
+
+					self.execute_subaction(context, PSAction(goal_state))
 				except Exception as e:
+					traceback.print_exc()
 					self.println(e)
 					continue
-				goal = {}
-				predicate_state = context.agent.get_predicate_state()
-				if type(expr) == Function:
-					if expr.name in predicate_state.predicates:
-						p = predicate_state.predicates[expr.name]
-						goal[(p, tuple(expr.args))] = True
-					else:
-						self.println('Unknown predicate "{}"'.format(expr.name))
-						continue
-				elif type(expr) == UnaryOp and expr.op == 'not' and type(expr.a) == Function:
-					expr = expr.a
-					if expr.name in predicate_state.predicates:
-						p = predicate_state.predicates[expr.name]
-						goal[(p, tuple(expr.args))] = False
-					else:
-						self.println('Unknown predicate "{}"'.format(expr.name))
-				else:
-					self.println('Currently I can only work with goals of the form "P(...)" or "not P(...)"')
-				self.execute_subaction(context, PSAction(goal))
+
 			elif command[-1] == '?':
 				try:
 					expr = parse_bool_expr(command[:-1])[0]
@@ -166,24 +204,39 @@ class SimpleAgentIOAction(Action):
 					traceback.print_exc()
 					self.println(e)
 					continue
-			elif command[:len(self.dumpQuery)] == self.dumpQuery:
+			elif command[:len(self.dumpQuery)].lower() == self.dumpQuery:
 				parser_input = command[len(self.dumpQuery):]
 				Id, remainder = parse_path(parser_input)
 				if remainder == '':
 					obj = context.agent.get_data_state()[Id]
-					self.println('[{:>10.4f}] {}'.format(obj.stamp.to_sec(), str(obj.data)))
+					try:
+						self.println('[{:>10.4f}] {}'.format(obj.stamp.to_sec(), YAML.dump(obj.data)))
+					except Exception as e:
+						traceback.print_exc()
+						self.println(e)
+						continue
+				else:
+					self.println('That\'s not a valid Id. Remaining: {}'.format(remainder))
+			elif command[:len(self.memorize)].lower() == self.memorize:
+				command = command[len(self.memorize):]
+				parts = [part.replace(' ', '') for part in command.split(' as ')]
+				if len(parts) != 2:
+					self.println('The syntax of memorize is "Memorize: Thing_I_know as Name_of_memory')
+					continue
+
+				Id, remainder = parse_path(parts[0])
+				if remainder == '':
+					obj = context.agent.get_predicate_state().map_to_data(Id)
+					context.agent.memory[parts[1]] = obj.data
+					self.println('Memorized {} as {}'.format(parts[0], parts[1]))
 				else:
 					self.println('That\'s not a valid Id. Remaining: {}'.format(remainder))
 			else:
 				self.println('I don\'t understand what you mean by "{}"'.format(command))
 
+			context.agent.get_predicate_state().visualize(context.display)
 			context.display.render()
-			break
-
-		# curses.nocbreak()
-		# self.stdscr.keypad(0)
-		# curses.echo()
-		# curses.endwin()
+			#break
 
 	def evaluate_bool_query(self, predicate_state, query, context):
 		tq = type(query)
@@ -199,6 +252,16 @@ class SimpleAgentIOAction(Action):
 		elif tq == Function:
 			if query.name in predicate_state.predicates:
 				p = predicate_state.predicates[query.name]
-				return predicate_state.evaluate(p, tuple(query.args), context.log)
+				return predicate_state.evaluate(context, p, tuple(self.__change_pov(query.args)))
 		raise Exception('Can\'t evaluate "{}"'.format(str(query)))
 
+	def __change_pov(self, ids):
+		out = []
+		for x in ids:
+			if x[:2] == 'me':
+				out.append('you' + x[2:])
+			elif x[:3] == 'you':
+				out.append('me' + x[3:])
+			else:
+				out.append(x)
+		return out

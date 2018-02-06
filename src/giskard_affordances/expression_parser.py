@@ -17,10 +17,10 @@ def parse_bool_expr(string):
 	string = remainder.lstrip()
 
 	if string[:4] == 'and ':
-		b, remainder = parse_bool_expr(string)
+		b, remainder = parse_bool_expr(string[4:])
 		return BinaryOp('and', a, b), remainder
 	elif string[:3] == 'or ':
-		b, remainder = parse_bool_expr(string)
+		b, remainder = parse_bool_expr(string[4:])
 		return BinaryOp('or', a, b), remainder
 
 	return a, string
@@ -61,7 +61,7 @@ def parse_homogenous_list(string, sub_parser):
 		if len(string) == 0 or string[0] != ',':
 			break
 		string = string[1:]
-	return out, string
+	return tuple(out), string
 
 def parse_path(string):
 	string = string.lstrip()
@@ -75,4 +75,23 @@ def parse_path(string):
 def parse_name(string):
 	string = string.lstrip()
 	m = re.search('^[a-zA-Z][a-zA-Z0-9_]*', string)
+	if m is None:
+		raise Exception('Pattern match for name "{}" returned None!'.format(string))
 	return m.group(0), string[len(m.group(0)):]
+
+
+def normalize(expr):
+	t = type(expr)
+	if t == UnaryOp and expr.op == 'not':
+		ti = type(expr.a)
+		if ti == UnaryOp and expr.a.op == 'not':
+			return normalize(expr.a.a)
+		elif ti == BinaryOp:
+			if expr.a.op == 'and':
+				return normalize(BinaryOp('or', UnaryOp('not', expr.a.a), UnaryOp('not', expr.a.b)))
+			elif expr.a.op == 'or':
+				return normalize(BinaryOp('and', UnaryOp('not', expr.a.a), UnaryOp('not', expr.a.b)))
+	elif t == BinaryOp:
+		return BinaryOp(expr.op, normalize(expr.a), normalize(expr.b))
+
+	return expr

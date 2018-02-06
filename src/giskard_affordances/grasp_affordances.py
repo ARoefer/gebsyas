@@ -5,58 +5,89 @@ from giskard_affordances.dl_reasoning import *
 import symengine as sp
 
 class BasicGraspAffordances(object):
+    @classmethod
+    def __gen_grasp_expr(cls, gripper, width, safety_margin=0.015):
+        return saturate(gripper.opening / (width + safety_margin)) * sp.heaviside(gripper.max_opening - width - safety_margin)
 
+    @classmethod
+    def __gen_open_gripper(cls, gripper, width, maximum=10, safety_margin=0.015):
+        return SC(width + safety_margin - gripper.opening, maximum, 1, gripper.opening)
 
     @classmethod
     def point_grasp(cls, gripper, point):
-        return 1 - norm(pos_of(gripper.frame) - point)
+        expr = norm(pos_of(gripper.pose) - point)
+        return {'point_grasp': SC(-expr, -expr, 1, expr)}
 
     @classmethod
     def sphere_grasp(cls, gripper, center, width):
-        return cls.point_grasp(gripper, center) * saturate(gripper.opening / width) * sp.heaviside(gripper.max_opening - width)
+        pg_sc = cls.point_grasp(gripper, center).values()[0]
+        pg_sc = SC(pg_sc.lower * cls.__gen_grasp_expr(gripper, width),
+                   pg_sc.upper * cls.__gen_grasp_expr(gripper, width),
+                   pg_sc.weight, pg_sc.expression)
+        return {'sphere_grasp': pg_sc, 'open_gripper': cls.__gen_open_gripper(gripper, width)}
 
-    @classmethod
-    def partial_sphere_grasp(cls, gripper, center, up, width, angular_limit=1.56):
-        return cls.sphere_grasp(gripper, center, width) * sp.Max(0, sp.cos(angular_limit) + dot(gripper.frame[:4, :1], up))
+    # @classmethod
+    # def partial_sphere_grasp(cls, gripper, center, up, width, angular_limit=1.56):
+    #     return cls.sphere_grasp(gripper, center, width) * sp.Max(0, sp.cos(angular_limit) + dot(gripper.pose[:4, :1], up))
 
     @classmethod
     def axis_grasp(cls, gripper, point, dir):
-        gripper_frame = gripper.frame
+        gripper_frame = gripper.pose
         gripper_z = gripper_frame[:4, 2:3]
         gripper_pos = pos_of(gripper_frame)
         p2g = gripper_pos - point
         #      Align z axis of gripper and axis; Align gripper position to axis
-        return abs(dot(dir, gripper_z)) * (1 - norm(cross(dir, p2g)))
+        pos_alignment_expr = norm(cross(dir, p2g))
+        rot_alignment_expr = abs(dot(dir, gripper_z))
+        pa_sc = SC(-pos_alignment_expr * rot_alignment_expr, 0.01-pos_alignment_expr * rot_alignment_expr, 1, pos_alignment_expr)
+        ra_sc = SC(1 - rot_alignment_expr, 1 - rot_alignment_expr, 1, rot_alignment_expr)
+        return {'axis_position_alignment': pa_sc, 'axis_rotation_alignment': ra_sc}
 
     @classmethod
     def line_grasp(cls, gripper, center, dir, length):
-        gripper_frame = gripper.frame
+        length = length - 2*gripper.height
+        gripper_frame = gripper.pose
         gripper_pos = pos_of(gripper_frame)
-        normed_z_dist = abs(dot(gripper_pos - center, dir)) / (length * 0.5)
-        distance_scale = 1 - max(normed_z_dist - 1, 0)
-        return cls.axis_grasp(gripper, center, dir) * distance_scale
+        z_dist = abs(dot(gripper_pos - center, dir))
+        agdict = cls.axis_grasp(gripper, center, dir)
+        pa_sc = agdict['axis_position_alignment']
+        ra_sc = agdict['axis_rotation_alignment']
+        return {'axis_position_alignment': pa_sc, 'line_rotation_alignment': ra_sc, 'line_z_alignment': SC(-z_dist * ra_sc.expression, (0.5*length-z_dist) * ra_sc.expression, 1, z_dist)}
 
     @classmethod
     def column_grasp(cls, gripper, point, dir, width):
-        return cls.axis_grasp(gripper, point, dir) * saturate(gripper.opening / width) * sp.heaviside(gripper.max_opening - width)
+        updated = {n: SC(sc.lower * cls.__gen_grasp_expr(gripper, width), sc.upper * cls.__gen_grasp_expr(gripper, width), sc.weight, sc.expression) for n, sc in cls.axis_grasp(gripper, point, dir).items()}
+        updated['open_gripper'] = cls.__gen_open_gripper(gripper, width)
+        return updated
 
     @classmethod
     def rod_grasp(cls, gripper, center, dir, length, width):
-        return cls.line_grasp(gripper, center, dir, length) * saturate(gripper.opening / width) * sp.heaviside(gripper.max_opening - width)
+        updated = {n: SC(sc.lower * cls.__gen_grasp_expr(gripper, width), sc.upper * cls.__gen_grasp_expr(gripper, width), sc.weight, sc.expression) for n, sc in cls.line_grasp(gripper, center, dir, length).items()}
+        updated['open_gripper'] = cls.__gen_open_gripper(gripper, width)
+        return updated
 
     @classmethod
     def edge_grasp(cls, gripper, point, normal, dir):
-        return cls.axis_grasp(gripper, point, dir) * -dot(gripper.frame[:4, :1], normal)
+        agdict = cls.axis_grasp(gripper, point, dir)
+        ndot  = -dot(x_col(gripper.pose), normal)
+        ra_sc = agdict['axis_rotation_alignment']
+        ra_expr = ra_sc.expression + ndot
+        agdict['axis_rotation_alignment'] = SC(2 - ra_expr, 2 - ra_expr, ra_sc.weight, ra_expr)
+        return agdict
 
     @classmethod
     def rim_grasp(cls, gripper, point, normal, dir, width):
-        return cls.edge_grasp(gripper, point, normal, dir) * saturate(gripper.opening / width) * sp.heaviside(gripper.max_opening - width)
+        updated = {n: SC(sc.lower * cls.__gen_grasp_expr(gripper, width), sc.upper * cls.__gen_grasp_expr(gripper, width), sc.weight, sc.expression) for n, sc in cls.edge_grasp(gripper, point, normal, dir).items()}
+        updated['open_gripper'] = cls.__gen_open_gripper(gripper, width)
+        return updated
 
     @classmethod
     def circular_edge_grasp(cls, gripper, center, axis, radius):
-        gripper_pos = pos_of(gripper.frame)
-        gripper_y = gripper.frame[:4, 1:2]
-        gripper_x = gripper.frame[:4,  :1]
+        raise Exception('Needs to be update to use inequality constraints')
+
+        gripper_pos = pos_of(gripper.pose)
+        gripper_y = gripper.pose[:4, 1:2]
+        gripper_x = gripper.pose[:4,  :1]
         p2g = gripper_pos - center
         gripper_plane_dist = dot(axis, p2g)
         gripper_pos_in_plane = gripper_pos - gripper_plane_dist * axis
@@ -73,63 +104,55 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def box_grasp(cls, gripper, frame, dx, dy, dz):
-        gx = x_col(gripper.frame)
-        gz = z_col(gripper.frame)
-        # print(str(gx))
-        # print(str(gz))
+        gx = x_col(gripper.pose)
+        gz = z_col(gripper.pose)
 
         bx = x_col(frame)
         by = y_col(frame)
         bz = z_col(frame)
-        # print(str(bx))
-        # print(str(by))
-        # print(str(bz))
 
-        xx_dot = dot(gx, bx)
-        zz_dot = dot(gz, bz)
+        raxx = abs(dot(gx, bx))
+        raxy = abs(dot(gx, by))
+        raxz = abs(dot(gx, bz))
 
-        xy_dot = dot(gx, by)
-        xz_dot = dot(gx, bz)
-        zx_dot = dot(gz, bx)
-        zy_dot = dot(gz, by)
+        razx = abs(dot(gz, bx))
+        razy = abs(dot(gz, by))
+        razz = abs(dot(gz, bz))
+
+        x_grasp_depth = max(dx * 0.5 - 0.04, 0) # TODO: Add finger length
+        y_grasp_depth = max(dy * 0.5 - 0.04, 0) # TODO: Add finger length
+        z_grasp_depth = max(dz * 0.5 - 0.04, 0) # TODO: Add finger length
+
+        dx_sm = dx * 0.5 + 0.015 - gripper.height
+        dy_sm = dy * 0.5 + 0.015 - gripper.height
+        dz_sm = dz * 0.5 + 0.015 - gripper.height
+
+        x_grasp_feasibility = sp.heaviside(gripper.max_opening - dx_sm)
+        y_grasp_feasibility = sp.heaviside(gripper.max_opening - dy_sm)
+        z_grasp_feasibility = sp.heaviside(gripper.max_opening - dz_sm)
 
         # Distances in box-coords
-        b2g = pos_of(gripper.frame) - pos_of(frame)
-        distx  = dot(b2g, bx)
-        disty  = dot(b2g, by)
-        distz  = dot(b2g, bz)
+        b2g = pos_of(gripper.pose) - pos_of(frame)
+        distx  = abs(dot(b2g, bx))
+        disty  = abs(dot(b2g, by))
+        distz  = abs(dot(b2g, bz))
 
-        # Normed distances
-        distx_n = distx / (dx * 0.5)
-        disty_n = disty / (dy * 0.5)
-        distz_n = distz / (dz * 0.5)
 
-        dx_sm = dx + 0.02
-        dy_sm = dy + 0.02
-        dz_sm = dz + 0.02
+        rot_goal_expr = max(raxx*razz*y_grasp_feasibility,
+                            raxx*razy*z_grasp_feasibility,
+                            raxy*razz*x_grasp_feasibility,
+                            raxy*razx*z_grasp_feasibility,
+                            raxz*razx*y_grasp_feasibility,
+                            raxz*razy*x_grasp_feasibility)
 
-        inx = max(distx_n**2 - 1, 0)
-        iny = max(disty_n**2 - 1, 0)
-        inz = max(distz_n**2 - 1, 0)
 
-        # Grasp along x
-        #                        1             1                           1
+        rot_goal_sc = SC(1 - rot_goal_expr, 1 - rot_goal_expr, 1, rot_goal_expr)
+        x_coord_sc = SC(x_grasp_depth * raxx - distx, max(raxy*razz, raxz*razy) * -distx + (dx_sm - distx) * razx, 1, distx)
+        y_coord_sc = SC(y_grasp_depth * raxy - disty, max(raxx*razz, raxz*razx) * -disty + (dy_sm - disty) * razy, 1, disty)
+        z_coord_sc = SC(z_grasp_depth * raxz - distz, max(raxy*razx, raxx*razy) * -distz + (dz_sm - distz) * razz, 1, distz)
 
-        xz_align_and_open = abs(xx_dot) * abs(zz_dot) * saturate(gripper.opening / dy_sm) * sp.heaviside(gripper.max_opening - dy_sm)
-        xy_align_and_open = abs(xx_dot) * abs(zy_dot) * saturate(gripper.opening / dz_sm) * sp.heaviside(gripper.max_opening - dz_sm)
-        x_grasp_pos = tip_at_one(distx_n * -xx_dot) - max(xz_align_and_open - inz - abs(disty_n), xy_align_and_open - iny - abs(distz_n))
+        return {'rot_goal': rot_goal_sc, 'x_coord': x_coord_sc, 'y_coord': y_coord_sc, 'z_coord': z_coord_sc, 'open_gripper': cls.__gen_open_gripper(gripper, gripper.max_opening, safety_margin=0)}
 
-        # Grasp along y
-        yz_align_and_open = abs(xy_dot) * abs(zz_dot) * saturate(gripper.opening / dx_sm) * sp.heaviside(gripper.max_opening - dx_sm)
-        yx_align_and_open = abs(xy_dot) * abs(zx_dot) * saturate(gripper.opening / dz_sm) * sp.heaviside(gripper.max_opening - dz_sm)
-        y_grasp_pos = (-xy_dot * disty_n) * max(inz * (-distx_n**2 + 1) * yz_align_and_open, inx * (-distz_n**2 + 1) * yx_align_and_open)
-
-        # Grasp along z
-        zx_align_and_open = abs(xz_dot) * abs(zx_dot) * saturate(gripper.opening / dy_sm) * sp.heaviside(gripper.max_opening - dy_sm)
-        zy_align_and_open = abs(xz_dot) * abs(zx_dot) * saturate(gripper.opening / dx_sm) * sp.heaviside(gripper.max_opening - dx_sm)
-        z_grasp_pos = (-xz_dot * distz_n) * max(inx * (-disty_n**2 + 1) * zx_align_and_open, iny * (-distx_n**2 + 1) * zy_align_and_open)
-
-        return x_grasp_pos #- (inz + abs(disty_n)) - abs(distx_n) #* abs(xx_dot) * abs(zz_dot) * (inz - abs(disty_n))   # max(x_grasp_pos, y_grasp_pos, z_grasp_pos)
 
     @classmethod
     def combine_expressions_additive(cls, *args):
@@ -196,28 +219,24 @@ class BasicGraspAffordances(object):
         #                                    cls.partial_sphere_grasp(gripper, frame * point3(0,0,-0.5*height), -capsule_z, diameter, 0.5*pi)])
 
     @classmethod
-    def object_grasp(cls, gripper, obj):
+    def object_grasp(cls, context, gripper, obj):
         if DLRigidObject.is_a(obj):
             if DLCompoundObject.is_a(obj):
-                print('Grasp object was classified as compound object')
                 if type(obj.subObject) == list:
+                    raise Exception('Needs to be updated to use inequality constraints')
                     return cls.combine_expressions_max(True, [cls.object_grasp(gripper, so) for so in obj.subObject])
                 else:
                     return cls.object_grasp(gripper, obj.subObject)
             else:
                 if DLCube.is_a(obj):
-                    print('Grasp object was classified as cube')
                     return cls.box_grasp(gripper, obj.pose, obj.length, obj.width, obj.height)
                 elif DLPartialSphere.is_a(obj):
-                    print('Grasp object was classified as partial sphere')
                     return cls.partial_sphere_grasp(gripper, pos_of(obj.pose), z_col(obj.pose), 2*obj.radius, obj.angle)
                 elif DLCylinder.is_a(obj):
-                    print('Grasp object was classified as cylinder')
                     return cls.rod_grasp(gripper, pos_of(obj.pose), z_col(obj.pose), obj.height, 2*obj.radius) #obj.height, 2*obj.radius
                 elif DLSphere.is_a(obj):
-                    print('Grasp object was classified as sphere')
                     return cls.sphere_grasp(gripper, pos_of(obj.pose), 2*obj.radius)
         else:
-            print("Can't grasp {}, because it's not a rigid object.".format(str(obj)))
+            context.log("Can't grasp {}, because it's not a rigid object.".format(str(obj)))
 
         return 0

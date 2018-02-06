@@ -2,6 +2,7 @@
 import sys
 import rospy
 import tf
+from std_msgs.msg import Empty
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import InteractiveMarkerInit as IMIMsg
 from visualization_msgs.msg import InteractiveMarkerFeedback as IMFMsg
@@ -70,6 +71,11 @@ def partial_update_cb(update):
 
             publisher.publish(objects[update.marker_name])
 
+def republish(msg):
+    print('I\'ll show you what I got!')
+    for obj in objects.values():
+        publisher.publish(obj)
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -80,8 +86,9 @@ if __name__ == '__main__':
 
     listener = tf.TransformListener()
 
+    publisher  = rospy.Publisher(sys.argv[2], POMsg, queue_size=12)
+    show_me_what_you_got = rospy.Subscriber('/show_me_what_you_got', Empty, republish, queue_size=1)
     subscriber = rospy.Subscriber('/{}/update_full'.format(sys.argv[1]), IMIMsg, full_update_cb, queue_size=10)
     fb_sub     = rospy.Subscriber('/{}/feedback'.format(sys.argv[1]), IMFMsg, partial_update_cb, queue_size=10)
-    publisher  = rospy.Publisher(sys.argv[2], POMsg, queue_size=3)
 
     rospy.spin()

@@ -1,10 +1,13 @@
+from time import time
+
+from giskard_affordances.actions import Action
+from giskard_affordances.basic_controllers import InEqController, run_ineq_controller
 from giskard_affordances.constants import *
 from giskard_affordances.gnp_planner import GNPPlanner
-from giskard_affordances.basic_controllers import SimpleCartesianController, run_convergence_controller
-from giskard_affordances.actions import Action, GripperAction
-from sensor_msgs.msg import JointState
+from giskard_affordances.grasp_action import GripperAction
 from giskardpy.symengine_wrappers import *
-from time import time
+from sensor_msgs.msg import JointState
+
 
 def robot_joints_symbol_map(robot):
 	return dict([(str(j), 'joint_state/{}'.format(j)) for j in robot._joints.keys()])
@@ -32,16 +35,16 @@ class PNPAction(Action):
 		best_gripper, rating, grasp_frame, goal_frame = gnpp.solve(200, {}, context.display)
 		print('Solving for gnpp solution took {}'.format(time() - t_solve_begin))
 		if rating >= grasping_threshold:
-			grasp_ctrl = SimpleCartesianController(self.robot, self.grippers[best_gripper].frame)
+			grasp_ctrl = InEqController(self.robot, self.grippers[best_gripper].frame)
 			grasp_ctrl.set_goal(grasp_frame)
-			grasp_rating, gr_dx, t_log = run_convergence_controller(self.robot, grasp_ctrl, 'feedback', 10.0, 1.5, context.agent, GRASP_DT_THRESHOLD, GRASP_THRESHOLD)
-			if gras_rating >= GRASP_THRESHOLD:
+			grasp_success, gr_lf, t_log = run_ineq_controller(self.robot, grasp_ctrl, 10.0, 1.5, context.agent)
+			if grasp_success:
 				if self.execute_subaction(context, GripperAction(self.grippers[best_gripper], 0)) > 0.8:
 					symbolic_object_pose = self.grippers[best_gripper].frame.inv() * obj.pose
 					context.agent.add_tracker(SymbolicObjectPoseTracker(obj.id, context.agent.data_state, symbolic_object_pose, robot_joints_symbol_map(self.robot)))
-					place_ctrl = SimpleCartesianController(self.robot, symbolic_object_pose)
-					place_rating, mv_dx, t_log = run_convergence_controller(self.robot, move_ctrl, 'feedback', 10.0, 1.5, context.agent, PLACE_DT_THRESHOLD, PLACE_THRESHOLD)
-					if place_rating >= PLACE_THRESHOLD:
+					place_ctrl = InEqController(self.robot, symbolic_object_pose)
+					place_success, mv_lf, t_log = run_ineq_controller(self.robot, move_ctrl, 10.0, 1.5, context.agent)
+					if place_success:
 						if self.execute_subaction(context, GripperAction(self.grippers[best_gripper], 0)) > 0.8:
 							context.agent.remove_tracker(obj.id)
 							return 1.0

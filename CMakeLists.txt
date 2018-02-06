@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   std_msgs
   geometry_msgs
+  control_msgs
+  sensor_msgs
   giskardpy
   rospy
 )
@@ -53,6 +55,7 @@ add_message_files(
    FILES
    ProbabilisticObject.msg
    StringArray.msg
+   FloatTable.msg
  )
 
 ## Generate services in the 'srv' folder

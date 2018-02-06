@@ -15,7 +15,7 @@ import copy
 import rospy
 
 
-GNP = namedtuple('GNP', ['gnp_term', 'gripper_t0_frame', 'object_t1_frame'])
+GNP = namedtuple('GNP', ['gnp_scs', 'gripper_t0_frame', 'object_t1_frame'])
 
 class GNPPlanner(QPController):
     def __init__(self, robot, grippers, obj, grasp_gen_function, goal_gen_function, grasp_args={}, goal_args={}):
@@ -51,14 +51,15 @@ class GNPPlanner(QPController):
         ifile = open('gnp_matrices.txt', 'w')
         for gn, g in self.grippers.items():
             gripper_t0 = Gripper(g.name,
-                                 subs_if_sym(g.frame, self.t0_symbols),
+                                 subs_if_sym(g.pose, self.t0_symbols),
                                  subs_if_sym(g.opening, self.t0_symbols),
                                  subs_if_sym(g.height, self.t0_symbols),
-                                 subs_if_sym(g.max_opening, self.t0_symbols))
+                                 subs_if_sym(g.max_opening, self.t0_symbols),
+                                 g.link_name)
             ifile.write('\n{}_t0.pose:\n'.format(g.name))
-            ifile.write(str(gripper_t0.frame))
+            ifile.write(str(gripper_t0.pose))
 
-            t0_frame_inv = gripper_t0.frame.inv()
+            t0_frame_inv = gripper_t0.pose.inv()
 
             ifile.write('\n{}_t0.pose^-1:\n'.format(g.name))
             ifile.write(str(t0_frame_inv))
@@ -71,22 +72,23 @@ class GNPPlanner(QPController):
             ifile.write(str(obj_in_gripper))
 
             obj_t1 = copy.copy(self.object)
-            obj_t1.pose = subs_if_sym(g.frame, self.t1_symbols) * obj_in_gripper
+            obj_t1.pose = subs_if_sym(g.pose, self.t1_symbols) * obj_in_gripper
 
             ifile.write('\n{}_t1.pose * {}_t0.pose^-1 * {}.pose:\n'.format(g.name, g.name, self.object.id))
             ifile.write(str(obj_t1.pose))
             #print(obj_t1.pose)
 
-            gnp_term = self.grasp_gen_function(gripper_t0, self.object, *self.grasp_args) + self.goal_gen_function(obj_t1, *self.goal_args)
+            gnp_scs = self.grasp_gen_function(gripper_t0, self.object, *self.grasp_args)
+            gnp_scs.update(self.goal_gen_function(obj_t1, *self.goal_args))
             # gnp_term = self.grasp_gen_function(gripper_t0, self.object, *self.grasp_args)
             #gnp_term = self.goal_gen_function(obj_t1, *self.goal_args)
-            self.gnps[g.name] = GNP(gnp_term, gripper_t0.frame, obj_t1.pose)
+            self.gnps[g.name] = GNP(gnp_scs, gripper_t0.pose, obj_t1.pose)
 
         ifile.close()
-        self.sc_expression = BGA.combine_expressions_max(True, [gnp.gnp_term for gnp in self.gnps.values()])
-        sc_ctrl = 2 - self.sc_expression
-        self._soft_constraints['gnp'] = SoftConstraint(sc_ctrl, sc_ctrl, 1, self.sc_expression)
-
+        #self.sc_expression = #BGA.combine_expressions_max(True, [gnp.gnp_term for gnp in self.gnps.values()])
+        #sc_ctrl = 2 - self.sc_expression
+        for gnp in self.gnps.values():
+            self._soft_constraints.update(gnp.gnp_scs)
 
     def solve(self, iterations=10, initial_state={}, visualizer=None):
         if len(initial_state) == 0:
