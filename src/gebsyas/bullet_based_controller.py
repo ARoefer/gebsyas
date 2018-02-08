@@ -67,22 +67,22 @@ class InEqBulletController(InEqController):
         f.close()
         self.simulator.load_robot('{}_temp.urdf'.format(self.robot_name))
 
-        # for link_name, margin in [('forearm_roll_link', 0.05),
-        #                         ('wrist_roll_link',   0.05),
-        #                         ('gripper_link',      0.01),
-        #                         ('r_gripper_finger_link', 0.01),
-        #                         ('l_gripper_finger_link', 0.01)]:
-        #     self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, link_name,
-        #                                                               context.agent.robot.frames[link_name],
-        #                                                               filter=self.filter_set), margin))
+        for link_name, margin in [('forearm_roll_link', 0.05),
+                                ('wrist_roll_link',   0.05),
+                                ('gripper_link',      0.01),
+                                ('r_gripper_finger_link', 0.01),
+                                ('l_gripper_finger_link', 0.01)]:
+            self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, link_name,
+                                                                      context.agent.robot.frames[link_name],
+                                                                      filter=self.filter_set), margin))
 
-        # for link_name1, link_name2, margin in [('forearm_roll_link', 'torso_lift_link', 0.05),
-        #                                        ('wrist_roll_link', 'torso_lift_link', 0.05),
-        #                                        ('gripper_link', 'torso_lift_link', 0.05)]:
-        #     self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, link_name1,
-        #                                                                      self.robot_name, link_name2,
-        #                                                                      context.agent.robot.frames[link_name1],
-        #                                                                      context.agent.robot.frames[link_name2]), margin))
+        for link_name1, link_name2, margin in [('forearm_roll_link', 'torso_lift_link', 0.05),
+                                               ('wrist_roll_link', 'torso_lift_link', 0.05),
+                                               ('gripper_link', 'torso_lift_link', 0.05)]:
+            self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, link_name1,
+                                                                             self.robot_name, link_name2,
+                                                                             context.agent.robot.frames[link_name1],
+                                                                             context.agent.robot.frames[link_name2]), margin))
 
         self.ppl = ppl
         self.link_cd_inputs = {}

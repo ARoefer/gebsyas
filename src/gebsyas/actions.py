@@ -2,7 +2,7 @@ from collections import namedtuple
 from pprint import pprint
 
 from gebsyas.basic_controllers import InEqController, run_ineq_controller
-from gebsyas.dl_reasoning import DLDisjunction
+from gebsyas.dl_reasoning import DLDisjunction, DLConjunction
 from gebsyas.numeric_scene_state import AssertionDrivenPredicateState, pfd_str
 from gebsyas.predicates import Predicate
 from gebsyas.ros_visualizer import ROSVisualizer
@@ -138,11 +138,14 @@ class PActionInterface(object):
 					self.signature[a]  = pI.predicate.dl_args[x]
 					self._arg_p_map[a] = []
 				else:
-				 	cover_intersection = self.signature[a].cover_intersection(pI.predicate.dl_args[x])
-				 	if len(cover_intersection) == 0:
-						raise Exception('Invalid action signature! Symbol {} was first defined as:\n   {}\nbut is redefined as:\n   {}\n in {}({}) = {}'.format(a, str(self.signature[a]), str(pI.predicate.dl_args[x]), pI.predicate.P, ', '.join(pI.args), pI.value))
-			 		elif len(cover_intersection) < len(self.signature[a].covered_by):
-				 		self.signature[a] = DLDisjunction(*list(cover_intersection))
+				 	# implication_intersection = self.signature[a].implication_intersection(pI.predicate.dl_args[x])
+				 	# if len(implication_intersection) == 0:
+						# raise Exception('Invalid action signature! Symbol {} was first defined as:\n   {}\nbut is redefined as:\n   {}\n in {}({}) = {}'.format(a, str(self.signature[a]), str(pI.predicate.dl_args[x]), pI.predicate.P, ', '.join(pI.args), pI.value))
+			 		# elif len(implication_intersection) < len(self.signature[a].implied_by):
+			 		if type(self.signature[a]) == DLConjunction:
+			 			self.signature[a] = DLConjunction(pI.predicate.dl_args[x], *list(self.signature[a].concepts))
+					else:
+						self.signature[a] = DLConjunction(self.signature[a], pI.predicate.dl_args[x])
 				self._arg_p_map[a].append(pI)
 
 		for pI in precons:
@@ -168,10 +171,10 @@ class PActionInterface(object):
 				self._arg_post_p_map[a].append(pI)
 
 		param_len = max([len(n) for n in self.signature.keys()])
-		self.__str_representation = '{}:\n  Parameters:\n    {}\n  Preconditions:\n    {}\n   Postconditions:\n    {}'.format(self.action_name,
+		self.__str_representation = '{}:\n  Parameters:\n    {}\n  Preconditions:\n    {}\n  Postconditions:\n    {}'.format(self.action_name,
 			'\n    '.join(['{:>{:d}}: {}'.format(a, param_len, str(t)) for a, t in self.signature.items()]),
-			pfd_str(self.precons, '\n   '),
-			pfd_str(self.postcons, '\n   '))
+			pfd_str(self.precons, '\n    '),
+			pfd_str(self.postcons, '\n    '))
 
 
 	def parameterize_by_postcon(self, context, postcons):

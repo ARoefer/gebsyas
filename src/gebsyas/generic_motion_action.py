@@ -113,3 +113,22 @@ class UnconditionalMotionAction(GenericMotionInterface):
 			[PInstance(predicate, tuple(string.ascii_lowercase[:len(predicate.dl_args)]), True)],
 			2.0)
 
+
+ACTIONS = [UnconditionalMotionAction(Graspable),
+		   SimpleBinaryMoveAction(PointingAt),
+		   SimpleBinaryMoveAction(OnTop),
+		   #SimpleBinaryMoveAction(Above),
+		   SimpleTrinaryMoveAction(Below),
+		   SimpleTrinaryMoveAction(RightOf),
+		   SimpleTrinaryMoveAction(LeftOf),
+		   SimpleTrinaryMoveAction(InFrontOf),
+		   SimpleTrinaryMoveAction(Behind),
+		   UprightBinaryMoveAction(OnTop),
+		   #UprightBinaryMoveAction(Above),
+		   UprightTrinaryMoveAction(Below),
+		   UprightTrinaryMoveAction(RightOf),
+		   UprightTrinaryMoveAction(LeftOf),
+		   UprightTrinaryMoveAction(InFrontOf),
+		   UprightTrinaryMoveAction(Behind),
+		   UnconditionalMotionAction(InPosture)]
+

@@ -13,7 +13,18 @@ def const_zero(*args):
 def const_one(*args):
 	return 1
 
-Predicate = namedtuple('Predicate', ['P', 'fp', 'dl_args'])
+class Predicate(object):
+	def __init__(self, P, fp, dl_args):
+		self.P       = P
+		self.fp      = fp
+		self.dl_args = dl_args
+
+	def __hash__(self):
+		return hash(self.P)
+
+	def __eq__(self, other):
+		return type(other) == Predicate and self.P == other.P and self.fp == other.fp
+
 PInstance = namedtuple('PInstance', ['predicate', 'args', 'value'])
 
 class IntrospectiveFunctions(object):
@@ -33,7 +44,7 @@ class IntrospectiveFunctions(object):
 	def is_controlled(cls, context, obj):
 		if DLManipulator.is_a(obj):
 			return {'is_controlled': SC(0, 0, 1, 0)}
-		if DLCamera.is_a(obj):
+		if DLCamera().is_a(obj):
 			return {'is_controlled': SC(0, 0, 1, 0)}
 		for Id, gripper in context.agent.get_data_state().dl_data_iterator(DLManipulator):
 			if type(gripper.data) == SymbolicData:
@@ -63,9 +74,9 @@ class DLPredicate(DLAtom):
 	def is_a(self, obj):
 		return type(obj) is Predicate
 
-class DLSpacialFunction(DLAtom):
+class DLSpatialFunction(DLAtom):
 	def __init__(self):
-		super(DLSpacialFunction, self).__init__('SpacialFunction')
+		super(DLSpatialFunction, self).__init__('SpatialFunction')
 
 	def is_a(self, obj):
 		return type(obj) == type(self.is_a) and obj.im_self is SR
@@ -92,7 +103,7 @@ class DLStateAssessment(DLAtom):
 		return type(obj) == type(self.is_a) and obj.im_self is IntrospectiveFunctions
 
 DLGraspPredicate     = DLConjunction(DLPredicate(), DLExistsRA('fp', DLGraspFunction()))
-DLSpacialPredicate   = DLConjunction(DLPredicate(), DLExistsRA('fp', DLSpacialFunction()))
+DLSpatialPredicate   = DLConjunction(DLPredicate(), DLExistsRA('fp', DLSpatialFunction()))
 DLAxiomaticPredicate = DLConjunction(DLPredicate(), DLExistsRA('fp', DLConstFunction()))
 DLSymbolicPredicate  = DLConjunction(DLPredicate(), DLExistsRA('fp', DLStateAssessment()))
 
@@ -112,12 +123,12 @@ Free      = Predicate('Free',        IntrospectiveFunctions.is_free, (DLManipula
 Graspable = Predicate('Graspable',     BGA.object_grasp, (DLManipulator, DLRigidObject))
 
 IsGrasped    = Predicate('IsGrasped', IntrospectiveFunctions.is_grasped, (DLManipulator, DLRigidObject))
-IsControlled = Predicate('IsControlled', IntrospectiveFunctions.is_controlled, (DLDisjunction(DLRigidObject, DLAtom('Manipulator'), DLCamera()),))
+IsControlled = Predicate('IsControlled', IntrospectiveFunctions.is_controlled, (DLDisjunction(DLRigidObject, DLManipulator, DLCamera()),))
 
 InPosture = Predicate('InPosture', IntrospectiveFunctions.is_in_posture, (DLBodyPosture(), DLBodyPosture()))
 
-PREDICATE_TBOX_LIST = [DLPredicate(), DLSpacialFunction(), DLConstFunction(), DLStateAssessment(), DLSpacialPredicate, DLAxiomaticPredicate, DLGraspPredicate, DLSymbolicPredicate]
-PREDICATE_TBOX = PREDICATE_TBOX_LIST + [('SpacialPredicate', DLSpacialPredicate),
+PREDICATE_TBOX_LIST = [DLPredicate(), DLSpatialFunction(), DLConstFunction(), DLStateAssessment(), DLSpatialPredicate, DLAxiomaticPredicate, DLGraspPredicate, DLSymbolicPredicate]
+PREDICATE_TBOX = PREDICATE_TBOX_LIST + [('SpatialPredicate', DLSpatialPredicate),
 										('AxiomaticPredicate', DLAxiomaticPredicate),
 										('GraspPredicate', DLGraspPredicate),
 										('SymbolicPredicate', DLSymbolicPredicate)]

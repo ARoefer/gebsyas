@@ -25,13 +25,13 @@ class DLConcept(object):
 	def to_NNF(self):
 		return self
 
-	def cover_intersection(self, other):
-		return self.covered_by.intersection(other.covered_by)
+	def implication_intersection(self, other):
+		return self.implies.intersection(other.implies)
 
 class DLTop(DLConcept):
 	def __init__(self):
-		self.covered_by = {self}
-		self.covers = {self}
+		self.implied_by = {self}
+		self.implies = {self}
 
 	def is_a(self, obj):
 		return True
@@ -42,13 +42,13 @@ class DLTop(DLConcept):
 	def __eq__(self, other):
 		return type(other) == DLTop
 
-	def cover_intersection(self, other):
-		return other.covered_by
+	def implication_intersection(self, other):
+		return other.implies
 
 class DLBottom(DLConcept):
 	def __init__(self):
-		self.covered_by = {}
-		self.covers = {}
+		self.implied_by = {}
+		self.implies = {}
 
 	def is_a(self, obj):
 		return False
@@ -59,16 +59,16 @@ class DLBottom(DLConcept):
 	def __eq__(self, other):
 		return type(other) == DLBottom
 
-	def cover_intersection(self, other):
-		return {}
+	def implication_intersection(self, other):
+		return set()
 
 class DLAtom(DLConcept):
 	def __init__(self, name):
 		if name == 'T' or name == '_':
 			raise Exception('A DL-atom can not be named {}. This name is reserved by the top and bottom concepts.'.format(name))
 		self.name = name
-		self.covered_by = {self}
-		self.covers = {self}
+		self.implied_by = {self}
+		self.implies = {self}
 
 	def is_a(self, obj):
 		return self.name in obj.concepts
@@ -83,8 +83,8 @@ class DLAtom(DLConcept):
 class DLNegation(DLConcept):
 	def __init__(self, concept):
 		self.concept = concept
-		self.covered_by = {self}
-		self.covers = {self}
+		self.implied_by = {self}
+		self.implies = {self}
 
 	def is_a(self, obj):
 		return not self.concept.is_a(obj)
@@ -120,14 +120,14 @@ class DLNegation(DLConcept):
 class DLConjunction(DLConcept):
 	def __init__(self, *args):
 		self.concepts = sorted(set(args))
-		self.covers = {self}
+		self.implies = set()
 		for a in args:
 			if type(a) == DLBottom:
 				print('A non-satisfiable conjunction was created:\n   {}\nSubterm "{}" is equal to _'.format(str(self), str(a)))
 				self.concepts = [DLBottom()]
 				break
-			self.covers = self.covers.union(a.covers)
-		self.covered_by = {self}
+			self.implies = self.implies.union(a.implies)
+		self.implied_by = {self}
 
 	def is_a(self, obj):
 		for c in self.concepts:
@@ -156,12 +156,12 @@ class DLDisjunction(DLConcept):
 				print('A tautological disjunction was created:\n   {}\nSubterm "{}" is equal to _'.format(str(self), str(a)))
 				self.concepts = [DLTop()]
 				break
-		self.covers = args[0].covers
-		self.covered_by = {self}
+		self.implies = args[0].implies
+		self.implied_by = set()
 		for a in self.concepts:
-			self.covered_by = self.covered_by.union(a.covered_by)
-			self.covers = self.covers.intersection(a.covers)
-		self.covers.add(self)
+			self.implied_by = self.implied_by.union(a.implied_by)
+			self.implies = self.implies.intersection(a.implies)
+		self.implies.add(self)
 
 	def is_a(self, obj):
 		for c in self.concepts:
@@ -186,9 +186,9 @@ class DLExistsRA(DLConcept):
 	def __init__(self, relation, concept=DLTop()):
 		self.concept = concept
 		self.relation = relation
-		self.covered_by = {DLExistsRA(self.relation, x) for x in self.concept.covered_by if x != concept}
-		self.covered_by.add(self)
-		self.covers = {self}
+		self.implied_by = {DLExistsRA(self.relation, x) for x in self.concept.implied_by if x != concept}
+		self.implied_by.add(self)
+		self.implies = {self}
 
 	def is_a(self, obj):
 		try:
@@ -220,9 +220,9 @@ class DLAllRA(DLConcept):
 	def __init__(self, relation, concept=DLTop()):
 		self.concept = concept
 		self.relation = relation
-		self.covered_by = {DLALLRA(self.relation, x) for x in self.concept.covered_by if x != concept}
-		self.covered_by.add(self)
-		self.covers = {self}
+		self.implied_by = {DLALLRA(self.relation, x) for x in self.concept.implied_by if x != concept}
+		self.implied_by.add(self)
+		self.implies = {self}
 
 	def is_a(self, obj):
 		try:
@@ -289,26 +289,17 @@ class Reasoner(object):
 		self.__top    = DLTop()
 		self.__bottom = DLBottom()
 		self.abox = abox
-		self.included_by = {}
-		self.included_by[self.__top] = set()
-		self.includes    = {}
-		self.includes[self.__top]   = set()
+		self.implied_by = {}
+		self.implied_by[self.__top] = set()
+		self.implies    = {}
+		self.implies[self.__top] = set()
 
 		for c in tbox:
 			if type(c) == DLInclusion or type(c) == DLEquivalence:
 				c = c.to_NNF()
-				if c.concept_a not in self.included_by:
-					self.included_by[c.concept_a] = {self.__top}
-				if c.concept_a not in self.includes:
-					self.includes[c.concept_a] = set()
 
-				if c.concept_b not in self.included_by:
-					self.included_by[c.concept_b] = {self.__top}
-				if c.concept_b not in self.includes:
-					self.includes[c.concept_b] = set()
-
-				self.includes[self.__top].add(c.concept_a)
-				self.includes[self.__top].add(c.concept_b)
+				self.__add_concept(c.concept_a)
+				self.__add_concept(c.concept_b)
 
 				self.__resolve_subsumption(c.concept_a, c.concept_b)
 				if type(c) == DLEquivalence:
@@ -318,47 +309,63 @@ class Reasoner(object):
 				c = c[1].to_NNF()
 				new_atom = DLAtom(k)
 				print('Adding {} >= {}'.format(k, str(c)))
-				if new_atom not in self.included_by:
-					self.included_by[new_atom] = {self.__top}
-				if new_atom not in self.includes:
-					self.includes[new_atom] = set()
+				self.__add_concept(new_atom)
+				self.__add_concept(c)
 
-				if c not in self.included_by:
-					self.included_by[c] = {self.__top}
-				if c not in self.includes:
-					self.includes[c] = set()
-
-				self.includes[self.__top].add(new_atom)
-				self.includes[self.__top].add(c)
-				self.__resolve_subsumption(c, new_atom)
+				self.__resolve_subsumption(new_atom, c)
 			else:
-				if c not in self.included_by:
-					self.included_by[c] = {self.__top}
-				if c not in self.includes:
-					self.includes[c] = set()
-
-				self.includes[self.__top].add(c)
+				self.__add_concept(c)
 
 		self.tbox = {}
-		for k, c in self.includes.items():
+		for k, c in self.implies.items():
 			if isinstance(k, DLAtom):
 				if len(c) == 0:
 					self.tbox[k] = k
 				elif len(c) == 1:
 					self.tbox[k] = list(c)[0]
 				else:
-					self.tbox[k] = DLDisjunction(*list(c))
+					# Differentiation between normal atoms and those analyzing data structures
+					self.tbox[k] = DLConjunction(*[x for x in c if type(x) != DLAtom and x != self.__top])
+
+
+	def __add_concept(self, concept):
+		if concept not in self.implies:
+			self.implies[concept] = concept.implies.union({self.__top})
+			for c in concept.implies:
+				self.__add_concept(c)
+				self.implies[concept] = self.implies[concept].union(self.implies[c])
+
+			self.implied_by[concept] = concept.implied_by
+			for c in concept.implied_by:
+				self.__add_concept(c)
+				self.implied_by[concept] = self.implied_by[concept].union(self.implied_by[c])
+
+			for c in self.implies[concept]:
+				self.implied_by[c] = self.implied_by[c].union(self.implied_by[concept])
+
+			for c in self.implied_by[concept]:
+				self.implies[c] = self.implies[c].union(self.implies[concept])
 
 
 	# Resolve A <= B relation
 	def __resolve_subsumption(self, a, b):
-		self.includes[b].add(a)
-		self.included_by[a].add(b)
+		self.implies[a] = self.implies[a].union(self.implies[b])
+		self.implied_by[b] = self.implied_by[b].union(self.implied_by[a])
 
 		# Add A >= C -> B >= C
-		for i in self.includes[a]:
-			self.includes[b].add(i)
-			self.included_by[i].add(b)
+		for i in self.implies[b]:
+			self.implied_by[i] = self.implied_by[i].union(self.implied_by[b])
+
+		for i in self.implied_by[a]:
+			self.implies[i] = self.implies[i].union(self.implies[b])
+
+		# self.implies[b].add(a)
+		# self.implied_by[a] = self.implied_by[a].union(self.implied_by[b])
+
+		# # Add A >= C -> B >= C
+		# for i in self.implies[a]:
+		# 	self.implies[b].add(i)
+		# 	self.implied_by[i] = self.implied_by[i].union(self.implied_by[b])
 
 
 	def add_to_abox(self, *args):
@@ -398,15 +405,15 @@ class Reasoner(object):
 
 	# Checks a <= b given the current tbox
 	def is_subsumed(self, a, b):
-		if a in self.included_by:
-			return b in self.included_by[a]
+		if a in self.implied_by:
+			return b in self.implied_by[a]
 		return False
 
 	def inclusions_str(self):
-		return '\n'.join(['{} >= ...\n   {}'.format(str(x), '\n   '.join([str(c) for c in s])) for x, s in self.includes.items()])
+		return '\n'.join(['{} >= ...\n   {}'.format(str(x), '\n   '.join([str(c) for c in s])) for x, s in self.implies.items()])
 
 	def included_str(self):
-		return '\n'.join(['{} <= ...\n   {}'.format(str(x), '\n   '.join([str(c) for c in s])) for x, s in self.included_by.items()])
+		return '\n'.join(['{} <= ...\n   {}'.format(str(x), '\n   '.join([str(c) for c in s])) for x, s in self.implied_by.items()])
 
 	def tbox_str(self):
 		return '\n'.join(['{:>15}: {}'.format(str(x), str(y)) for x, y in self.tbox.items()])
@@ -558,7 +565,6 @@ BASIC_TBOX = BASIC_TBOX_LIST + [('Sphere', DLSphere),
 				   				('Manipulator', DLManipulator),
 				   				('ManipulationCapable', DLManipulationCapable),
 				   				('Observer', DLObserver),
-				   				DLInclusion(DLRigidObject, DLCompoundObject),
 				   				DLInclusion(DLCamera(), DLPhysicalThing),
 				   				DLInclusion(DLManipulator, DLPhysicalThing)]
 

@@ -19,7 +19,7 @@ class PlanningProblem:
 		for p, args in self.state_diff.items():
 			truth_values = set(args.values())
 			if p not in self.post_con_action_map:
-				raise Exception('Unsolvable planning problem. There\'s no action that can change the value of {}'.format(p.P))
+				raise Exception('Unsolvable planningbye problem. There\'s no action that can change the value of {}'.format(p.P))
 			else:
 				for action in self.post_con_action_map[p]:
 					if len(set(action.postcons[p].values()) & truth_values) > 0:

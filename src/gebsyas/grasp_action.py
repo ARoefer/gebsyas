@@ -111,3 +111,6 @@ class LetGoActionInterface(PActionInterface):
 		return LetGoAction(context.agent.robot,
 						   context.agent.get_predicate_state().map_to_data(assignments['a']).data.data,
 						   context.agent.get_predicate_state().map_to_data(assignments['b']).data)
+
+ACTIONS = [GraspActionInterface(),
+		   LetGoActionInterface()]

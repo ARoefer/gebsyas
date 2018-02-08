@@ -5,7 +5,7 @@ from gebsyas.grasp_action import GraspAction
 from gebsyas.basic_controllers import InEqController, run_ineq_controller
 from sensor_msgs.msg import JointState
 from giskardpy.symengine_wrappers import *
-from gebsyas.predicates import DLSpacialPredicate, DLGraspPredicate, Free
+from gebsyas.predicates import DLSpatialPredicate, DLGraspPredicate, Free
 from gebsyas.dl_reasoning import DLMultiManipulatorRobot, DLSingleManipulatorRobot, DLManipulationCapable, SymbolicData
 from gebsyas.numeric_scene_state import AssertionDrivenPredicateState
 from gebsyas.planner import PlanIterator
@@ -46,7 +46,7 @@ class PSAction(Action):
 		# 	pred, args = pred_inst
 		# 	if pred_state.evaluate(context, pred, args) != val:
 
-		# 		if DLSpacialPredicate.is_a(pred):
+		# 		if DLSpatialPredicate.is_a(pred):
 		# 			res_args = []
 		# 			for thing in [pred_state.map_to_data(x) for x in args]:
 		# 				if type(thing.data) == SymbolicData:
