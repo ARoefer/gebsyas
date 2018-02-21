@@ -183,12 +183,12 @@ def expr_to_rosmsg(expr):
 				out.z = expr[2]
 		else:
 			raise Exception('Can only convert lists of length 3 or 4 to rosmsg, with the contents being numbers! Given list:\n   {}\n   Inner types: {}'.format(str(expr), ', '.join([str(type(x)) for x in expr])))
-	elif t is sp.Matrix and expr.ncols() == 1 and expr[expr.nrows() - 1] == 0:
+	elif t is sp.Matrix and expr.ncols() == 1 and (expr[expr.nrows() - 1] == 0 or expr[expr.nrows() - 1] == 0.0):
 		out = Vector3()
 		out.x = expr[0]
 		out.y = expr[1]
 		out.z = expr[2]
-	elif t is sp.Matrix and expr.ncols() == 1 and expr[expr.nrows() - 1] == 1:
+	elif t is sp.Matrix and expr.ncols() == 1 and (expr[expr.nrows() - 1] == 1 or expr[expr.nrows() - 1] == 1.0):
 		out = Point()
 		out.x = expr[0]
 		out.y = expr[1]

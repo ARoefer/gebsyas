@@ -2,6 +2,8 @@ import traceback
 from Queue import PriorityQueue
 from gebsyas.actions import PBasedActionSequence
 from gebsyas.numeric_scene_state import AssertionDrivenPredicateState
+from gebsyas.generic_motion_action import FreeformMotionInterface
+from gebsyas.predicates import DLSpatialPredicate, PInstance
 
 class PlanningProblem:
 	def __init__(self, context, Id, initial, goal, lhs, rhs):
@@ -16,17 +18,33 @@ class PlanningProblem:
 		self.state_diff = goal.difference(context, initial)
 
 		self.action_map = {}
-		for p, args in self.state_diff.items():
-			truth_values = set(args.values())
-			if p not in self.post_con_action_map:
-				raise Exception('Unsolvable planningbye problem. There\'s no action that can change the value of {}'.format(p.P))
+		for p in self.state_diff:
+			insts = self.state_diff[p]
+			truth_values = set(insts.values())
+
+			# If P is based on spatial data, treat it differently
+			if DLSpatialPredicate.is_a(p):
+				# For all P find related facts, create Freeform action and remove the diff
+				for args, truth in insts.items():
+					related_facts = goal.get_facts_of_type(DLSpatialPredicate, set(args))
+					pinstances = []
+					for P, insts in related_facts.items():
+						for args, truth in insts.items():
+							pinstances.append(PInstance(P, args, truth))
+							if P in self.state_diff:
+								self.state_diff[P].pop(args)
+
+					self.action_map[FreeformMotionInterface(pinstances)] = len(pinstances)
 			else:
-				for action in self.post_con_action_map[p]:
-					if len(set(action.postcons[p].values()) & truth_values) > 0:
-						if action in self.action_map:
-							self.action_map[action] += 1
-						else:
-							self.action_map[action] = 1
+				if p not in self.post_con_action_map:
+					raise Exception('Unsolvable planning problem. There\'s no action that can change the value of {}'.format(p.P))
+				else:
+					for action in self.post_con_action_map[p]:
+						if len(set(action.postcons[p].values()) & truth_values) > 0:
+							if action in self.action_map:
+								self.action_map[action] += 1
+							else:
+								self.action_map[action] = 1
 
 		# There should be a re-evaluation of the cost based on the context here
 

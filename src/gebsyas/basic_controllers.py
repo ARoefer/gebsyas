@@ -118,9 +118,9 @@ class InEqController(QPController):
     def make_constraints(self, robot):
         t = time()
         # start_position = pos_of(start_pose)
-        self._soft_constraints = self.ineq_constraints
-        self._controllable_constraints = robot.joint_constraints
-        self._hard_constraints = robot.hard_constraints
+        self._soft_constraints = self.ineq_constraints.copy()
+        self._controllable_constraints = robot.joint_constraints.copy()
+        self._hard_constraints = robot.hard_constraints.copy()
         self.logging('make constraints took {}'.format(time() - t))
         #print('Expression: {}'.format(str(self.expression)))
 

@@ -1,3 +1,4 @@
+import rospy
 from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
 from gebsyas.actions import Action
 from gebsyas.pnp_action import PNPAction
@@ -31,9 +32,11 @@ class PSAction(Action):
 				if self.execute_subaction(context, plan) > 0.8:
 					if len(self.goal.difference(context, pred_state)) == 0:
 						context.log('Goal configuration achieved!')
-					else:
-						return 0.0 #return self.execute_subaction(context, PSAction(self.goal.predicates))
-					return 1.0
+						return 1.0
+				elif rospy.is_shutdown():
+					return 0.0
+				else:
+					return self.execute_subaction(context, PSAction(self.goal.predicates))
 			context.log('Failed to find a plan that achieves goal configuration.')
 			return 0.0
 		else:

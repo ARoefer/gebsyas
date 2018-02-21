@@ -6,6 +6,7 @@ from gebsyas.dl_reasoning import DLRigidObject, DLCompoundObject, DLSphere, DLCu
 from gebsyas.utils import rot3_to_quat
 from giskardpy.symengine_wrappers import point3, frame3_quaternion, pos_of, vec3
 from pprint import pprint
+from math import sqrt
 
 def res_pkg_path(rpath, resolver=rospkg.RosPack()):
 	if rpath[:10] == 'package://':
@@ -76,6 +77,11 @@ def frame_tuple_to_sym_frame(frame_tuple):
 							 frame_tuple.quaterion.z,
 							 frame_tuple.quaterion.w,
 							 point3(*frame_tuple.position))
+
+def normalize_vector(vec):
+	# scale = 1.0 / sqrt(vec[0]**2 + vec[1]**2 + vec[2]**2)
+	scale = 1
+	return VectorTuple(vec[0]*scale, vec[1]*scale, vec[2]*scale)
 
 class ContactPoint(object):
 	def __init__(self, bodyA, bodyB, linkA, linkB, posOnA, posOnB, normalOnB, dist, normalForce):
@@ -359,7 +365,7 @@ class BulletSimulator(object):
 		bulletA = self.bodies[bodyA].bulletId if bodyA != None else -1
 		bulletB = self.bodies[bodyB].bulletId if bodyB != None else -1
 		bulletLA = self.bodies[bodyA].link_index_map[linkA] if bodyA != None and linkA != None else -1
-		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkA != None else -1
+		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkB != None else -1
 		contacts = []
 		if bulletLA == -1 and bulletLB == -1:
 			contacts = pb.getContactPoints(bulletA, bulletB)
@@ -385,7 +391,7 @@ class BulletSimulator(object):
 		bulletA = self.bodies[bodyA].bulletId if bodyA != None else -1
 		bulletB = self.bodies[bodyB].bulletId if bodyB != None else -1
 		bulletLA = self.bodies[bodyA].link_index_map[linkA] if bodyA != None and linkA != None else -1
-		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkA != None else -1
+		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkB != None else -1
 		contacts = []
 		if bulletLA == -1 and bulletLB == -1:
 			contacts = pb.getContactPoints(bulletA, bulletB)
@@ -411,7 +417,7 @@ class BulletSimulator(object):
 		bulletA = self.bodies[bodyA].bulletId
 		bulletB = self.bodies[bodyB].bulletId
 		bulletLA = self.bodies[bodyA].link_index_map[linkA] if bodyA != None and linkA != None else -1
-		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkA != None else -1
+		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkB != None else -1
 		contacts = []
 		if bulletLA == -1 and bulletLB == -1:
 			contacts = pb.getClosestPoints(bulletA, bulletB, distance=dist)
@@ -437,7 +443,7 @@ class BulletSimulator(object):
 		bulletA = self.bodies[bodyA].bulletId
 		bulletB = self.bodies[bodyB].bulletId
 		bulletLA = self.bodies[bodyA].link_index_map[linkA] if bodyA != None and linkA != None else -1
-		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkA != None else -1
+		bulletLB = self.bodies[bodyB].link_index_map[linkB] if bodyB != None and linkB != None else -1
 		contacts = []
 		if bulletLA == -1 and bulletLB == -1:
 			contacts = pb.getClosestPoints(bulletA, bulletB, distance=dist)

@@ -72,6 +72,9 @@ class PBasedActionSequence(Action):
 	def execute(self, context):
 		pred_state = context.agent.get_predicate_state()
 		for a_inst in self.sequence:
+			if rospy.is_shutdown():
+				return 0.0
+
 			precon_diff = AssertionDrivenPredicateState(a_inst.precons).difference(context, pred_state)
 			if len(precon_diff) == 0:
 				if self.execute_subaction(context, a_inst.action_wrapper.instantiate_action(context, a_inst.assignments)) < 0.8:

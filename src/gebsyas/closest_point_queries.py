@@ -1,6 +1,7 @@
-from giskardpy.symengine_wrappers import point3
+from giskardpy.symengine_wrappers import point3, norm
 from giskardpy.input_system import Point3Input, Vec3Input
 from gebsyas.simulator import AABB, vec_add, vec_sub, vec3_to_list, frame_tuple_to_sym_frame, invert_transform
+from math import sqrt
 
 class ClosestPointQuery(object):
 	def point_1_expression(self):
@@ -30,9 +31,9 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 		self.filter = filter.union({body_name})
 
 		for x in range(self.n):
-			self.point1.append(Point3Input('any_point_{}_{}_on_link1_{}'.format(body_name, link_name, self.n)))
-			self.point2.append(Point3Input('any_point_{}_{}_on_link2_{}'.format(body_name, link_name, self.n)))
-			self.normal.append(Vec3Input('any_point_{}_{}_normal_{}'.format(body_name, link_name, self.n)))
+			self.point1.append(Point3Input('any_point_{}_{}_on_link_{}'.format(body_name, link_name, x)))
+			self.point2.append(Point3Input('any_point_{}_{}_in_world_{}'.format(body_name, link_name, x)))
+			self.normal.append(Vec3Input('any_point_{}_{}_normal_{}'.format(body_name, link_name, x)))
 
 	def point_1_expression(self, index=0):
 		return self.active_frame * self.point1[index].get_expression()
@@ -60,9 +61,11 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 		obs = {}
 		for x in range(self.n):
 			if x < len(closest):
+				#raise Exception('FIXME! A and B are reversed for external objects.')
+				onA = link_frame_inv * point3(*closest[x].posOnA)
 				if visualizer != None:
 					visualizer.draw_arrow('cpq', point3(*closest[x].posOnB), point3(*closest[x].posOnA))
-				obs.update(self.point1[x].get_update_dict(*vec3_to_list(link_frame_inv * point3(*closest[x].posOnA))))
+				obs.update(self.point1[x].get_update_dict(*vec3_to_list(onA)))
 				obs.update(self.point2[x].get_update_dict(*vec3_to_list(closest[x].posOnB)))
 				obs.update(self.normal[x].get_update_dict(*vec3_to_list(closest[x].normalOnB)))
 			else:
@@ -70,6 +73,37 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 				obs.update(self.point2[x].get_update_dict(0,0,0))
 				obs.update(self.normal[x].get_update_dict(0,0,1))
 		return obs
+
+class ClosestPointQuery_AnyN_Inverted(ClosestPointQuery_AnyN):
+	def get_update_dict(self, simulator, visualizer=None):
+		aabb = simulator.get_AABB(self.body_name, self.link_name)
+		blownup_aabb = AABB(vec_sub(aabb.min, self.aabb_border), vec_add(aabb.max, self.aabb_border))
+
+		# Get overlapping objects to minimize computation
+		overlapping = simulator.get_overlapping(blownup_aabb, self.filter)
+		closest = []
+		for bodyId, linkId in overlapping:
+			bodyAABB = simulator.get_AABB(bodyId, linkId)
+			closest += simulator.get_closest_points(self.body_name, bodyId, self.link_name)
+
+		closest = sorted(closest)
+		link_frame_inv = frame_tuple_to_sym_frame(invert_transform(simulator.get_link_state(self.body_name, self.link_name).worldFrame))
+		obs = {}
+		for x in range(self.n):
+			if x < len(closest):
+				#raise Exception('FIXME! A and B are reversed for external objects.')
+				onB = link_frame_inv * point3(*closest[x].posOnB)
+				if visualizer != None:
+					visualizer.draw_arrow('cpq', point3(*closest[x].posOnA), point3(*closest[x].posOnB))
+				obs.update(self.point1[x].get_update_dict(*vec3_to_list(onB)))
+				obs.update(self.point2[x].get_update_dict(*vec3_to_list(closest[x].posOnA)))
+				obs.update(self.normal[x].get_update_dict(*vec3_to_list(closest[x].normalOnB)))
+			else:
+				obs.update(self.point1[x].get_update_dict(0,0,0))
+				obs.update(self.point2[x].get_update_dict(0,0,0))
+				obs.update(self.normal[x].get_update_dict(0,0,1))
+		return obs
+
 
 class ClosestPointQuery_Any(ClosestPointQuery_AnyN):
 	def __init__(self, body_name, link_name, active_frame, aabb_border=0.2):
@@ -84,7 +118,7 @@ class ClosestPointQuery_Specific(ClosestPointQuery):
 		self.other_link = other_link
 		self.point1 = Point3Input('closest_on_{}_{}_to_{}_{}'.format(body_name, link_name, other_body, other_link))
 		self.point2 = Point3Input('closest_on_{}_{}_to_{}_{}'.format(other_body, other_link, body_name, link_name))
-		self.normal = Point3Input('normal_from_{}_{}_to_{}_{}'.format(other_body, other_link, body_name, link_name))
+		self.normal = Vec3Input('normal_from_{}_{}_to_{}_{}'.format(other_body, other_link, body_name, link_name))
 
 
 class ClosestPointQuery_Specific_SA(ClosestPointQuery_Specific):
@@ -108,7 +142,7 @@ class ClosestPointQuery_Specific_SA(ClosestPointQuery_Specific):
 		obs = {}
 		if len(closest) > 0:
 			if visualizer != None:
-				visualizer.draw_arrow('cpq', point3(*closest[0].posOnB), point3(*closest[0].posOnA))
+				visualizer.draw_arrow('cpq', point3(*closest[0].posOnB), point3(*closest[0].posOnA), g=0, b=0)
 			obs.update(self.point1.get_update_dict(*vec3_to_list(link_frame_inv * point3(*closest[0].posOnA))))
 			obs.update(self.point2.get_update_dict(*closest[0].posOnB))
 			obs.update(self.normal.get_update_dict(*closest[0].normalOnB))
@@ -141,7 +175,7 @@ class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 		obs = {}
 		if len(closest) > 0:
 			if visualizer != None:
-				visualizer.draw_arrow('cpq', point3(*closest[0].posOnB), point3(*closest[0].posOnA))
+				visualizer.draw_arrow('cpq', point3(*closest[0].posOnB), point3(*closest[0].posOnA), g=0, b=0)
 			obs.update(self.point1.get_update_dict(*vec3_to_list(link_frame_inv * point3(*closest[0].posOnA))))
 			obs.update(self.point2.get_update_dict(*vec3_to_list(other_frame_inv * point3(*closest[0].posOnB))))
 			obs.update(self.normal.get_update_dict(*closest[0].normalOnB))

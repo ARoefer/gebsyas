@@ -134,6 +134,16 @@ class AssertionDrivenPredicateState(PredicateState):
 
 		return self
 
+	def get_facts_of_type(self, dl_type, relating_to=None):
+		out = {}
+		for P, insts in self.predicates.items():
+			if dl_type.is_a(P):
+				out[P] = {}
+				for args, truth in insts.items():
+					if relating_to == None or len(relating_to.intersection(args)) != 0:
+						out[P][args] = truth
+		return out
+
 	def __str__(self):
 		return 'State:\n   {}'.format(pfd_str(self.predicates, '\n   '))
 
