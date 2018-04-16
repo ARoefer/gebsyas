@@ -5,6 +5,7 @@ from gebsyas.utils import rot3_to_rpy
 from gebsyas.simulator import vec3_to_list
 
 def add_dl_object_to_urdf(urdf_model, attachment_link, dl_object, transform):
+	"""Generates a new URDF in which the given dl-object is attached to the specified link of the robot."""
 	if not DLRigidObject.is_a(dl_object):
 		raise Exception('Can only add rigid bodies to urdf')
 

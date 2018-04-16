@@ -7,12 +7,18 @@ from collections import namedtuple
 # if inp[:len(query_things_of_X)] == query_things_of_X and inp[-1:]:
 # 	inp = inp[len(query_things_of_X):-1]
 
+# Unary operator
 UnaryOp = namedtuple('UnaryOp', ['op', 'a'])
+
+# Binary operator
 BinaryOp = namedtuple('BinaryOp', ['op', 'a', 'b'])
+
+# Function call
 Function = namedtuple('Function', ['name', 'args'])
 
 
 def parse_bool_expr(string):
+	"""Top level parsing rule. Returns expression and unparsed remainder of string."""
 	a, remainder = parse_bool_prefix(string)
 	string = remainder.lstrip()
 
@@ -26,6 +32,7 @@ def parse_bool_expr(string):
 	return a, string
 
 def parse_bool_prefix(string):
+	"""Prefix parsing rule. Returns expression and unparsed remainder of string."""
 	string = string.lstrip()
 	if string[:4] == 'not ':
 		a, remainder = parse_bool_atom(string[4:])
@@ -34,6 +41,7 @@ def parse_bool_prefix(string):
 		return parse_bool_atom(string)
 
 def parse_bool_atom(string):
+	"""Atomic parsing rule. Returns expression and unparsed remainder of string."""
 	string = string.lstrip()
 
 	if string[:5] == 'True ' or string == 'True':
@@ -53,6 +61,7 @@ def parse_bool_atom(string):
 
 
 def parse_homogenous_list(string, sub_parser):
+	"""List parsing rule. Returns tuple of expressions and unparsed remainder of string."""
 	out = []
 	while True:
 		value, remainder = sub_parser(string)
@@ -64,6 +73,7 @@ def parse_homogenous_list(string, sub_parser):
 	return tuple(out), string
 
 def parse_path(string):
+	"""Path parsing rule. Returns string and unparsed remainder of string."""
 	string = string.lstrip()
 	name, remainder = parse_name(string)
 	string = remainder
@@ -73,6 +83,7 @@ def parse_path(string):
 	return name, string
 
 def parse_name(string):
+	"""Name parsing rule. Returns string and unparsed remainder of string."""
 	string = string.lstrip()
 	m = re.search('^[a-zA-Z][a-zA-Z0-9_]*', string)
 	if m is None:
@@ -81,6 +92,7 @@ def parse_name(string):
 
 
 def normalize(expr):
+	"""Normalization function, which propagates all negations inwards."""
 	t = type(expr)
 	if t == UnaryOp and expr.op == 'not':
 		ti = type(expr.a)

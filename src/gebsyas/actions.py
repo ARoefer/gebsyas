@@ -16,11 +16,21 @@ def pbainst_str(pba):
 	return '{}({})'.format(pba.action_wrapper.action_name, ', '.join(['{}={}'.format(a,v) for a, v in pba.assignments.items()]))
 
 class Logger():
+	"""Super class for all loggers.
+	   Provides a very basic logging functionality, which has an automatic indentation level.
+	   All logged messages are automatically timestamped relative to the creation of the logger.
+	   Overrides __call__ to allow for shorter logging calls.
+   	"""
 	def __init__(self):
+		"""Initializes indentation level and reference time point"""
 		self.log_birth = rospy.Time.now()
 		self.indentation = 0
 
 	def log(self, data, name=''):
+		"""Logs arbitrary data.
+		   The log can be named or unnamed.
+		   The message is reformatted to match the current indentation level.
+	    """
 		title_str = '{:>12.4f}:{} | '.format((rospy.Time.now() - self.log_birth).to_sec(), '  ' * self.indentation)
 		pure_data_str = str(data)
 		if pure_data_str[-1] == '\n':
@@ -34,27 +44,41 @@ class Logger():
 			print('{}{}'.format(title_str, data_str))
 
 	def indent(self):
+		"""Increases the indentation level by one."""
 		self.indentation = self.indentation + 1
 
 	def unindent(self):
+		"""Decreases the indentation level by one. Level will never be smaller than 0."""
 		if self.indentation > 0:
 			self.indentation = self.indentation - 1
 
 	def __call__(self, data, name=''):
+		"""Override to make logging more comfortable"""
 		self.log(data, name)
 
 
 class Action(object):
+	""" Superclass for all actions in the system.
+		Actions have a name and an execution function, which implements the action's behavior.
+	"""
 	def __init__(self, name):
+		"""Sets the name of the action"""
 		self.name = name
 
 	def __str__(self):
+		"""Basic string representation for an action"""
 		return 'action({})'.format(self.name)
 
 	def execute(self, context):
+		"""Override and implement action's behavior here
+		   Return a value >= 0, <= 1. 0 is total failure, 1 is complete success
+		"""
 		raise (NotImplementedError)
 
 	def execute_subaction(self, context, action):
+		"""Comfort wrapper. automatically logs the start of the new action and indents the log.
+		   Passes along the subaction's return.
+		"""
 		context.log(action.name, 'Starting sub action')
 		context.log.indent()
 		out = action.execute(context)
@@ -64,12 +88,19 @@ class Action(object):
 
 
 class PBasedActionSequence(Action):
+	"""
+	@brief An action which executes a sequence of predicate-based actions.
+	"""
 	def __init__(self, sequence=[], cost=0.0):
+		"""Constructor. Receives a sequence of PWrapperInstance to instantiate and execute."""
 		super(PBasedActionSequence, self).__init__('P-ActionSequence')
 		self.sequence = sequence
 		self.cost = cost
 
 	def execute(self, context):
+		"""Executes the action sequence by testing the wrappers' preconditions against the current predicate state,
+		   instantiating the actions and executing them,
+	  	"""
 		pred_state = context.agent.get_predicate_state()
 		for a_inst in self.sequence:
 			if rospy.is_shutdown():
@@ -87,22 +118,28 @@ class PBasedActionSequence(Action):
 		return 1.0
 
 	def __add__(self, other):
+		"""Creates a new sequence which is the concatenation of this sequence and the other one."""
 		if type(other) != PBasedActionSequence:
 			raise TypeError
 		return PBasedActionSequence(self.sequence + other.sequence, self.cost + other.cost)
 
 	def append(self, action):
+		"""Append an action the the sequence. Returns a new sequence.."""
 		return PBasedActionSequence(self.sequence + [action], self.cost + action.action_wrapper.cost)
 
 	def push(self, action):
+		"""Adds an action at the front of the sequence. Returns a new sequence."""
 		return PBasedActionSequence([action] + self.sequence, self.cost + action.action_wrapper.cost)
 
 	def __str__(self):
+		"""Generates a string representation for this sequence."""
 		return ' -> '.join([pbainst_str(a) for a in self.sequence])
 
 
 class ActionManager(object):
+	"""Container structure for actions. The actions are associated with their pre- and postconditions."""
 	def __init__(self, capabilities):
+		"""Constructor. Receives a list of PActionWrappers to store."""
 		self.__precon_action_map  = {}
 		self.__postcon_action_map = {}
 		for c in capabilities:
@@ -117,14 +154,19 @@ class ActionManager(object):
 				self.__postcon_action_map[p].add(c)
 
 	def get_postcon_map(self):
+		"""Returns the mapping of all postconditions to the actions which have them."""
 		return self.__postcon_action_map
 
 	def get_precon_map(self):
+		"""Returns the mapping of all preconditions to the actions which have them."""
 		return self.__precon_action_map
 
 
 class PActionInterface(object):
+	"""Superclass for wrappers linking the actions to symbolic pre- and postconditions."""
 	def __init__(self, action_name, precons, postcons, cost=1.0):
+		"""Constructor. Receives a name for the action being wrapped,
+		   a list of pre- and postconditions and a cost."""
 		self.action_name = action_name
 		self.cost        = cost
 		self.signature   = {}
@@ -181,26 +223,38 @@ class PActionInterface(object):
 
 
 	def parameterize_by_postcon(self, context, postcons):
+		"""Generates an iterator which generates all variable assignments
+		   for this action based on the given context and postconditions."""
 		return PostconditionAssignmentIterator(context, self, postcons)
 
 	def parameterize_by_precon(self, context, precons):
+		"""Generates an iterator which generates all variable assignments
+		   for this action based on the given context and preconditions."""
 		return PreconditionAssignmentIterator(context, self, precons)
 
 	def __str__(self):
+		"""String representation of this wrapper."""
 		return self.__str_representation
 
 	def __hash__(self):
+		"""Hash for this wrapper."""
 		return hash(self.__str_representation)
 
 	def instantiate_action(self, context, assignments):
+		"""Override in subclass. Takes a mapping of the variable names to objects and
+		   instantiates the action that is being wrapped by the class."""
 		raise (NotImplementedError)
 
 
-
+# Connects a variable assignment with an action wrapper and their resulting pre- and postconditions.
 PWrapperInstance = namedtuple('PWrapperInstance', ['assignments', 'precons', 'postcons', 'action_wrapper'])
 
 class PermutationIterator(object):
+	"""
+	@brief      Iterator generating all possible permutations for the assignment of unbound variables.
+	"""
 	def __init__(self, iterator_dict):
+		"""Constructor. Receives a dict mapping the variable names to the iterators listing their possibilities."""
 		self.iterators = []
 		self.names = []
 		for name, iterator in iterator_dict.items():
@@ -221,6 +275,7 @@ class PermutationIterator(object):
 		return self
 
 	def next(self):
+		"""Generates the next new permutation."""
 		while True:
 			try:
 				next_elem = self.iterators[self.it_index].next()
@@ -241,7 +296,12 @@ class PermutationIterator(object):
 
 
 class PostconditionAssignmentIterator(object):
+	"""
+	@brief      Iterator generating all possible variable assignments for
+	            an action wrapper based on its postconditions and a context.
+	"""
 	def __init__(self, context, action_wrapper, postcon_constraints):
+		"""Constructor."""
 		self.context = context
 		self.action_wrapper = action_wrapper
 		self.assignment_it  = ParameterAssignmentIterator(action_wrapper._arg_post_p_map, action_wrapper.postcons, postcon_constraints)
@@ -251,6 +311,7 @@ class PostconditionAssignmentIterator(object):
 		return self
 
 	def next(self):
+		"""Generates the next PWrapperInstance for the wrapper."""
 		while True:
 			if self.perm_iter == None:
 				self.assignment, self.unbound = self.assignment_it.next()
@@ -282,6 +343,10 @@ class PostconditionAssignmentIterator(object):
 
 
 class PreconditionAssignmentIterator(object):
+	"""
+	@brief      Iterator generating all possible variable assignments for
+	            an action wrapper based on its preconditions and a context.
+	"""
 	def __init__(self, context, action_wrapper, precon_constraints):
 		self.context = context
 		self.action_wrapper = action_wrapper
@@ -292,6 +357,7 @@ class PreconditionAssignmentIterator(object):
 		return self
 
 	def next(self):
+		"""Generates the next PWrapperInstance for the wrapper."""
 		while True:
 			if self.perm_iter == None:
 				self.assignment, self.unbound = self.assignment_it.next()
@@ -322,7 +388,13 @@ class PreconditionAssignmentIterator(object):
 
 
 class ParameterAssignmentIterator(object):
+	"""
+	@brief      Iterator generating variable assignments satisfying a constraint set based on a clue set.
+	"""
 	def __init__(self, param_constraint_map, constraint_map, clue_set):
+		"""Constructor. Receives variables to assign, constraints to satisfy and
+		   a set of clues, which indicates the possible values of the variables.
+		"""
 		self.param_constraint_map = param_constraint_map
 		self.constraint_map = constraint_map
 		self.remaining = set()

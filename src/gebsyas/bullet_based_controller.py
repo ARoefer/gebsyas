@@ -7,7 +7,7 @@ from gebsyas.ros_visualizer import ROSVisualizer
 from gebsyas.simulator import BulletSimulator, frame_tuple_to_sym_frame
 from gebsyas.utils import StampedData, rot3_to_quat
 from gebsyas.predicates import IsControlled, IsGrasped
-from gebsyas.closest_point_queries import ClosestPointQuery_AnyN, ClosestPointQuery_Specific_SA, ClosestPointQuery_Specific_BA, ClosestPointQuery_AnyN_Inverted
+from gebsyas.closest_point_queries import ClosestPointQuery_AnyN, ClosestPointQuery_Specific_SA, ClosestPointQuery_Specific_BA
 from gebsyas.numeric_scene_state import visualize_obj
 from giskardpy import print_wrapper
 from giskardpy.input_system import Point3Input, Vec3Input
@@ -24,7 +24,13 @@ LinkCDInput = namedtuple('LinkCDInput', ['in_on_link', 'in_in_world', 'in_normal
 
 
 class InEqBulletController(InEqController):
+    """
+    @brief      This controller is a specialization of the inequality controller, but also provides a simple collision avoidance system.
+    """
     def __init__(self, context, stamped_objects, ineq_constraints, ppl=3, builder_backend=None, weight=1, logging=print_wrapper):
+        """
+        Constructor. Uses a context and a map of stamped objects to create collision avoidance scene.
+        """
         self.simulator = BulletSimulator(50)
         self.simulator.init()
         self.closest_point_queries = []
@@ -56,12 +62,12 @@ class InEqBulletController(InEqController):
                         logging(stamped.data.pose)
                         self.controlled_objects[Id] = num_object
                         # Avoid the environment
-                        self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, Id, stamped.data.pose, filter=self.filter_set, n=6), 0.03))
-                        # Avoid the torso
-                        self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, Id,
-                                                                                        self.robot_name, 'torso_lift_link',
-                                                                                        stamped.data.pose,
-                                                                                        context.agent.robot.frames['torso_lift_link']), 0.03))
+                        # self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, Id, stamped.data.pose, filter=self.filter_set, n=6), 0.03))
+                        # # Avoid the torso
+                        # self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, Id,
+                        #                                                                 self.robot_name, 'torso_lift_link',
+                        #                                                                 stamped.data.pose,
+                        #                                                                 context.agent.robot.frames['torso_lift_link']), 0.03))
                         break
 
         f = open('{}_temp.urdf'.format(self.robot_name), 'w+')
@@ -69,22 +75,22 @@ class InEqBulletController(InEqController):
         f.close()
         self.simulator.load_robot('{}_temp.urdf'.format(self.robot_name))
 
-        for link_name, margin in [('forearm_roll_link', 0.05),
-                                ('wrist_roll_link',   0.01),
-                                ('gripper_link',      0.005),
-                                ('r_gripper_finger_link', 0.001),
-                                ('l_gripper_finger_link', 0.001)]:
-            self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, link_name,
-                                                                      context.agent.robot.frames[link_name],
-                                                                      filter=self.filter_set), margin))
+        # for link_name, margin in [('forearm_roll_link', 0.05),
+        #                         ('wrist_roll_link',   0.01),
+        #                         ('gripper_link',      0.005),
+        #                         ('r_gripper_finger_link', 0.001),
+        #                         ('l_gripper_finger_link', 0.001)]:
+        #     self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, link_name,
+        #                                                               context.agent.robot.frames[link_name],
+        #                                                               filter=self.filter_set), margin))
 
-        for link_name1, link_name2, margin in [('forearm_roll_link', 'torso_lift_link', 0.05),
-                                               ('wrist_roll_link', 'torso_lift_link', 0.05),
-                                               ('gripper_link', 'torso_lift_link', 0.05)]:
-            self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, link_name1,
-                                                                             self.robot_name, link_name2,
-                                                                             context.agent.robot.frames[link_name1],
-                                                                             context.agent.robot.frames[link_name2]), margin))
+        # for link_name1, link_name2, margin in [('forearm_roll_link', 'torso_lift_link', 0.05),
+        #                                        ('wrist_roll_link', 'torso_lift_link', 0.05),
+        #                                        ('gripper_link', 'torso_lift_link', 0.05)]:
+        #     self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, link_name1,
+        #                                                                      self.robot_name, link_name2,
+        #                                                                      context.agent.robot.frames[link_name1],
+        #                                                                      context.agent.robot.frames[link_name2]), margin))
 
         self.ppl = ppl
         self.link_cd_inputs = {}
@@ -100,6 +106,7 @@ class InEqBulletController(InEqController):
 
     # @profile
     def make_constraints(self, robot):
+        """Adds inequality constraints to the controller and generates additional constraints for collision avoidance."""
         super(InEqBulletController, self).make_constraints(robot)
         # start_position = pos_of(start_pose)
         for cpp, margin in self.closest_point_queries:
@@ -114,6 +121,7 @@ class InEqBulletController(InEqController):
 
     # @profile
     def get_next_command(self):
+        """Processes new joint state, updates the simulation and then generates the new command."""
         if self.visualizer:
             self.visualizer.begin_draw_cycle()
 

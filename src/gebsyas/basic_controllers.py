@@ -10,7 +10,13 @@ from sensor_msgs.msg import JointState
 from giskardpy import print_wrapper
 
 class SimpleCartesianController(QPController):
+    """
+    @brief      A simple controller, moving a frame to a 6-DoF pose.
+    """
     def __init__(self, robot, movable_frame, builder_backend=None, weight=1, logging=print_wrapper):
+        """Constructor. Receives a robot to control and a frame expression to control.
+           Additionally a backend, a weight for the constraints and a custom logger can be supplied.
+        """
         self.weight = weight
         self.movable_frame = movable_frame
         self.feedback = 0.0
@@ -67,7 +73,13 @@ class SimpleCartesianController(QPController):
 
 
 class SimpleExpressionController(QPController):
+    """
+    @brief      This controller drives a single expression towards a goal value.
+    """
     def __init__(self, robot, expression, limit, builder_backend=None, weight=1, logging=print_wrapper):
+        """Constructor. Receives a robot to use, an expression to control and a goal value for the expression.
+           Additionally a backend, a weight for the constraints and a custom logger can be supplied.
+        """
         self.weight = weight
         if not DLSymbolic().is_a(expression):
             raise Exception('Simple Expression Controller was given the non-symbolic expression "{}" of type {}'.format(str(expression), str(type(expression))))
@@ -104,7 +116,13 @@ class SimpleExpressionController(QPController):
         return cmd
 
 class InEqController(QPController):
+    """
+    @brief      This controller connects a robot to a set of inequality constraints.
+    """
     def __init__(self, robot, ineq_constraints, builder_backend=None, weight=1, logging=print_wrapper):
+        """Constructor. Receives a robot to use and soft constraints to abide by.
+           Additionally a backend, a weight for the constraints and a custom logger can be supplied.
+        """
         self.weight = weight
         self.ineq_constraints = ineq_constraints
         self.feedback = 0.0
@@ -136,9 +154,24 @@ class InEqController(QPController):
 
 
 class InEqRunner(object):
+    """This class runs an inequality controller. It processes joint state updates and new commands.
+       It also terminates controller execution when all constraints are met, when the sum of all
+       commands is smaller than a given value for a given time, or when a timeout is reached.
+    """
     def __init__(self, robot, controller, tlimit_total,
                  tlimit_convergence, f_send_command,
                  f_add_cb, dt_threshold=0.02, task_constraints=None):
+        """
+        Constructor.
+        Needs a robot,
+        the controller to run,
+        a total timeout,
+        a timeout for the low activity commands,
+        a function to send commands,
+        a function to add itself as listener for joint states,
+        the threshold for low activity,
+        the names of the constraints to monitor for satisfaction
+        """
         self.robot = robot
         self.controller = controller
         self.tlimit_total  = rospy.Duration(tlimit_total)
@@ -154,6 +187,7 @@ class InEqRunner(object):
         self.task_constraints = task_constraints
 
     def run(self):
+        """Starts the run of the controller."""
         now = rospy.Time.now()
         self.terminate = False
         self.total_timeout       = now + self.tlimit_total
@@ -169,6 +203,7 @@ class InEqRunner(object):
         return self.constraints_met, self.last_feedback
 
     def js_callback(self, joint_state):
+        """Callback processing joint state updates, checking constraints and generating new commands."""
         if self.terminate: # Just in case
             return
 
@@ -197,9 +232,25 @@ class InEqRunner(object):
 
 
 class InEqFFBRunner(object):
+    """This class runs an inequality controller. It processes joint state updates and new commands.
+       It also terminates controller execution when all constraints are met, when the sum of all
+       commands is smaller than a given value for a given time, or when a timeout is reached.
+       Additionally the runner terminates when specified joints exert a given effort.
+    """
     def __init__(self, robot, controller, tlimit_total,
                  tlimit_convergence, force_threshold_dict, f_send_command,
                  f_add_cb, dt_threshold=0.02):
+        """
+        Constructor.
+        Needs a robot,
+        the controller to run,
+        a total timeout,
+        a timeout for the low activity commands,
+        a dictionary specifying which joints to monitor for the effort-timeout,
+        a function to send commands,
+        a function to add itself as listener for joint states,
+        the threshold for low activity
+        """
         self.robot = robot
         self.controller = controller
         self.tlimit_total  = rospy.Duration(tlimit_total)
@@ -266,12 +317,17 @@ class InEqFFBRunner(object):
 def run_ineq_controller(robot, controller,
                  tlimit_total, tlimit_convergence, agent,
                  dt_threshold=0.02, task_constraints=None):
+    """Comfort function for easily instantiating and running an inequality runner."""
     runner = InEqRunner(robot, controller, tlimit_total, tlimit_convergence, agent.act, agent.add_js_callback, dt_threshold, task_constraints)
     constraints_met, lf = runner.run()
     return constraints_met, lf, runner.trajectory_log
 
 
 class ConvergenceTimeoutRunner(object):
+    """
+    !DEPRECATED!
+    Runs a controller which uses a numeric feedback value to indicate its progress.
+    """
     def __init__(self, robot, controller, feedback_attr,
                  tlimit_total, tlimit_convergence,
                  f_send_command, f_add_cb,
@@ -338,6 +394,7 @@ class ConvergenceTimeoutRunner(object):
 def run_convergence_controller(robot, controller, feedback_attr,
                  tlimit_total, tlimit_convergence, agent,
                  dt_threshold, total_threshold=1.0):
+    """Comfort function to instantiate and run a convergence runner."""
     runner = ConvergenceTimeoutRunner(robot, controller, feedback_attr, tlimit_total, tlimit_convergence, agent.act, agent.add_js_callback, dt_threshold, total_threshold)
     cm, lf = runner.run()
     return cm, lf, runner.trajectory_log

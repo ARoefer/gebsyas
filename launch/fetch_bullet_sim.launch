@@ -1,0 +1,5 @@
+<launch>
+	<include file="$(find fetch_giskard)/launch/fetch_bullet_sim.launch"/>
+
+	<node pkg="gebsyas" type="interactive_marker_converter.py" name="marker_converter" output="screen" args="giskard_marker_server /perceived_objects"/>
+</launch>

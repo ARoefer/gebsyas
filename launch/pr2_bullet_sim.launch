@@ -1,0 +1,23 @@
+<launch>
+  <arg name="sim_frequency" default="100" />
+
+  <param name="robot_description"
+    textfile="$(find giskard_sim)/robots/pr2.urdf" />
+
+  <node pkg="gebsyas" type="simulator_node.py" name="simulator" output="screen">
+    <rosparam command="load" file="$(find gebsyas)/config/pr2_sim_config.yaml" />
+    <remap from="~joint_states" to="joint_states" />
+  </node>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher"
+        name="robot_state_publisher" />
+
+  <node pkg="tf2_ros" type="buffer_server" name="tf2_buffer_server" />
+
+  <node pkg="tf" type="static_transform_publisher" name="fake_localization"
+        output="screen" args="0 0 0 0 0 0 map odom_combined 100" />
+
+  <node pkg="tf" type="static_transform_publisher" name="fake_odometry"
+        output="screen" args="0 0 0 0 0 0 odom_combined base_link 100" />
+
+</launch>

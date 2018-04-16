@@ -16,8 +16,13 @@ from copy import copy
 import yaml
 
 class Agent(object):
-	"""docstring for Agent"""
+	"""
+	@brief      Superclass for agents.
+	"""
 	def __init__(self, name, reasoner, predicates, capabilities=[], logger=None, visualizer=None, data_state=None):
+		"""Constructor. Receives a name for the agent, a reasoner, a set of known predicates.
+		   Additionally, a list of PActionWrappers, a custom logger, a custom visualizer and a custom data state can be supplied.
+		"""
 		super(Agent, self).__init__()
 		self.name        = name
 		self.reasoner    = reasoner
@@ -30,40 +35,50 @@ class Agent(object):
 		self.action_manager = ActionManager(capabilities)
 
 	def awake(self):
+		"""Activates the agent's sensors."""
 		for s in self.sensors.values():
 			s.enable()
 
 	def sleep(self):
+		"""Disables the agent's sensors."""
 		for s in self.sensors.values():
 			s.disable()
 
 	def add_sensor(self, name, sensor):
+		"""Adds a sensor to the agent and its reasoner."""
 		self.sensors[name] = sensor
 		self.reasoner.add_to_abox((str(sensor), self.reasoner.get_expanded_concept('Sensor')))
 
 	def add_tracker(self, tracker):
+		"""Adds a tracker to the agent and its reasoner. If a tracker for the same data already exists, it is replaced-"""
 		self.remove_tracker(tracker.data_id)
 		self.trackers[tracker.data_id] = tracker
 		self.reasoner.add_to_abox((str(tracker), self.reasoner.get_expanded_concept('Tracker')))
 
-	def get_tracker(self, tracker_id):
-		if tracker_id in self.trackers:
-			return self.trackers[tracker_id]
+	def get_tracker(self, data_id):
+		"""Returns a tracker by its tracked data's Id."""
+		if data_id in self.trackers:
+			return self.trackers[data_id]
 		else:
 			return None
 
 	def remove_tracker(self, data_id):
+		"""Removes a tracker by its tracked data's Id."""
 		if data_id in self.trackers:
 			self.reasoner.remove_from_abox(str(self.trackers[data_id]))
 			self.trackers[data_id].disable()
 			del self.trackers[data_id]
 
 	def get_actions(self):
+		"""Returns the agent's action manager."""
 		return self.action_manager
 
 
 class SimpleAgent(Agent):
-	"""docstring for SimpleAgent"""
+	"""
+	This agent implementation runs a simple IO behavior through wich a user can issue simple commands to the agent.
+	The agent controls a robot, percieves objects from a topic and can memorize data across sessions.
+	"""
 	def __init__(self, name, reasoner, predicates, robot, capabilities=[], memory_path=None, logger=None, visualizer=None):
 		super(SimpleAgent, self).__init__(name, reasoner, predicates, capabilities, logger, visualizer, DataSceneState())
 		self.add_sensor('object sensor', TopicSensor(self.on_object_sensed, '/perceived_objects', PObject, 12))
@@ -92,18 +107,21 @@ class SimpleAgent(Agent):
 
 
 	def on_object_sensed(self, stamped_object):
+		"""Callback for a sensed object."""
 		if stamped_object.data.id not in self.trackers:
 			self.trackers[stamped_object.data.id] = VisualObjectTracker(stamped_object.data.id, self.data_state)
 
 		self.trackers[stamped_object.data.id].process_data(stamped_object)
 
 	def on_joint_state_sensed(self, joint_state):
+		"""Callback for a sensed joint state"""
 		self.trackers['joint_state'].process_data(joint_state)
 		new_js = self.data_state['joint_state'].data
 		for cb in self.js_callbacks:
 			cb(new_js)
 
 	def awake(self):
+		"""Activates the sensors and starts the IO behavior."""
 		super(SimpleAgent, self).awake()
 		rospy.sleep(0.3)
 		self.smwyg_pub.publish(std_msgs.msg.Empty())
@@ -115,21 +133,27 @@ class SimpleAgent(Agent):
 		#self.data_state.dump_to_file('data_state_{}.yaml'.format(self.name))
 
 	def get_tbox(self):
+		"""Returns the agent's reasoner."""
 		return self.reasoner
 
 	def get_abox(self):
+		"""Returns the reasoner's a box."""
 		return self.reasoner.abox
 
 	def get_data_state(self):
+		"""Returns the agent's data state."""
 		return self.data_state
 
 	def get_predicate_state(self):
+		"""Returns the agent's predicate state."""
 		return self.predicate_state
 
 	def add_js_callback(self, callback):
+		"""Adds an additional joint state callback."""
 		self.js_callbacks.append(callback)
 
 	def act(self, js_command):
+		"""Interfaces between internal commands and ROS-commands. Accepts joint velocity commands."""
 		cmd = cmdDictToJointState(js_command)
 		self.command_publisher.publish(cmd)
 		if 'gripper_joint' in js_command:
@@ -146,6 +170,7 @@ class SimpleAgent(Agent):
 
 
 	def convert_to_numeric(self, joint_state):
+		"""Creates a fully numeric version of this agent."""
 		a = copy(self)
 		js = {name: state.position for name, state in joint_state.items()}
 		a.frame_of_reference = a.frame_of_reference.subs(js)
@@ -153,11 +178,13 @@ class SimpleAgent(Agent):
 
 
 class DLAgent(DLAtom):
+	"""Description logical concept representing an agent."""
 	def __init__(self):
 		super(DLAgent, self).__init__('Agent')
 
 	def is_a(self, obj):
 		return isinstance(obj, Agent)
 
+# TBox for this file
 TBOX_LIST = [DLAgent()]
 TBOX = TBOX_LIST

@@ -90,7 +90,8 @@ class SimpleAgentIOAction(Action):
 			context.display.begin_draw_cycle()
 
 
-			command =  'Do: LeftOf(coke, pringles, me) and Upright(coke) and OnTop(coke, table) and PointingAt(camera, coke)'# raw_input('> ') #'Do: LeftOf(coke1, box1, me) and Free(gripper)'
+			command = raw_input('> ') #'Do: LeftOf(coke1, box1, me) and Free(gripper)'
+			# 'Do: LeftOf(coke, pringles, me) and Upright(coke) and OnTop(coke, table) and PointingAt(camera, coke)'
 
 			if command == 'bye' or rospy.is_shutdown():
 				break
@@ -236,7 +237,7 @@ class SimpleAgentIOAction(Action):
 
 			context.agent.get_predicate_state().visualize(context.display)
 			context.display.render()
-			break
+
 
 	def evaluate_bool_query(self, predicate_state, query, context):
 		tq = type(query)

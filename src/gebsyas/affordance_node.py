@@ -9,6 +9,7 @@ from sensor_msgs.msg import JointState
 from pprint import pprint
 
 def cmdDictToJointState(command):
+    """Comfort function. Converts a dictionary {joint: velocity} to a ROS-JointState."""
     js = JointState()
     js.header.stamp = rospy.Time.now()
     for joint, vel in command.iteritems():
@@ -21,6 +22,9 @@ def cmdDictToJointState(command):
 
 
 class AffordanceCommandNode(object):
+    """
+    @brief      A simple ROS-node demonstrating grapsing based on giskard constraints. It's probably broken.
+    """
     def __init__(self, fetch_urdf, cmd_topic='/simulator/commands'):
         self.objects = {}
         self.robot = Fetch(fetch_urdf)

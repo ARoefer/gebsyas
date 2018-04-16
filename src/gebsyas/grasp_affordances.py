@@ -5,21 +5,28 @@ from gebsyas.dl_reasoning import *
 import symengine as sp
 
 class BasicGraspAffordances(object):
+    """
+    @brief      Class containing generator functions which generate inequality constraints for grasping objects.
+    """
     @classmethod
     def __gen_grasp_expr(cls, gripper, width, safety_margin=0.015):
+        """Generates an expression models the opening of a gripper to a given width as a value between 0 and 1."""
         return saturate(gripper.opening / (width + safety_margin)) * sp.heaviside(gripper.max_opening - width - safety_margin)
 
     @classmethod
     def __gen_open_gripper(cls, gripper, width, maximum=10, safety_margin=0.015):
+        """Soft constraint which opens a gripper."""
         return SC(width + safety_margin - gripper.opening, maximum, 1, gripper.opening)
 
     @classmethod
     def point_grasp(cls, gripper, point):
+        """Generates a set of constraints to grasp a point."""
         expr = norm(pos_of(gripper.pose) - point)
         return {'point_grasp': SC(-expr, -expr, 1, expr)}
 
     @classmethod
     def sphere_grasp(cls, gripper, center, width):
+        """Generates a set of constraints to grasp a ball."""
         pg_sc = cls.point_grasp(gripper, center).values()[0]
         pg_sc = SC(pg_sc.lower * cls.__gen_grasp_expr(gripper, width),
                    pg_sc.upper * cls.__gen_grasp_expr(gripper, width),
@@ -32,6 +39,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def axis_grasp(cls, gripper, point, dir):
+        """Generates a set of constraints to grasp an infinite axis."""
         gripper_frame = gripper.pose
         gripper_z = gripper_frame[:4, 2:3]
         gripper_pos = pos_of(gripper_frame)
@@ -45,6 +53,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def line_grasp(cls, gripper, center, dir, length):
+        """Generates a set of constraints to grasp a finite axis."""
         length = length - 2*gripper.height
         gripper_frame = gripper.pose
         gripper_pos = pos_of(gripper_frame)
@@ -56,18 +65,21 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def column_grasp(cls, gripper, point, dir, width):
+        """Generates a set of constraints to grasp an infinite cylinder."""
         updated = {n: SC(sc.lower * cls.__gen_grasp_expr(gripper, width), sc.upper * cls.__gen_grasp_expr(gripper, width), sc.weight, sc.expression) for n, sc in cls.axis_grasp(gripper, point, dir).items()}
         updated['open_gripper'] = cls.__gen_open_gripper(gripper, width)
         return updated
 
     @classmethod
     def rod_grasp(cls, gripper, center, dir, length, width):
+        """Generates a set of constraints to grasp a cylinder."""
         updated = {n: SC(sc.lower * cls.__gen_grasp_expr(gripper, width), sc.upper * cls.__gen_grasp_expr(gripper, width), sc.weight, sc.expression) for n, sc in cls.line_grasp(gripper, center, dir, length).items()}
         updated['open_gripper'] = cls.__gen_open_gripper(gripper, width)
         return updated
 
     @classmethod
     def edge_grasp(cls, gripper, point, normal, dir):
+        """Generates a set of constraints to grasp an edge of infinite length."""
         agdict = cls.axis_grasp(gripper, point, dir)
         ndot  = -dot(x_col(gripper.pose), normal)
         ra_sc = agdict['axis_rotation_alignment']
@@ -77,12 +89,14 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def rim_grasp(cls, gripper, point, normal, dir, width):
+        """Generates a set of constraints to grasp an infinite rim."""
         updated = {n: SC(sc.lower * cls.__gen_grasp_expr(gripper, width), sc.upper * cls.__gen_grasp_expr(gripper, width), sc.weight, sc.expression) for n, sc in cls.edge_grasp(gripper, point, normal, dir).items()}
         updated['open_gripper'] = cls.__gen_open_gripper(gripper, width)
         return updated
 
     @classmethod
     def circular_edge_grasp(cls, gripper, center, axis, radius):
+        """Generates a set of constraints to grasp an edge which is spun around an axis."""
         raise Exception('Needs to be update to use inequality constraints')
 
         gripper_pos = pos_of(gripper.pose)
@@ -100,10 +114,12 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def circular_rim_grasp(cls, gripper, center, axis, radius, width):
+        """Generates a set of constraints to grasp an rim which is spun around an axis."""
         return cls.circular_edge_grasp(gripper, center, axis, radius) * saturate(gripper.opening / width) * sp.heaviside(gripper.max_opening - width)
 
     @classmethod
     def box_grasp(cls, gripper, frame, dx, dy, dz):
+        """Generates a set of constraints to grasp a box."""
         gx = x_col(gripper.pose)
         gz = z_col(gripper.pose)
 
@@ -156,6 +172,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def combine_expressions_additive(cls, *args):
+        """Combines a list of expressions into a sum."""
         out = 0
         for a in args:
             if a != 0:
@@ -164,6 +181,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def combine_expressions_subtractive(cls, *args):
+        """Combines a list of expressions into a subtraction."""
         out = 0
         for a in args:
             if a != 0:
@@ -172,6 +190,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def combine_expressions_multiplicative(cls, *args):
+        """Combines a list of expressions into a product."""
         out = 1
         for a in args:
             if a == 0:
@@ -181,6 +200,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def combine_expressions_divisive(cls, *args):
+        """Combines a list of expression using a division."""
         out = 1
         for a in args:
             if a == 0:
@@ -190,6 +210,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def combine_expressions_max(cls, filter_zero, args):
+        """Combines a list of expressions into a max-expression."""
         if filter_zero:
             args = [a for a in args if a != 0]
         if len(args) == 1:
@@ -201,6 +222,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def combine_expressions_min(cls, filter_zero, args):
+        """Combines a list of expressions into a min-expression."""
         if filter_zero:
             args = [a for a in args if a != 0]
         if len(args) == 1:
@@ -212,6 +234,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def capsule_grasp(cls, gripper, frame, height, diameter):
+        """Generates a set of constraints to grasp a cylinder along its axis or over its caps."""
         capsule_z = frame[:4, 2:3]
         return cls.rod_grasp(gripper, pos_of(frame), capsule_z, 0.5*height, diameter)
         # #cls.combine_expressions_max(True, [cls.rod_grasp(gripper, pos_of(frame), capsule_z, 0.5*height, diameter),
@@ -220,6 +243,7 @@ class BasicGraspAffordances(object):
 
     @classmethod
     def object_grasp(cls, context, gripper, obj):
+        """Generates a set of constraints to grasp a generic object."""
         if DLRigidObject.is_a(obj):
             if DLCompoundObject.is_a(obj):
                 if type(obj.subObject) == list:

@@ -20,6 +20,9 @@ def robot_joints_symbol_map(robot):
 	return dict([(str(j), 'joint_state/{}'.format(j)) for j in robot._joints.keys()])
 
 class GripperAction(Action):
+	"""
+	@brief      Action to change a gripper's opening.
+	"""
 	def __init__(self, gripper, goal_pos, effort=40):
 		super(GripperAction, self).__init__('GripperAction: {}'.format(gripper.name))
 		self.gripper = gripper
@@ -43,6 +46,9 @@ class GripperAction(Action):
 			return 0.0
 
 class GraspAction(Action):
+	"""
+	@brief      Action to grasp an object.
+	"""
 	def __init__(self, robot, gripper, obj):
 		super(GraspAction, self).__init__('Grasp')
 		self.robot = robot
@@ -62,6 +68,9 @@ class GraspAction(Action):
 		return 0.0
 
 class LetGoAction(Action):
+	"""
+	@brief      Action to let go of a thing.
+	"""
 	def __init__(self, robot, gripper, obj):
 		super(LetGoAction, self).__init__('LetGo')
 		self.robot = robot
@@ -82,6 +91,9 @@ class LetGoAction(Action):
 
 
 class GraspActionInterface(PActionInterface):
+	"""
+	@brief      Symbolic action interface for grasping objects.
+	"""
 	def __init__(self):
 		super(GraspActionInterface, self).__init__(
 			'GraspAction',
@@ -98,6 +110,9 @@ class GraspActionInterface(PActionInterface):
 						   context.agent.get_predicate_state().map_to_data(assignments['b']).data)
 
 class LetGoActionInterface(PActionInterface):
+	"""
+	@brief      Symbolic action interface for letting go of objects.
+	"""
 	def __init__(self):
 		super(LetGoActionInterface, self).__init__(
 			'LetGoAction',
@@ -112,5 +127,6 @@ class LetGoActionInterface(PActionInterface):
 						   context.agent.get_predicate_state().map_to_data(assignments['a']).data.data,
 						   context.agent.get_predicate_state().map_to_data(assignments['b']).data)
 
+# Action interfaces defined in this file.
 ACTIONS = [GraspActionInterface(),
 		   LetGoActionInterface()]

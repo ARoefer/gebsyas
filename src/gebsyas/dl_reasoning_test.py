@@ -24,7 +24,7 @@ if __name__ == '__main__':
 	print('Shape implies:\n  {}'.format('\n  '.join([str(x) for x in DLShape.implies])))
 
 
-	reasoner = Reasoner(tbox, {})
+	reasoner = Reasoner(TBOX_LIST, {})
 	for atom, implies in sorted(reasoner.tbox.items()):
 		if type(implies) == DLConjunction:
 			print('{}:\n  {}'.format(str(atom), '\n  '.join([str(c) for c in implies.concepts])))
