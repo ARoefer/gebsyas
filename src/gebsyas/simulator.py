@@ -37,10 +37,12 @@ class BodyData(object):
 		self.link_index_map = {info.linkName: info.jointIndex for info in self.joints.values()}
 		self.link_index_map[None] = -1
 		self.index_link_map = {i: ln for ln, i in self.link_index_map.items()}
+		self.joint_sensors = set()
 
 VectorTuple = namedtuple('VectorTuple', ['x', 'y', 'z'])
 QuaternionTuple = namedtuple('QuaternionTuple', ['x', 'y', 'z', 'w'])
 FrameTuple  = namedtuple('FrameTuple', ['position', 'quaterion'])
+ReactionForces  = namedtuple('ReactionForces', ['f', 'm'])
 
 JointInfo = namedtuple('JointInfo', ['jointIndex', 'jointName', 'jointType', 'qIndex', 'uIndex',
 									 'flags', 'jointDamping', 'jointFriction', 'jointLowerLimit',
@@ -178,9 +180,9 @@ class BulletSimulator(object):
 		cmd_vels    = []
 		robot_data  = self.bodies[bodyId]
 		robot_data.joint_driver.update_velocities(robot_data, next_cmd)
-		for jname in self.next_cmd.keys():
+		for jname in next_cmd.keys():
 			cmd_indices.append(robot_data.joints[jname].jointIndex)
-			cmd_vels.append(self.next_cmd[jname])
+			cmd_vels.append(next_cmd[jname])
 
 		pb.setJointMotorControlArray(robot_data.bulletId, cmd_indices, pb.VELOCITY_CONTROL, targetVelocities=cmd_vels)
 
@@ -193,13 +195,29 @@ class BulletSimulator(object):
 	def update(self):
 		pb.stepSimulation()
 
+	def set_real_time(self, realTime=True):
+		pb.setRealTimeSimulation(realTime)
+
+	def enable_joint_sensor(self, bodyId, joint_name, enable=True):
+		body = self.bodies[bodyId]
+		pb.enableJointForceTorqueSensor(body.bulletId, body.joints[joint_name].jointIndex, enable)
+		if enable:
+			body.joint_sensors.add(joint_name)
+		else:
+			body.joint_sensors.remove(joint_name)
 
 	def get_joint_state(self, bodyId, sim_indices=None):
 		body_data   = self.bodies[bodyId]
 		if sim_indices == None:
-			sim_indices = [j.jointIndex for k, j in body_data.joints.items() if k != None and j.type != pb.JOINT_FIXED]
+			sim_indices = [j.jointIndex for k, j in body_data.joints.items() if k != None and j.jointType != pb.JOINT_FIXED]
 		new_js = [JointState(*x) for x in pb.getJointStates(body_data.bulletId, sim_indices)]
 		return {body_data.index_joint_map[sim_indices[x]]: new_js[x] for x in range(len(new_js))}
+
+	def get_sensor_state(self, bodyId):
+		body_data   = self.bodies[bodyId]
+		sim_indices = {body_data.joints[j].jointIndex: j for j in body_data.joint_sensors}
+		new_ss = [ReactionForces(x[:3], x[3:]) for x in pb.getJointStates(body_data.bulletId, sim_indices)]
+		return {sim_indices[x]: new_ss[x] for x in range(len(new_ss))}
 
 	def reset(self):
 		for bodyId in self.bodies.keys():
@@ -211,7 +229,9 @@ class BulletSimulator(object):
 		self.set_joint_positions(bodyId, body_data.initial_joint_state)
 
 	def load_robot(self, urdf_path, pos=[0,0,0], rot=[0,0,0,1], joint_driver=JointDriver()):
-		robotBId = pb.loadURDF(res_pkg_path(urdf_path, self.resolver),
+		res_urdf_path = res_pkg_path(urdf_path, self.resolver)
+		print('Simulator: {}'.format(res_urdf_path))
+		robotBId = pb.loadURDF(res_urdf_path,
 							 pos,
 							 rot,
 							 useFixedBase=1,
