@@ -234,8 +234,8 @@ class BulletSimulator(object):
 		robotBId = pb.loadURDF(res_urdf_path,
 							 pos,
 							 rot,
-							 useFixedBase=1,
-							 flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT)
+							 useFixedBase=0,
+							 flags=pb.URDF_USE_SELF_COLLISION_EXCLUDE_PARENT) #
 		base_link, robotId = pb.getBodyInfo(robotBId)
 		self.bodyIds.add(robotId)
 		if robotId == 'fetch' and type(joint_driver) == JointDriver:

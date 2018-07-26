@@ -202,11 +202,11 @@ def expr_to_rosmsg(expr):
 	# 	out.z = (expr[1,0] - expr[0,1]) / w4
 	elif t is sp.Matrix and expr.ncols() == 4 and expr.nrows() == 4:
 		out = Pose()
-		quat = rot3_to_quat(expr)
-		out.orientation.w = quat.w
-		out.orientation.x = quat.x
-		out.orientation.y = quat.y
-		out.orientation.z = quat.z
+		quat = quaternion_from_matrix(expr)
+		out.orientation.w = quat[3]
+		out.orientation.x = quat[0]
+		out.orientation.y = quat[1]
+		out.orientation.z = quat[2]
 		out.position.x = expr[0, 3]
 		out.position.y = expr[1, 3]
 		out.position.z = expr[2, 3]
