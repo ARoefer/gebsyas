@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Intro to GeBSyAS &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="gebsyas" href="_modules/modules.html" />
+    <link rel="prev" title="Welcome to GeBSyAS’s documentation!" href="index.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Intro to GeBSyAS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-gebsyas">What is GeBSyAS?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#description-logic">Description Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#agents">Agents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sensors">Sensors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trackers">Trackers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#context">Context</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constraints">Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constraint-based-predicates">Constraint Based Predicates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#symbolic-and-non-symbolic-data">Symbolic and Non-symbolic data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#actions">Actions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#action-interfaces">Action Interfaces</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="_modules/modules.html">gebsyas</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Intro to GeBSyAS</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/intro.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="intro-to-gebsyas">
+<h1>Intro to GeBSyAS<a class="headerlink" href="#intro-to-gebsyas" title="Permalink to this headline">¶</a></h1>
+<p>Hello and welcome to the GeBSyAS system. This page will explain what you’ve just been welcomed to, what the concepts behind GeBSyAS are and how you can use it.</p>
+<div class="section" id="what-is-gebsyas">
+<h2>What is GeBSyAS?<a class="headerlink" href="#what-is-gebsyas" title="Permalink to this headline">¶</a></h2>
+<p><em>GeBSyAS</em> is short for <em>Geometry Based Symbolic Agent System</em> - what a mouthful. The long name is motivated by the overall goal of the system, which is to closely interweave symbolic logic, geometric scene state and motion generation into one entity in the hopes of getting rid of the disconnect between symbolism, geometry and action.</p>
+<p>To achieve this, the system uses a whole host of concepts:</p>
+<ul class="simple">
+<li>Description Logic</li>
+<li>Agents</li>
+<li>Sensors</li>
+<li>Trackers</li>
+<li>Context</li>
+<li>Constraints</li>
+<li>Constraint Based Predicates</li>
+<li>Symbolic and Non-Symbolic Data</li>
+<li>Actions</li>
+</ul>
+<p>Over the course of the next sections all of these concepts will be introduced.</p>
+</div>
+<div class="section" id="description-logic">
+<h2>Description Logic<a class="headerlink" href="#description-logic" title="Permalink to this headline">¶</a></h2>
+<p>Description logic is a logic which is used to represent knowledge. In the Gebsyas environment it is used as an implementation-independent system for classifying data types. This section will briefly go over the basics of description logic, but is by no means a comprehensive introduction to the topic.</p>
+<p>Description logic works with <em>concepts</em> and <em>roles</em>. Concepts can either be atomic, or complex and describe the character of an instance, whereas roles describe the relationships between instances. Let’s go over some basic concepts:</p>
+<ul class="simple">
+<li><span class="math notranslate nohighlight">\(\top\)</span> read as <em>top</em>, matches any instance. Equal to <strong>True</strong> in boolean logic.</li>
+<li><span class="math notranslate nohighlight">\(\bot\)</span> read as <em>bottom</em>, matches no instance. Equal to <strong>False</strong> in boolean logic.</li>
+<li><span class="math notranslate nohighlight">\(C \sqcap D\)</span> read as <em>C and D</em>, matches all instances which match C and D simultaneously.</li>
+<li><span class="math notranslate nohighlight">\(C \sqcup D\)</span> read as <em>C or D</em>, matches all instances which match at least C or D.</li>
+<li><span class="math notranslate nohighlight">\(\neg C\)</span> read as <em>not C</em>, matches all instances which don’t match C.</li>
+<li><span class="math notranslate nohighlight">\(\forall R.C\)</span> read as <em>all R-successors are in C</em>, matches all instances if all their relations of type <em>R</em> are to instances matching <em>C</em>.</li>
+<li><span class="math notranslate nohighlight">\(\exists R.C\)</span> read as <em>It exists an R-successor in C</em>, matches all instances which have at least one relation of type <em>R</em> to an instance matching <em>C</em>.</li>
+<li><span class="math notranslate nohighlight">\(C \sqsubseteq D\)</span> read as <em>all C are D</em>, behaves as <span class="math notranslate nohighlight">\(x \rightarrow y\)</span> in boolean logic does.</li>
+<li><span class="math notranslate nohighlight">\(C \equiv D\)</span> read as <em>C and D are equivalent</em>, behaves as <span class="math notranslate nohighlight">\(x \equiv y\)</span> in boolean logic does.</li>
+</ul>
+<p>The latter two concepts are usually used in the context of a so called <em>TBox</em>, usually represented by <span class="math notranslate nohighlight">\(\mathcal{T}\)</span>, which makes global statements about concepts and thus forms an ontology. Let’s look at an example ontology:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathcal{T} = \{\\
+Animal &amp;\sqsubseteq \exists is.Alive, \\
+Mammal &amp;\sqsubseteq Animal \sqcap WarmBlooded, \\
+Reptile &amp;\sqsubseteq Animal \sqcap \neg WarmBlooded, \\
+Elephant &amp;\sqsubseteq Mammal \sqcap Grey \sqcap \exists has.Trunk \\
+\}\end{split}\]</div>
+<p>When we resolve all the statements in this ontology, we come to the conclusion that an <span class="math notranslate nohighlight">\(Elephant\)</span> implies:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Elephant \sqsubseteq &amp;Animal \sqcap Mammal \sqcap WarmBlooded \\
+&amp;\sqcap \exists is.Alive \sqcap Grey \sqcap \exists has.Trunk\end{split}\]</div>
+<p>In important question in the field of description logic is the question whether concepts in a TBox are contradictory. If we were to add <span class="math notranslate nohighlight">\(Mammal \sqsubseteq Reptile\)</span> to our TBox, <span class="math notranslate nohighlight">\(Mammal\)</span> becomes self-contradictory as it would include <span class="math notranslate nohighlight">\(WarmBlooded \sqcap \neg WarmBlooded\)</span>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">These contradictions can be difficult to detect, which is why Gebsyas doesn’t check for them and puts the onus on the user to not create self-contradictory concepts.</p>
+</div>
+<p>Gebsyas comes with its own implementation of description logical concepts and a matching reasoner that expands concepts based on a TBox. The atomic concepts map directly to Python types and roles are interpreted member-names. With this interpretation, the system is able to directly classify Python objects without any kind of meta-data.
+Eventually every piece of data should be classifiable by this logic representation.</p>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add link to API-documentation for dl_reasoning.py here</p>
+</div>
+</div>
+<div class="section" id="agents">
+<h2>Agents<a class="headerlink" href="#agents" title="Permalink to this headline">¶</a></h2>
+<p>In the Gebsyas world, agents are the highest level structures. If we were to compare them to the human conscious experience, the agent class is the hardware housing the <em>I</em>. It abstracts the in- and output of the system to a unified internal data-format and holds the ontology, action-repertoire, current data state and symbolic state of the world. It also provides interfaces for logging and visualization.</p>
+<p>An agent can be awake or asleep. By default it activates all its sensors when it is woken up and deactivates them when it’s sent to sleep.</p>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add link to API-documentation for agent.py here</p>
+</div>
+</div>
+<div class="section" id="sensors">
+<h2>Sensors<a class="headerlink" href="#sensors" title="Permalink to this headline">¶</a></h2>
+<p>Sensors are wrappers around input operations. Their job is to convert external data into the system internal representation and pass this data along to appropriate callback functions.
+By default an implementation wrapping ROS-subscribers is provided.</p>
+<p>The following figure shows the main interactions of the components within the overall system.</p>
+<div class="figure align-center">
+<img alt="Interaction diagram" src="_images/Gebsyas_Dataflow.png" />
+</div>
+<div class="admonition-todo admonition" id="index-2">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add link to API-documentation for sensors.py here</p>
+</div>
+</div>
+<div class="section" id="trackers">
+<h2>Trackers<a class="headerlink" href="#trackers" title="Permalink to this headline">¶</a></h2>
+<p>Trackers track individual pieces of data that can be extracted from a sensor’s datastream and perform the necessary update to the system. The point of this tracking system is to handle the update logic independent of the currently instantiated agent or currently executed action.
+By default Gebsyas comes equipped with a tracker for joint states, one to track perceived objects and one to track objects whose pose is relative to some other object.</p>
+<div class="admonition-todo admonition" id="index-3">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add link to API-documentation for trackers.py here</p>
+</div>
+</div>
+<div class="section" id="context">
+<h2>Context<a class="headerlink" href="#context" title="Permalink to this headline">¶</a></h2>
+<p>All components which in are in some way reliant on the current state of the system, use a context for their operations. A context holds a reference to an agent, a logger and a visualizer. Actions, planners and predicates require for their operations. The context allows these systems complete access to the current state of the system. It is also a comfortable way to plan in virtual states, without any lower-level system needing to be aware of this fact.</p>
+</div>
+<div class="section" id="constraints">
+<h2>Constraints<a class="headerlink" href="#constraints" title="Permalink to this headline">¶</a></h2>
+<p>Gebsyas uses the constraint based motion control framework <em>Giskard</em> which is currently under development. Giskard uses a special constraint formulation which constrains the instantaneous change which can be made to an expression <span class="math notranslate nohighlight">\(e\)</span>.
+These constraints exist as triples <span class="math notranslate nohighlight">\(c = (lb, ub, e)\)</span>. To satisfy the constraint, a change <span class="math notranslate nohighlight">\(\Delta e\)</span> must be achieved so that <span class="math notranslate nohighlight">\(lb \leq \Delta e \leq ub\)</span>.
+We define that the value of <span class="math notranslate nohighlight">\(e\)</span> satisfies the constraint, when <span class="math notranslate nohighlight">\(lb \leq 0 \leq ub\)</span>, as this allows for <span class="math notranslate nohighlight">\(\Delta e = 0\)</span> meaning no change to <span class="math notranslate nohighlight">\(e\)</span> is necessary.</p>
+</div>
+<div class="section" id="constraint-based-predicates">
+<h2>Constraint Based Predicates<a class="headerlink" href="#constraint-based-predicates" title="Permalink to this headline">¶</a></h2>
+<p>Predicates <span class="math notranslate nohighlight">\(P\)</span> in Gebsyas are defined as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}P &amp;= (f_P, s_P) \\
+f_P &amp;: \mathcal{C} \times X^n \rightarrow C^m \\
+s_P &amp;= (t \mid t \in \mathcal{T})^n\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(f_P\)</span> is a function which generates, given a context and <em>n</em> objects, the constraints that model the truth-value for this predicate. The types of the objects are constrained by the type signature <span class="math notranslate nohighlight">\(s_P\)</span> which consists of description logical types.</p>
+<p>To evaluate whether a predicate is true or false, Gebsyas uses function <span class="math notranslate nohighlight">\(\phi\)</span></p>
+<div class="math notranslate nohighlight">
+\[\phi(\mathcal{C}, P, (x_1, \ldots, x_n)) = \bigwedge_{c \in f_P(\mathcal{C}, (x_1, \ldots, x_n))} lb_c \leq 0 \leq ub_c\]</div>
+</div>
+<div class="section" id="symbolic-and-non-symbolic-data">
+<h2>Symbolic and Non-symbolic data<a class="headerlink" href="#symbolic-and-non-symbolic-data" title="Permalink to this headline">¶</a></h2>
+<p>Gebsyas differentiates between symbolic and non-symbolic data. Non-symbolic data is regular data which can just be read and used in calculations as-is.
+Symbolic data might be partially or completely dependent on other data. An example for this kind of data is the position of the robot’s endeffector, which is dependent on the robot’s joint state.
+There are two main motivations for using symbolic data:</p>
+<ul class="simple">
+<li>It avoids complicated update cycles for continuously updating the data.</li>
+<li>It implicitly encodes the mechanics of the world into its state.</li>
+</ul>
+<p>Especially the last reason is a big argument for symbolic objects. This encoding of the world’s mechanics allows the system compute actions to change the systems state.</p>
+<p>Symbolic data <span class="math notranslate nohighlight">\(Y\)</span> is defined in Gebsyas as:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Y &amp;= (y, f_Y, L^n) \\
+f_Y &amp;: X^n \rightarrow X\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(y\)</span> is the symbolic data structure, <span class="math notranslate nohighlight">\(f_Y\)</span> is a conversion function which uses <span class="math notranslate nohighlight">\(n\)</span> non-symbolic objects to create the current non-symbolic instance of <span class="math notranslate nohighlight">\(y\)</span>. <span class="math notranslate nohighlight">\(L^n\)</span> is a tuple of labels, which refer to the <span class="math notranslate nohighlight">\(n\)</span> objects that should be used by <span class="math notranslate nohighlight">\(f_Y\)</span>.</p>
+<div class="admonition-todo admonition" id="index-4">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add link to API-documentation for SymbolicData and numeric_scene_state.py here</p>
+</div>
+</div>
+<div class="section" id="actions">
+<h2>Actions<a class="headerlink" href="#actions" title="Permalink to this headline">¶</a></h2>
+<p>Lastly let’s address actions. Action are the active units of the system. All behavior should be implemented in actions. All actions require a context in which they are supposed to operate. Their execution returns <span class="math notranslate nohighlight">\(r \in [0,1]\)</span> to indicate how successful the execution was. This type of feedback is under reconsideration as is utility is not apparent anymore.</p>
+<div class="section" id="action-interfaces">
+<h3>Action Interfaces<a class="headerlink" href="#action-interfaces" title="Permalink to this headline">¶</a></h3>
+<p>The action implementation can not be used directly by the planning system, as actions are runnable components which require actual data for their initialization. To make actions accessible for the planning system, Gebsyas provides <em>Action Interfaces</em>. These interfaces define pre- and postconditions in the form of predicates and provide a function to instantiate an action in a context.</p>
+<div class="admonition-todo admonition" id="index-5">
+<p class="first admonition-title">Todo</p>
+<p class="last">Add link to API-documentations of actions.py here.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="_modules/modules.html" class="btn btn-neutral float-right" title="gebsyas" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to GeBSyAS’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,316 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gebsyas.expression_parser &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Intro to GeBSyAS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">gebsyas</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>gebsyas.expression_parser</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for gebsyas.expression_parser</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+
+<span class="c1"># query_things_of_X = &#39;What things do you know which are&#39;</span>
+<span class="c1"># query_what_is_X   = &#39;What is X?&#39;</span>
+
+<span class="c1"># if inp[:len(query_things_of_X)] == query_things_of_X and inp[-1:]:</span>
+<span class="c1"># 	inp = inp[len(query_things_of_X):-1]</span>
+
+<span class="c1"># Unary operator</span>
+<span class="n">UnaryOp</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;UnaryOp&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">])</span>
+
+<span class="c1"># Binary operator</span>
+<span class="n">BinaryOp</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;BinaryOp&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;op&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">])</span>
+
+<span class="c1"># Function call</span>
+<span class="n">Function</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;Function&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="parse_bool_expr"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.parse_bool_expr">[docs]</a><span class="k">def</span> <span class="nf">parse_bool_expr</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Top level parsing rule. Returns expression and unparsed remainder of string.&quot;&quot;&quot;</span>
+	<span class="n">a</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_bool_prefix</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">remainder</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+
+	<span class="k">if</span> <span class="n">string</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;and &#39;</span><span class="p">:</span>
+		<span class="n">b</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_bool_expr</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="mi">4</span><span class="p">:])</span>
+		<span class="k">return</span> <span class="n">BinaryOp</span><span class="p">(</span><span class="s1">&#39;and&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">remainder</span>
+	<span class="k">elif</span> <span class="n">string</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;or &#39;</span><span class="p">:</span>
+		<span class="n">b</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_bool_expr</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="mi">4</span><span class="p">:])</span>
+		<span class="k">return</span> <span class="n">BinaryOp</span><span class="p">(</span><span class="s1">&#39;or&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">remainder</span>
+
+	<span class="k">return</span> <span class="n">a</span><span class="p">,</span> <span class="n">string</span></div>
+
+<div class="viewcode-block" id="parse_bool_prefix"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.parse_bool_prefix">[docs]</a><span class="k">def</span> <span class="nf">parse_bool_prefix</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Prefix parsing rule. Returns expression and unparsed remainder of string.&quot;&quot;&quot;</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+	<span class="k">if</span> <span class="n">string</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;not &#39;</span><span class="p">:</span>
+		<span class="n">a</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_bool_atom</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="mi">4</span><span class="p">:])</span>
+		<span class="k">return</span> <span class="n">UnaryOp</span><span class="p">(</span><span class="s1">&#39;not&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">),</span> <span class="n">remainder</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">parse_bool_atom</span><span class="p">(</span><span class="n">string</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="parse_bool_atom"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.parse_bool_atom">[docs]</a><span class="k">def</span> <span class="nf">parse_bool_atom</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Atomic parsing rule. Returns expression and unparsed remainder of string.&quot;&quot;&quot;</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+
+	<span class="k">if</span> <span class="n">string</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;True &#39;</span> <span class="ow">or</span> <span class="n">string</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span><span class="p">:</span>
+		<span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="n">string</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span>
+	<span class="k">elif</span> <span class="n">string</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;False &#39;</span> <span class="ow">or</span> <span class="n">string</span> <span class="o">==</span> <span class="s1">&#39;False&#39;</span><span class="p">:</span>
+		<span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">string</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">name</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_name</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+		<span class="n">string</span> <span class="o">=</span> <span class="n">remainder</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">string</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;(&#39;</span><span class="p">:</span>
+			<span class="n">args</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_homogenous_list</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">parse_path</span><span class="p">)</span>
+			<span class="n">string</span> <span class="o">=</span> <span class="n">remainder</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+			<span class="k">if</span> <span class="n">string</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;)&#39;</span><span class="p">:</span>
+				<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Expected </span><span class="se">\&#39;</span><span class="s1">)</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">)</span>
+			<span class="k">return</span> <span class="n">Function</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">),</span> <span class="n">string</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+		<span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">string</span></div>
+
+
+<div class="viewcode-block" id="parse_homogenous_list"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.parse_homogenous_list">[docs]</a><span class="k">def</span> <span class="nf">parse_homogenous_list</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">sub_parser</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;List parsing rule. Returns tuple of expressions and unparsed remainder of string.&quot;&quot;&quot;</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+		<span class="n">value</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">sub_parser</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+		<span class="n">string</span> <span class="o">=</span> <span class="n">remainder</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">string</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;,&#39;</span><span class="p">:</span>
+			<span class="k">break</span>
+		<span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+	<span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">string</span></div>
+
+<div class="viewcode-block" id="parse_path"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.parse_path">[docs]</a><span class="k">def</span> <span class="nf">parse_path</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Path parsing rule. Returns string and unparsed remainder of string.&quot;&quot;&quot;</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+	<span class="n">name</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_name</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">remainder</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">string</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;/&#39;</span><span class="p">:</span>
+		<span class="n">subpath</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="n">parse_path</span><span class="p">(</span><span class="n">string</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+		<span class="k">return</span> <span class="s1">&#39;{}/{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">subpath</span><span class="p">),</span> <span class="n">remainder</span>
+	<span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">string</span></div>
+
+<div class="viewcode-block" id="parse_name"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.parse_name">[docs]</a><span class="k">def</span> <span class="nf">parse_name</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Name parsing rule. Returns string and unparsed remainder of string.&quot;&quot;&quot;</span>
+	<span class="n">string</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+	<span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;^[a-zA-Z][a-zA-Z0-9_]*&#39;</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Pattern match for name &quot;{}&quot; returned None!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">string</span><span class="p">))</span>
+	<span class="k">return</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">string</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)):]</span></div>
+
+
+<div class="viewcode-block" id="normalize"><a class="viewcode-back" href="../gebsyas.html#gebsyas.expression_parser.normalize">[docs]</a><span class="k">def</span> <span class="nf">normalize</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Normalization function, which propagates all negations inwards.&quot;&quot;&quot;</span>
+	<span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="n">UnaryOp</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;not&#39;</span><span class="p">:</span>
+		<span class="n">ti</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">ti</span> <span class="o">==</span> <span class="n">UnaryOp</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;not&#39;</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">normalize</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="n">ti</span> <span class="o">==</span> <span class="n">BinaryOp</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;and&#39;</span><span class="p">:</span>
+				<span class="k">return</span> <span class="n">normalize</span><span class="p">(</span><span class="n">BinaryOp</span><span class="p">(</span><span class="s1">&#39;or&#39;</span><span class="p">,</span> <span class="n">UnaryOp</span><span class="p">(</span><span class="s1">&#39;not&#39;</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">a</span><span class="p">),</span> <span class="n">UnaryOp</span><span class="p">(</span><span class="s1">&#39;not&#39;</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">b</span><span class="p">)))</span>
+			<span class="k">elif</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;or&#39;</span><span class="p">:</span>
+				<span class="k">return</span> <span class="n">normalize</span><span class="p">(</span><span class="n">BinaryOp</span><span class="p">(</span><span class="s1">&#39;and&#39;</span><span class="p">,</span> <span class="n">UnaryOp</span><span class="p">(</span><span class="s1">&#39;not&#39;</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">a</span><span class="p">),</span> <span class="n">UnaryOp</span><span class="p">(</span><span class="s1">&#39;not&#39;</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">b</span><span class="p">)))</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="n">BinaryOp</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">BinaryOp</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">op</span><span class="p">,</span> <span class="n">normalize</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">a</span><span class="p">),</span> <span class="n">normalize</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">b</span><span class="p">))</span>
+
+	<span class="k">return</span> <span class="n">expr</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

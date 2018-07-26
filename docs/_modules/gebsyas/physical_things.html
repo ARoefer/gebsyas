@@ -1,0 +1,245 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gebsyas.physical_things &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Intro to GeBSyAS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">gebsyas</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>gebsyas.physical_things</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for gebsyas.physical_things</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">giskardpy.symengine_wrappers</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="Thing"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.Thing">[docs]</a><span class="k">class</span> <span class="nc">Thing</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="PhysicalThing"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.PhysicalThing">[docs]</a><span class="k">class</span> <span class="nc">PhysicalThing</span><span class="p">(</span><span class="n">Thing</span><span class="p">):</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">PhysicalThing</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span></div>
+
+
+<div class="viewcode-block" id="RigidObject"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.RigidObject">[docs]</a><span class="k">class</span> <span class="nc">RigidObject</span><span class="p">(</span><span class="n">PhysicalThing</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;docstring for RigidObject&quot;&quot;&quot;</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">RigidObject</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span> <span class="o">=</span> <span class="n">dimensions</span></div>
+
+
+<div class="viewcode-block" id="Sphere"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.Sphere">[docs]</a><span class="k">class</span> <span class="nc">Sphere</span><span class="p">(</span><span class="n">RigidObject</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;docstring for Sphere&quot;&quot;&quot;</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">radius</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">Sphere</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">vec3</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">radius</span><span class="p">]</span><span class="o">*</span><span class="mi">3</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="Sphere.on"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.Sphere.on">[docs]</a>	<span class="k">def</span> <span class="nf">on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">up</span><span class="o">=</span><span class="n">unitZ</span><span class="p">):</span>
+		<span class="n">goal</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="nb">abs</span><span class="p">((</span><span class="n">obj</span><span class="o">.</span><span class="n">frame</span> <span class="o">*</span> <span class="n">obj</span><span class="o">.</span><span class="n">dimensions</span><span class="p">)[</span><span class="mi">2</span><span class="p">]))</span> <span class="o">*</span> <span class="mf">0.5</span>
+		<span class="n">s2o</span> <span class="o">=</span> <span class="n">pos_of</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span> <span class="o">-</span> <span class="n">pos_of</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+		<span class="k">return</span> <span class="o">-</span><span class="n">dot</span><span class="p">(</span><span class="n">up</span><span class="p">,</span> <span class="n">s2o</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">goal</span> <span class="o">-</span> <span class="n">s2o</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span></div></div>
+
+
+<div class="viewcode-block" id="Cube"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.Cube">[docs]</a><span class="k">class</span> <span class="nc">Cube</span><span class="p">(</span><span class="n">RigidObject</span><span class="p">):</span>
+
+<div class="viewcode-block" id="Cube.on"><a class="viewcode-back" href="../gebsyas.html#gebsyas.physical_things.Cube.on">[docs]</a>	<span class="k">def</span> <span class="nf">on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">up</span><span class="o">=</span><span class="n">unitZ</span><span class="p">):</span>
+		<span class="k">pass</span></div></div>
+
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

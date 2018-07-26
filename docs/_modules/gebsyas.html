@@ -1,0 +1,804 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gebsyas package &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="gebsyas" href="modules.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../intro.html">Intro to GeBSyAS</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">gebsyas</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">gebsyas package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-actions-module">gebsyas.actions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-affordance-node-module">gebsyas.affordance_node module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-agent-module">gebsyas.agent module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-agent-node-module">gebsyas.agent_node module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-basic-controllers-module">gebsyas.basic_controllers module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-bullet-based-controller-module">gebsyas.bullet_based_controller module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-closest-point-queries-module">gebsyas.closest_point_queries module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas.constants">gebsyas.constants module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-dl-reasoning-module">gebsyas.dl_reasoning module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-dl-reasoning-test-module">gebsyas.dl_reasoning_test module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-dl-urdf-tools-module">gebsyas.dl_urdf_tools module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas.expression_parser">gebsyas.expression_parser module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-generic-motion-action-module">gebsyas.generic_motion_action module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-gnp-planner-module">gebsyas.gnp_planner module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-grasp-action-module">gebsyas.grasp_action module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-grasp-affordances-module">gebsyas.grasp_affordances module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-grasp-any-controller-module">gebsyas.grasp_any_controller module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas.interactive_marker_converter">gebsyas.interactive_marker_converter module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-numeric-scene-state-module">gebsyas.numeric_scene_state module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-object-input-module">gebsyas.object_input module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas.physical_things">gebsyas.physical_things module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-planner-module">gebsyas.planner module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-pnp-action-module">gebsyas.pnp_action module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-predicate-state-action-module">gebsyas.predicate_state_action module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-predicate-tester-module">gebsyas.predicate_tester module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-predicate-tester-node-module">gebsyas.predicate_tester_node module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-predicates-module">gebsyas.predicates module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas.ros_visualizer">gebsyas.ros_visualizer module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-sensors-module">gebsyas.sensors module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-simple-agent-actions-module">gebsyas.simple_agent_actions module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-simulator-module">gebsyas.simulator module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-simulator-node-module">gebsyas.simulator_node module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-spatial-relations-module">gebsyas.spatial_relations module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gebsyas-trackers-module">gebsyas.trackers module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas.utils">gebsyas.utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-gebsyas">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="modules.html">gebsyas</a> &raquo;</li>
+        
+      <li>gebsyas package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/_modules/gebsyas.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="gebsyas-package">
+<h1>gebsyas package<a class="headerlink" href="#gebsyas-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-actions-module">
+<h2>gebsyas.actions module<a class="headerlink" href="#gebsyas-actions-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-affordance-node-module">
+<h2>gebsyas.affordance_node module<a class="headerlink" href="#gebsyas-affordance-node-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-agent-module">
+<h2>gebsyas.agent module<a class="headerlink" href="#gebsyas-agent-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-agent-node-module">
+<h2>gebsyas.agent_node module<a class="headerlink" href="#gebsyas-agent-node-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-basic-controllers-module">
+<h2>gebsyas.basic_controllers module<a class="headerlink" href="#gebsyas-basic-controllers-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-bullet-based-controller-module">
+<h2>gebsyas.bullet_based_controller module<a class="headerlink" href="#gebsyas-bullet-based-controller-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-closest-point-queries-module">
+<h2>gebsyas.closest_point_queries module<a class="headerlink" href="#gebsyas-closest-point-queries-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-gebsyas.constants">
+<span id="gebsyas-constants-module"></span><h2>gebsyas.constants module<a class="headerlink" href="#module-gebsyas.constants" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-dl-reasoning-module">
+<h2>gebsyas.dl_reasoning module<a class="headerlink" href="#gebsyas-dl-reasoning-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-dl-reasoning-test-module">
+<h2>gebsyas.dl_reasoning_test module<a class="headerlink" href="#gebsyas-dl-reasoning-test-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-dl-urdf-tools-module">
+<h2>gebsyas.dl_urdf_tools module<a class="headerlink" href="#gebsyas-dl-urdf-tools-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-gebsyas.expression_parser">
+<span id="gebsyas-expression-parser-module"></span><h2>gebsyas.expression_parser module<a class="headerlink" href="#module-gebsyas.expression_parser" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="gebsyas.expression_parser.BinaryOp">
+<em class="property">class </em><code class="descclassname">gebsyas.expression_parser.</code><code class="descname">BinaryOp</code><span class="sig-paren">(</span><em>op</em>, <em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.expression_parser.BinaryOp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.BinaryOp.a">
+<code class="descname">a</code><a class="headerlink" href="#gebsyas.expression_parser.BinaryOp.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.BinaryOp.b">
+<code class="descname">b</code><a class="headerlink" href="#gebsyas.expression_parser.BinaryOp.b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.BinaryOp.op">
+<code class="descname">op</code><a class="headerlink" href="#gebsyas.expression_parser.BinaryOp.op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.expression_parser.Function">
+<em class="property">class </em><code class="descclassname">gebsyas.expression_parser.</code><code class="descname">Function</code><span class="sig-paren">(</span><em>name</em>, <em>args</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.expression_parser.Function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.Function.args">
+<code class="descname">args</code><a class="headerlink" href="#gebsyas.expression_parser.Function.args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.Function.name">
+<code class="descname">name</code><a class="headerlink" href="#gebsyas.expression_parser.Function.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.expression_parser.UnaryOp">
+<em class="property">class </em><code class="descclassname">gebsyas.expression_parser.</code><code class="descname">UnaryOp</code><span class="sig-paren">(</span><em>op</em>, <em>a</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.expression_parser.UnaryOp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.UnaryOp.a">
+<code class="descname">a</code><a class="headerlink" href="#gebsyas.expression_parser.UnaryOp.a" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.expression_parser.UnaryOp.op">
+<code class="descname">op</code><a class="headerlink" href="#gebsyas.expression_parser.UnaryOp.op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.normalize">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">normalize</code><span class="sig-paren">(</span><em>expr</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#normalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.normalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalization function, which propagates all negations inwards.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.parse_bool_atom">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">parse_bool_atom</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#parse_bool_atom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.parse_bool_atom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Atomic parsing rule. Returns expression and unparsed remainder of string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.parse_bool_expr">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">parse_bool_expr</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#parse_bool_expr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.parse_bool_expr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Top level parsing rule. Returns expression and unparsed remainder of string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.parse_bool_prefix">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">parse_bool_prefix</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#parse_bool_prefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.parse_bool_prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prefix parsing rule. Returns expression and unparsed remainder of string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.parse_homogenous_list">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">parse_homogenous_list</code><span class="sig-paren">(</span><em>string</em>, <em>sub_parser</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#parse_homogenous_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.parse_homogenous_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>List parsing rule. Returns tuple of expressions and unparsed remainder of string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.parse_name">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">parse_name</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#parse_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.parse_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name parsing rule. Returns string and unparsed remainder of string.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.expression_parser.parse_path">
+<code class="descclassname">gebsyas.expression_parser.</code><code class="descname">parse_path</code><span class="sig-paren">(</span><em>string</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/expression_parser.html#parse_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.expression_parser.parse_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Path parsing rule. Returns string and unparsed remainder of string.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="gebsyas-generic-motion-action-module">
+<h2>gebsyas.generic_motion_action module<a class="headerlink" href="#gebsyas-generic-motion-action-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-gnp-planner-module">
+<h2>gebsyas.gnp_planner module<a class="headerlink" href="#gebsyas-gnp-planner-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-grasp-action-module">
+<h2>gebsyas.grasp_action module<a class="headerlink" href="#gebsyas-grasp-action-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-grasp-affordances-module">
+<h2>gebsyas.grasp_affordances module<a class="headerlink" href="#gebsyas-grasp-affordances-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-grasp-any-controller-module">
+<h2>gebsyas.grasp_any_controller module<a class="headerlink" href="#gebsyas-grasp-any-controller-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-gebsyas.interactive_marker_converter">
+<span id="gebsyas-interactive-marker-converter-module"></span><h2>gebsyas.interactive_marker_converter module<a class="headerlink" href="#module-gebsyas.interactive_marker_converter" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="gebsyas.interactive_marker_converter.full_update_cb">
+<code class="descclassname">gebsyas.interactive_marker_converter.</code><code class="descname">full_update_cb</code><span class="sig-paren">(</span><em>markers</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/interactive_marker_converter.html#full_update_cb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.interactive_marker_converter.full_update_cb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.interactive_marker_converter.partial_update_cb">
+<code class="descclassname">gebsyas.interactive_marker_converter.</code><code class="descname">partial_update_cb</code><span class="sig-paren">(</span><em>update</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/interactive_marker_converter.html#partial_update_cb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.interactive_marker_converter.partial_update_cb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.interactive_marker_converter.republish">
+<code class="descclassname">gebsyas.interactive_marker_converter.</code><code class="descname">republish</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/interactive_marker_converter.html#republish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.interactive_marker_converter.republish" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="gebsyas-numeric-scene-state-module">
+<h2>gebsyas.numeric_scene_state module<a class="headerlink" href="#gebsyas-numeric-scene-state-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-object-input-module">
+<h2>gebsyas.object_input module<a class="headerlink" href="#gebsyas-object-input-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-gebsyas.physical_things">
+<span id="gebsyas-physical-things-module"></span><h2>gebsyas.physical_things module<a class="headerlink" href="#module-gebsyas.physical_things" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="gebsyas.physical_things.Cube">
+<em class="property">class </em><code class="descclassname">gebsyas.physical_things.</code><code class="descname">Cube</code><span class="sig-paren">(</span><em>name</em>, <em>frame</em>, <em>dimensions</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#Cube"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.Cube" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#gebsyas.physical_things.RigidObject" title="gebsyas.physical_things.RigidObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">gebsyas.physical_things.RigidObject</span></code></a></p>
+<dl class="method">
+<dt id="gebsyas.physical_things.Cube.on">
+<code class="descname">on</code><span class="sig-paren">(</span><em>obj, up=[0] [0] [1] [0] </em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#Cube.on"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.Cube.on" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.physical_things.PhysicalThing">
+<em class="property">class </em><code class="descclassname">gebsyas.physical_things.</code><code class="descname">PhysicalThing</code><span class="sig-paren">(</span><em>name</em>, <em>frame</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#PhysicalThing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.PhysicalThing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#gebsyas.physical_things.Thing" title="gebsyas.physical_things.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">gebsyas.physical_things.Thing</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.physical_things.RigidObject">
+<em class="property">class </em><code class="descclassname">gebsyas.physical_things.</code><code class="descname">RigidObject</code><span class="sig-paren">(</span><em>name</em>, <em>frame</em>, <em>dimensions</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#RigidObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.RigidObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#gebsyas.physical_things.PhysicalThing" title="gebsyas.physical_things.PhysicalThing"><code class="xref py py-class docutils literal notranslate"><span class="pre">gebsyas.physical_things.PhysicalThing</span></code></a></p>
+<p>docstring for RigidObject</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.physical_things.Sphere">
+<em class="property">class </em><code class="descclassname">gebsyas.physical_things.</code><code class="descname">Sphere</code><span class="sig-paren">(</span><em>name</em>, <em>frame</em>, <em>radius</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#Sphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.Sphere" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#gebsyas.physical_things.RigidObject" title="gebsyas.physical_things.RigidObject"><code class="xref py py-class docutils literal notranslate"><span class="pre">gebsyas.physical_things.RigidObject</span></code></a></p>
+<p>docstring for Sphere</p>
+<dl class="method">
+<dt id="gebsyas.physical_things.Sphere.on">
+<code class="descname">on</code><span class="sig-paren">(</span><em>obj, up=[0] [0] [1] [0] </em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#Sphere.on"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.Sphere.on" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.physical_things.Thing">
+<em class="property">class </em><code class="descclassname">gebsyas.physical_things.</code><code class="descname">Thing</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/physical_things.html#Thing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.physical_things.Thing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+</div>
+<div class="section" id="gebsyas-planner-module">
+<h2>gebsyas.planner module<a class="headerlink" href="#gebsyas-planner-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-pnp-action-module">
+<h2>gebsyas.pnp_action module<a class="headerlink" href="#gebsyas-pnp-action-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-predicate-state-action-module">
+<h2>gebsyas.predicate_state_action module<a class="headerlink" href="#gebsyas-predicate-state-action-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-predicate-tester-module">
+<h2>gebsyas.predicate_tester module<a class="headerlink" href="#gebsyas-predicate-tester-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-predicate-tester-node-module">
+<h2>gebsyas.predicate_tester_node module<a class="headerlink" href="#gebsyas-predicate-tester-node-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-predicates-module">
+<h2>gebsyas.predicates module<a class="headerlink" href="#gebsyas-predicates-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-gebsyas.ros_visualizer">
+<span id="gebsyas-ros-visualizer-module"></span><h2>gebsyas.ros_visualizer module<a class="headerlink" href="#module-gebsyas.ros_visualizer" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer">
+<em class="property">class </em><code class="descclassname">gebsyas.ros_visualizer.</code><code class="descname">ROSVisualizer</code><span class="sig-paren">(</span><em>vis_topic</em>, <em>base_frame='base_link'</em>, <em>plot_topic='plot'</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.begin_draw_cycle">
+<code class="descname">begin_draw_cycle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.begin_draw_cycle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.begin_draw_cycle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.consume_id">
+<code class="descname">consume_id</code><span class="sig-paren">(</span><em>namespace</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.consume_id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.consume_id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_arrow">
+<code class="descname">draw_arrow</code><span class="sig-paren">(</span><em>namespace</em>, <em>start</em>, <em>end</em>, <em>r=1</em>, <em>g=1</em>, <em>b=1</em>, <em>a=1</em>, <em>width=0.01</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_arrow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_arrow" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_cube">
+<code class="descname">draw_cube</code><span class="sig-paren">(</span><em>namespace</em>, <em>pose</em>, <em>scale</em>, <em>r=0</em>, <em>g=0</em>, <em>b=1</em>, <em>a=1</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_cube"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_cube" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_cylinder">
+<code class="descname">draw_cylinder</code><span class="sig-paren">(</span><em>namespace</em>, <em>pose</em>, <em>length</em>, <em>radius</em>, <em>r=0</em>, <em>g=0</em>, <em>b=1</em>, <em>a=1</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_cylinder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_cylinder" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_mesh">
+<code class="descname">draw_mesh</code><span class="sig-paren">(</span><em>namespace</em>, <em>pose</em>, <em>scale</em>, <em>resource</em>, <em>frame=None</em>, <em>r=0</em>, <em>g=0</em>, <em>b=0</em>, <em>a=0</em>, <em>use_mat=True</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_mesh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_mesh" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_robot_pose">
+<code class="descname">draw_robot_pose</code><span class="sig-paren">(</span><em>namespace</em>, <em>robot</em>, <em>joint_pos_dict</em>, <em>frame=None</em>, <em>tint=(1</em>, <em>1</em>, <em>1</em>, <em>1)</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_robot_pose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_robot_pose" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_robot_trajectory">
+<code class="descname">draw_robot_trajectory</code><span class="sig-paren">(</span><em>namespace</em>, <em>robot</em>, <em>trajectory</em>, <em>frame=None</em>, <em>steps_per_sec=3</em>, <em>tint=(1</em>, <em>1</em>, <em>1</em>, <em>1)</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_robot_trajectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_robot_trajectory" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_shape">
+<code class="descname">draw_shape</code><span class="sig-paren">(</span><em>namespace</em>, <em>pose</em>, <em>scale</em>, <em>shape</em>, <em>r=1</em>, <em>g=1</em>, <em>b=1</em>, <em>a=1</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_sphere">
+<code class="descname">draw_sphere</code><span class="sig-paren">(</span><em>namespace</em>, <em>position</em>, <em>radius</em>, <em>r=1</em>, <em>g=0</em>, <em>b=0</em>, <em>a=1</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_sphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_sphere" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_text">
+<code class="descname">draw_text</code><span class="sig-paren">(</span><em>namespace</em>, <em>position</em>, <em>text</em>, <em>r=1</em>, <em>g=1</em>, <em>b=1</em>, <em>a=1</em>, <em>height=0.08</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.draw_vector">
+<code class="descname">draw_vector</code><span class="sig-paren">(</span><em>namespace</em>, <em>position</em>, <em>vector</em>, <em>r=1</em>, <em>g=1</em>, <em>b=1</em>, <em>a=1</em>, <em>width=0.01</em>, <em>frame=None</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.draw_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.draw_vector" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="gebsyas.ros_visualizer.ROSVisualizer.render">
+<code class="descname">render</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#ROSVisualizer.render"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.ROSVisualizer.render" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.ros_visualizer.blank_marker">
+<code class="descclassname">gebsyas.ros_visualizer.</code><code class="descname">blank_marker</code><span class="sig-paren">(</span><em>Id</em>, <em>namespace</em>, <em>r</em>, <em>g</em>, <em>b</em>, <em>a</em>, <em>frame</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#blank_marker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.blank_marker" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.ros_visualizer.del_marker">
+<code class="descclassname">gebsyas.ros_visualizer.</code><code class="descname">del_marker</code><span class="sig-paren">(</span><em>Id</em>, <em>namespace</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/ros_visualizer.html#del_marker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.ros_visualizer.del_marker" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="gebsyas-sensors-module">
+<h2>gebsyas.sensors module<a class="headerlink" href="#gebsyas-sensors-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-simple-agent-actions-module">
+<h2>gebsyas.simple_agent_actions module<a class="headerlink" href="#gebsyas-simple-agent-actions-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-simulator-module">
+<h2>gebsyas.simulator module<a class="headerlink" href="#gebsyas-simulator-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-simulator-node-module">
+<h2>gebsyas.simulator_node module<a class="headerlink" href="#gebsyas-simulator-node-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-spatial-relations-module">
+<h2>gebsyas.spatial_relations module<a class="headerlink" href="#gebsyas-spatial-relations-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="gebsyas-trackers-module">
+<h2>gebsyas.trackers module<a class="headerlink" href="#gebsyas-trackers-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-gebsyas.utils">
+<span id="gebsyas-utils-module"></span><h2>gebsyas.utils module<a class="headerlink" href="#module-gebsyas.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="gebsyas.utils.Blank">
+<em class="property">class </em><code class="descclassname">gebsyas.utils.</code><code class="descname">Blank</code><a class="reference internal" href="gebsyas/utils.html#Blank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.Blank" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.utils.JointState">
+<em class="property">class </em><code class="descclassname">gebsyas.utils.</code><code class="descname">JointState</code><span class="sig-paren">(</span><em>position</em>, <em>velocity</em>, <em>effort</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.utils.JointState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.utils.JointState.effort">
+<code class="descname">effort</code><a class="headerlink" href="#gebsyas.utils.JointState.effort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.JointState.position">
+<code class="descname">position</code><a class="headerlink" href="#gebsyas.utils.JointState.position" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.JointState.velocity">
+<code class="descname">velocity</code><a class="headerlink" href="#gebsyas.utils.JointState.velocity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.utils.QuatT">
+<em class="property">class </em><code class="descclassname">gebsyas.utils.</code><code class="descname">QuatT</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>z</em>, <em>w</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.utils.QuatT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.utils.QuatT.w">
+<code class="descname">w</code><a class="headerlink" href="#gebsyas.utils.QuatT.w" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.QuatT.x">
+<code class="descname">x</code><a class="headerlink" href="#gebsyas.utils.QuatT.x" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.QuatT.y">
+<code class="descname">y</code><a class="headerlink" href="#gebsyas.utils.QuatT.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.QuatT.z">
+<code class="descname">z</code><a class="headerlink" href="#gebsyas.utils.QuatT.z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.utils.RPY">
+<em class="property">class </em><code class="descclassname">gebsyas.utils.</code><code class="descname">RPY</code><span class="sig-paren">(</span><em>r</em>, <em>p</em>, <em>y</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.utils.RPY" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.utils.RPY.p">
+<code class="descname">p</code><a class="headerlink" href="#gebsyas.utils.RPY.p" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.RPY.r">
+<code class="descname">r</code><a class="headerlink" href="#gebsyas.utils.RPY.r" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.RPY.y">
+<code class="descname">y</code><a class="headerlink" href="#gebsyas.utils.RPY.y" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="gebsyas.utils.StampedData">
+<em class="property">class </em><code class="descclassname">gebsyas.utils.</code><code class="descname">StampedData</code><span class="sig-paren">(</span><em>stamp</em>, <em>data</em><span class="sig-paren">)</span><a class="headerlink" href="#gebsyas.utils.StampedData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="gebsyas.utils.StampedData.data">
+<code class="descname">data</code><a class="headerlink" href="#gebsyas.utils.StampedData.data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="gebsyas.utils.StampedData.stamp">
+<code class="descname">stamp</code><a class="headerlink" href="#gebsyas.utils.StampedData.stamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.abs">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">abs</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#abs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.abs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.bb">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">bb</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#bb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.bb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.cmdDictToJointState">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">cmdDictToJointState</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#cmdDictToJointState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.cmdDictToJointState" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.expr_to_rosmsg">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">expr_to_rosmsg</code><span class="sig-paren">(</span><em>expr</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#expr_to_rosmsg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.expr_to_rosmsg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.jsDictToJSMsg">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">jsDictToJSMsg</code><span class="sig-paren">(</span><em>js_dict</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#jsDictToJSMsg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.jsDictToJSMsg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.nested_list_to_sym">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">nested_list_to_sym</code><span class="sig-paren">(</span><em>l</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#nested_list_to_sym"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.nested_list_to_sym" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.nested_symlist_to_yaml">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">nested_symlist_to_yaml</code><span class="sig-paren">(</span><em>l</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#nested_symlist_to_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.nested_symlist_to_yaml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.pobj_to_expr">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">pobj_to_expr</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#pobj_to_expr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.pobj_to_expr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.ros_msg_to_expr">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">ros_msg_to_expr</code><span class="sig-paren">(</span><em>ros_msg</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#ros_msg_to_expr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.ros_msg_to_expr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.rot3_to_quat">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">rot3_to_quat</code><span class="sig-paren">(</span><em>rot3</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#rot3_to_quat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.rot3_to_quat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.rot3_to_rpy">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">rot3_to_rpy</code><span class="sig-paren">(</span><em>rot3</em>, <em>evaluate=False</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#rot3_to_rpy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.rot3_to_rpy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.saturate">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">saturate</code><span class="sig-paren">(</span><em>x</em>, <em>low=0</em>, <em>high=1</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#saturate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.saturate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.subs_if_sym">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">subs_if_sym</code><span class="sig-paren">(</span><em>var</em>, <em>subs_dict</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#subs_if_sym"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.subs_if_sym" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.tip_at_one">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">tip_at_one</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#tip_at_one"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.tip_at_one" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.yaml_matrix_constructor">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">yaml_matrix_constructor</code><span class="sig-paren">(</span><em>loader</em>, <em>node</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#yaml_matrix_constructor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.yaml_matrix_constructor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.yaml_matrix_representer">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">yaml_matrix_representer</code><span class="sig-paren">(</span><em>dumper</em>, <em>matrix</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#yaml_matrix_representer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.yaml_matrix_representer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.yaml_sym_constructor">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">yaml_sym_constructor</code><span class="sig-paren">(</span><em>loader</em>, <em>node</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#yaml_sym_constructor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.yaml_sym_constructor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="gebsyas.utils.yaml_sym_representer">
+<code class="descclassname">gebsyas.utils.</code><code class="descname">yaml_sym_representer</code><span class="sig-paren">(</span><em>dumper</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="gebsyas/utils.html#yaml_sym_representer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gebsyas.utils.yaml_sym_representer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-gebsyas">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-gebsyas" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="modules.html" class="btn btn-neutral" title="gebsyas" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

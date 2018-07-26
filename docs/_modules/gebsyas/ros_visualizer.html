@@ -1,0 +1,366 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gebsyas.ros_visualizer &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Intro to GeBSyAS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">gebsyas</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>gebsyas.ros_visualizer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for gebsyas.ros_visualizer</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">from</span> <span class="nn">visualization_msgs.msg</span> <span class="k">import</span> <span class="n">Marker</span><span class="p">,</span> <span class="n">MarkerArray</span>
+<span class="kn">from</span> <span class="nn">gebsyas.utils</span> <span class="k">import</span> <span class="n">expr_to_rosmsg</span>
+<span class="kn">from</span> <span class="nn">gebsyas.msg</span> <span class="k">import</span> <span class="n">FloatTable</span>
+<span class="kn">from</span> <span class="nn">urdf_parser_py.urdf</span> <span class="k">import</span> <span class="n">Sphere</span><span class="p">,</span> <span class="n">Cylinder</span><span class="p">,</span> <span class="n">Box</span><span class="p">,</span> <span class="n">Mesh</span>
+
+<div class="viewcode-block" id="del_marker"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.del_marker">[docs]</a><span class="k">def</span> <span class="nf">del_marker</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">namespace</span><span class="p">):</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">Marker</span><span class="p">()</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">ns</span> <span class="o">=</span> <span class="n">namespace</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">Id</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">action</span> <span class="o">=</span> <span class="n">Marker</span><span class="o">.</span><span class="n">DELETE</span>
+	<span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="blank_marker"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.blank_marker">[docs]</a><span class="k">def</span> <span class="nf">blank_marker</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">Marker</span><span class="p">()</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">ns</span> <span class="o">=</span> <span class="n">namespace</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">=</span> <span class="n">frame</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">Id</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">action</span>  <span class="o">=</span> <span class="n">Marker</span><span class="o">.</span><span class="n">ADD</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="n">r</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">g</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">b</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span>
+	<span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="ROSVisualizer"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer">[docs]</a><span class="k">class</span> <span class="nc">ROSVisualizer</span><span class="p">():</span>
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vis_topic</span><span class="p">,</span> <span class="n">base_frame</span><span class="o">=</span><span class="s1">&#39;base_link&#39;</span><span class="p">,</span> <span class="n">plot_topic</span><span class="o">=</span><span class="s1">&#39;plot&#39;</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span>     <span class="o">=</span> <span class="p">{}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">lastIds</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">publisher</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="n">vis_topic</span><span class="p">,</span> <span class="n">MarkerArray</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">plot_publisher</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="n">plot_topic</span><span class="p">,</span> <span class="n">FloatTable</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">base_frame</span> <span class="o">=</span> <span class="n">base_frame</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ROSVisualizer.begin_draw_cycle"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.begin_draw_cycle">[docs]</a>	<span class="k">def</span> <span class="nf">begin_draw_cycle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">lastIds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">ns</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">ns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span> <span class="o">=</span> <span class="n">MarkerArray</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.consume_id"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.consume_id">[docs]</a>	<span class="k">def</span> <span class="nf">consume_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="n">namespace</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">namespace</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">lastIds</span><span class="p">[</span><span class="n">namespace</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">namespace</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">[</span><span class="n">namespace</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="ROSVisualizer.render"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.render">[docs]</a>	<span class="k">def</span> <span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">Id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">del_marker</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">namespace</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lastIds</span><span class="p">[</span><span class="n">namespace</span><span class="p">])])</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="p">)</span></div>
+
+	<span class="k">def</span> <span class="nf">__resframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">frame</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_frame</span>
+		<span class="k">return</span> <span class="n">frame</span>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_sphere"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_sphere">[docs]</a>	<span class="k">def</span> <span class="nf">draw_sphere</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="n">marker</span> <span class="o">=</span> <span class="n">blank_marker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consume_id</span><span class="p">(</span><span class="n">namespace</span><span class="p">),</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resframe</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Marker</span><span class="o">.</span><span class="n">SPHERE</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">([</span><span class="n">radius</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_cube"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_cube">[docs]</a>	<span class="k">def</span> <span class="nf">draw_cube</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">draw_shape</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">Marker</span><span class="o">.</span><span class="n">CUBE</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_cylinder"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_cylinder">[docs]</a>	<span class="k">def</span> <span class="nf">draw_cylinder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">draw_shape</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="p">(</span><span class="n">radius</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">length</span><span class="p">),</span> <span class="n">Marker</span><span class="o">.</span><span class="n">CYLINDER</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_arrow"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_arrow">[docs]</a>	<span class="k">def</span> <span class="nf">draw_arrow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="n">marker</span> <span class="o">=</span> <span class="n">blank_marker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consume_id</span><span class="p">(</span><span class="n">namespace</span><span class="p">),</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resframe</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Marker</span><span class="o">.</span><span class="n">ARROW</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">width</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">width</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">start</span><span class="p">),</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">end</span><span class="p">)])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_vector"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_vector">[docs]</a>	<span class="k">def</span> <span class="nf">draw_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">draw_arrow</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">position</span> <span class="o">+</span> <span class="n">vector</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_text"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_text">[docs]</a>	<span class="k">def</span> <span class="nf">draw_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="n">marker</span> <span class="o">=</span> <span class="n">blank_marker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consume_id</span><span class="p">(</span><span class="n">namespace</span><span class="p">),</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resframe</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Marker</span><span class="o">.</span><span class="n">TEXT</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">height</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_shape"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_shape">[docs]</a>	<span class="k">def</span> <span class="nf">draw_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+		<span class="n">marker</span> <span class="o">=</span> <span class="n">blank_marker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consume_id</span><span class="p">(</span><span class="n">namespace</span><span class="p">),</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resframe</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">shape</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_mesh"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_mesh">[docs]</a>	<span class="k">def</span> <span class="nf">draw_mesh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">resource</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">use_mat</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+		<span class="n">marker</span> <span class="o">=</span> <span class="n">blank_marker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consume_id</span><span class="p">(</span><span class="n">namespace</span><span class="p">),</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__resframe</span><span class="p">(</span><span class="n">frame</span><span class="p">))</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">Marker</span><span class="o">.</span><span class="n">MESH_RESOURCE</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">expr_to_rosmsg</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">mesh_resource</span> <span class="o">=</span> <span class="n">resource</span>
+		<span class="n">marker</span><span class="o">.</span><span class="n">mesh_use_embedded_materials</span> <span class="o">=</span> <span class="n">use_mat</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">current_msg</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_robot_pose"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_robot_pose">[docs]</a>	<span class="k">def</span> <span class="nf">draw_robot_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">robot</span><span class="p">,</span> <span class="n">joint_pos_dict</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tint</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+		<span class="k">if</span> <span class="n">robot</span><span class="o">.</span><span class="n">urdf_robot</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span>
+
+		<span class="n">urdf</span> <span class="o">=</span> <span class="n">robot</span><span class="o">.</span><span class="n">urdf_robot</span>
+		<span class="k">for</span> <span class="n">link_name</span><span class="p">,</span> <span class="n">symframe</span> <span class="ow">in</span> <span class="n">robot</span><span class="o">.</span><span class="n">frames</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+			<span class="k">if</span> <span class="n">link_name</span> <span class="ow">in</span> <span class="n">urdf</span><span class="o">.</span><span class="n">link_map</span> <span class="ow">and</span> <span class="n">urdf</span><span class="o">.</span><span class="n">link_map</span><span class="p">[</span><span class="n">link_name</span><span class="p">]</span><span class="o">.</span><span class="n">visual</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="n">visual</span> <span class="o">=</span> <span class="n">urdf</span><span class="o">.</span><span class="n">link_map</span><span class="p">[</span><span class="n">link_name</span><span class="p">]</span><span class="o">.</span><span class="n">visual</span>
+				<span class="n">t_vis</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="p">)</span>
+				<span class="n">pose</span> <span class="o">=</span> <span class="n">symframe</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">joint_pos_dict</span><span class="p">)</span>
+				<span class="n">color</span> <span class="o">=</span> <span class="n">tint</span>
+				<span class="k">if</span> <span class="n">visual</span><span class="o">.</span><span class="n">material</span> <span class="o">!=</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">visual</span><span class="o">.</span><span class="n">material</span><span class="o">.</span><span class="n">color</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+				 	<span class="n">color</span> <span class="o">=</span> <span class="p">(</span><span class="n">visual</span><span class="o">.</span><span class="n">material</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgba</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">tint</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">visual</span><span class="o">.</span><span class="n">material</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgba</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">tint</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">visual</span><span class="o">.</span><span class="n">material</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgba</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">tint</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">visual</span><span class="o">.</span><span class="n">material</span><span class="o">.</span><span class="n">color</span><span class="o">.</span><span class="n">rgba</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">tint</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+				<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">free_symbols</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+					<span class="k">if</span> <span class="n">t_vis</span> <span class="ow">is</span> <span class="n">Sphere</span><span class="p">:</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">draw_shape</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="p">(</span><span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">radius</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">Marker</span><span class="o">.</span><span class="n">SPHERE</span><span class="p">,</span> <span class="n">color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">frame</span><span class="p">)</span>
+					<span class="k">elif</span> <span class="n">t_vis</span> <span class="ow">is</span> <span class="n">Box</span><span class="p">:</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">draw_cube</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">visual</span><span class="p">,</span> <span class="n">color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">frame</span><span class="p">)</span>
+					<span class="k">elif</span> <span class="n">t_vis</span> <span class="ow">is</span> <span class="n">Cylinder</span><span class="p">:</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">draw_cylinder</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">radius</span><span class="p">,</span> <span class="n">color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">frame</span><span class="p">)</span>
+					<span class="k">elif</span> <span class="n">t_vis</span> <span class="ow">is</span> <span class="n">Mesh</span><span class="p">:</span>
+						<span class="n">scale</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+						<span class="k">if</span> <span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">scale</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+							<span class="n">scale</span> <span class="o">=</span> <span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">scale</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">draw_mesh</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">pose</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">visual</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">color</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">color</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ROSVisualizer.draw_robot_trajectory"><a class="viewcode-back" href="../gebsyas.html#gebsyas.ros_visualizer.ROSVisualizer.draw_robot_trajectory">[docs]</a>	<span class="k">def</span> <span class="nf">draw_robot_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">robot</span><span class="p">,</span> <span class="n">trajectory</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">steps_per_sec</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">tint</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">trajectory</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">steps_per_sec</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="k">return</span>
+
+		<span class="n">last_stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">interval</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Duration</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">steps_per_sec</span><span class="p">)</span>
+
+		<span class="n">points</span> <span class="o">=</span> <span class="mi">0</span>
+
+		<span class="k">for</span> <span class="n">stamped_state</span> <span class="ow">in</span> <span class="n">trajectory</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">stamped_state</span><span class="o">.</span><span class="n">stamp</span> <span class="o">-</span> <span class="n">last_stamp</span> <span class="o">&gt;=</span> <span class="n">interval</span><span class="p">:</span>
+				<span class="n">js_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">state</span><span class="o">.</span><span class="n">position</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">stamped_state</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">draw_robot_pose</span><span class="p">(</span><span class="n">namespace</span><span class="p">,</span> <span class="n">robot</span><span class="p">,</span> <span class="n">js_dict</span><span class="p">,</span> <span class="n">frame</span><span class="p">,</span> <span class="n">tint</span><span class="p">)</span>
+				<span class="n">last_stamp</span> <span class="o">=</span> <span class="n">stamped_state</span><span class="o">.</span><span class="n">stamp</span>
+				<span class="n">points</span> <span class="o">+=</span> <span class="mi">1</span></div></div>
+				<span class="c1">#print(&#39;\n   &#39;.join([&#39;{:25}: {}&#39;.format(name, pos) for name, pos in js_dict.items()]))</span>
+
+		<span class="c1">#print(&#39;Rendered {} trajectory points. Original count: {}&#39;.format(points, len(trajectory)))</span>
+
+	<span class="c1">#def draw_plot_point(self, name, value):</span>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

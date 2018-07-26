@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gebsyas.interactive_marker_converter &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Intro to GeBSyAS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">gebsyas</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>gebsyas.interactive_marker_converter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for gebsyas.interactive_marker_converter</h1><div class="highlight"><pre>
+<span class="ch">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="k">import</span> <span class="n">Empty</span>
+<span class="kn">from</span> <span class="nn">geometry_msgs.msg</span> <span class="k">import</span> <span class="n">PoseStamped</span>
+<span class="kn">from</span> <span class="nn">visualization_msgs.msg</span> <span class="k">import</span> <span class="n">InteractiveMarkerInit</span> <span class="k">as</span> <span class="n">IMIMsg</span>
+<span class="kn">from</span> <span class="nn">visualization_msgs.msg</span> <span class="k">import</span> <span class="n">InteractiveMarkerFeedback</span> <span class="k">as</span> <span class="n">IMFMsg</span>
+<span class="kn">from</span> <span class="nn">visualization_msgs.msg</span> <span class="k">import</span> <span class="n">Marker</span>
+<span class="kn">from</span> <span class="nn">gebsyas.msg</span> <span class="k">import</span> <span class="n">ProbabilisticObject</span> <span class="k">as</span> <span class="n">POMsg</span>
+
+<span class="n">publisher</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">objects</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">listener</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="full_update_cb"><a class="viewcode-back" href="../gebsyas.html#gebsyas.interactive_marker_converter.full_update_cb">[docs]</a><span class="k">def</span> <span class="nf">full_update_cb</span><span class="p">(</span><span class="n">markers</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Received update containing {} markers.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">markers</span><span class="o">.</span><span class="n">markers</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">marker</span> <span class="ow">in</span> <span class="n">markers</span><span class="o">.</span><span class="n">markers</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="n">POMsg</span><span class="p">()</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">marker</span><span class="o">.</span><span class="n">header</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">marker</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">==</span> <span class="s1">&#39;base_link&#39;</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">marker</span><span class="o">.</span><span class="n">pose</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ps</span> <span class="o">=</span> <span class="n">PoseStamped</span><span class="p">()</span>
+                <span class="n">ps</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">header</span>
+                <span class="n">listener</span><span class="o">.</span><span class="n">waitForTransform</span><span class="p">(</span><span class="s1">&#39;base_link&#39;</span><span class="p">,</span> <span class="n">ps</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span><span class="p">,</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Duration</span><span class="p">(</span><span class="mf">0.2</span><span class="p">))</span>
+                <span class="n">newPose</span> <span class="o">=</span> <span class="n">listener</span><span class="o">.</span><span class="n">transformPose</span><span class="p">(</span><span class="s1">&#39;base_link&#39;</span><span class="p">,</span> <span class="n">ps</span><span class="p">)</span>
+                <span class="n">msg</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">pose</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">LookupException</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ConnectivityException</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ExtrapolationException</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Lookup of {} in base_link failed&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span><span class="p">))</span>
+
+        <span class="n">control</span> <span class="o">=</span> <span class="n">marker</span><span class="o">.</span><span class="n">controls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">Marker</span><span class="o">.</span><span class="n">SPHERE</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">=</span> <span class="s1">&#39;sphere&#39;</span>
+        <span class="k">elif</span> <span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">Marker</span><span class="o">.</span><span class="n">CYLINDER</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">=</span> <span class="s1">&#39;cylinder&#39;</span>
+        <span class="k">elif</span> <span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">Marker</span><span class="o">.</span><span class="n">CUBE</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">=</span> <span class="s1">&#39;cube&#39;</span>
+        <span class="k">elif</span> <span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">Marker</span><span class="o">.</span><span class="n">MESH_RESOURCE</span><span class="p">:</span>
+            <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mesh_resource</span><span class="p">[</span><span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mesh_resource</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span> <span class="o">=</span> <span class="n">control</span><span class="o">.</span><span class="n">markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scale</span>
+
+        <span class="n">msg</span><span class="o">.</span><span class="n">probability_class</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">probability_position</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="n">msg</span><span class="o">.</span><span class="n">probability_rotation</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="n">objects</span><span class="p">[</span><span class="n">msg</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">msg</span>
+
+        <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="partial_update_cb"><a class="viewcode-back" href="../gebsyas.html#gebsyas.interactive_marker_converter.partial_update_cb">[docs]</a><span class="k">def</span> <span class="nf">partial_update_cb</span><span class="p">(</span><span class="n">update</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">update</span><span class="o">.</span><span class="n">event_type</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">update</span><span class="o">.</span><span class="n">event_type</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">update</span><span class="o">.</span><span class="n">marker_name</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">:</span>
+            <span class="n">objects</span><span class="p">[</span><span class="n">update</span><span class="o">.</span><span class="n">marker_name</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">update</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span> <span class="o">==</span> <span class="s1">&#39;base_link&#39;</span><span class="p">:</span>
+                <span class="n">objects</span><span class="p">[</span><span class="n">update</span><span class="o">.</span><span class="n">marker_name</span><span class="p">]</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">pose</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ps</span> <span class="o">=</span> <span class="n">PoseStamped</span><span class="p">()</span>
+                    <span class="n">ps</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">header</span>
+                    <span class="n">ps</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+                    <span class="n">listener</span><span class="o">.</span><span class="n">waitForTransform</span><span class="p">(</span><span class="s1">&#39;base_link&#39;</span><span class="p">,</span> <span class="n">ps</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span><span class="p">,</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Duration</span><span class="p">(</span><span class="mf">0.2</span><span class="p">))</span>
+                    <span class="n">newPose</span> <span class="o">=</span> <span class="n">listener</span><span class="o">.</span><span class="n">transformPose</span><span class="p">(</span><span class="s1">&#39;base_link&#39;</span><span class="p">,</span> <span class="n">ps</span><span class="p">)</span>
+                    <span class="n">objects</span><span class="p">[</span><span class="n">update</span><span class="o">.</span><span class="n">marker_name</span><span class="p">]</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">pose</span>
+                <span class="k">except</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">LookupException</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ConnectivityException</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ExtrapolationException</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Lookup of {} in base_link failed&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">update</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">frame_id</span><span class="p">))</span>
+
+
+            <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">objects</span><span class="p">[</span><span class="n">update</span><span class="o">.</span><span class="n">marker_name</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="republish"><a class="viewcode-back" href="../gebsyas.html#gebsyas.interactive_marker_converter.republish">[docs]</a><span class="k">def</span> <span class="nf">republish</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;I</span><span class="se">\&#39;</span><span class="s1">ll show you what I got!&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objects</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">publisher</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Usage: &lt;MARKER TOPIC PREFIX&gt; &lt;PO TOPIC&gt;&#39;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">rospy</span><span class="o">.</span><span class="n">init_node</span><span class="p">(</span><span class="s1">&#39;interactive_marker_converter&#39;</span><span class="p">)</span>
+
+    <span class="n">listener</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TransformListener</span><span class="p">()</span>
+
+    <span class="n">publisher</span>  <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Publisher</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">POMsg</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">show_me_what_you_got</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="s1">&#39;/show_me_what_you_got&#39;</span><span class="p">,</span> <span class="n">Empty</span><span class="p">,</span> <span class="n">republish</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">subscriber</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="s1">&#39;/{}/update_full&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">IMIMsg</span><span class="p">,</span> <span class="n">full_update_cb</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">fb_sub</span>     <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Subscriber</span><span class="p">(</span><span class="s1">&#39;/{}/feedback&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">IMFMsg</span><span class="p">,</span> <span class="n">partial_update_cb</span><span class="p">,</span> <span class="n">queue_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+    <span class="n">rospy</span><span class="o">.</span><span class="n">spin</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

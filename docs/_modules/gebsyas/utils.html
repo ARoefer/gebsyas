@@ -1,0 +1,506 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>gebsyas.utils &mdash; GeBSyAS 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> GeBSyAS
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../intro.html">Intro to GeBSyAS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">gebsyas</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">GeBSyAS</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>gebsyas.utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for gebsyas.utils</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">giskardpy.symengine_wrappers</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">sensor_msgs.msg</span> <span class="k">import</span> <span class="n">JointState</span> <span class="k">as</span> <span class="n">JointStateMsg</span>
+<span class="kn">from</span> <span class="nn">gebsyas.msg</span> <span class="k">import</span> <span class="n">ProbabilisticObject</span> <span class="k">as</span> <span class="n">PObject</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">deepcopy</span>
+<span class="kn">import</span> <span class="nn">symengine</span> <span class="k">as</span> <span class="nn">sp</span>
+<span class="kn">import</span> <span class="nn">rospy</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="n">StampedData</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;StampedData&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;stamp&#39;</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="nested_list_to_sym"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.nested_list_to_sym">[docs]</a><span class="k">def</span> <span class="nf">nested_list_to_sym</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+	<span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">[</span><span class="n">nested_list_to_sym</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">l</span><span class="p">]</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">sympify</span><span class="p">(</span><span class="n">l</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="nested_symlist_to_yaml"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.nested_symlist_to_yaml">[docs]</a><span class="k">def</span> <span class="nf">nested_symlist_to_yaml</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+	<span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">[</span><span class="n">nested_symlist_to_yaml</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">l</span><span class="p">]</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="s1">&#39;{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">l</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="yaml_sym_representer"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.yaml_sym_representer">[docs]</a><span class="k">def</span> <span class="nf">yaml_sym_representer</span><span class="p">(</span><span class="n">dumper</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_scalar</span><span class="p">(</span><span class="s1">&#39;!SymExpr&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="yaml_sym_constructor"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.yaml_sym_constructor">[docs]</a><span class="k">def</span> <span class="nf">yaml_sym_constructor</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">sympify</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">construct_scalar</span><span class="p">(</span><span class="n">node</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="yaml_matrix_representer"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.yaml_matrix_representer">[docs]</a><span class="k">def</span> <span class="nf">yaml_matrix_representer</span><span class="p">(</span><span class="n">dumper</span><span class="p">,</span> <span class="n">matrix</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">dumper</span><span class="o">.</span><span class="n">represent_sequence</span><span class="p">(</span><span class="s1">&#39;!SymMatrix&#39;</span><span class="p">,</span> <span class="n">nested_symlist_to_yaml</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="yaml_matrix_constructor"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.yaml_matrix_constructor">[docs]</a><span class="k">def</span> <span class="nf">yaml_matrix_constructor</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">Matrix</span><span class="p">(</span><span class="n">nested_list_to_sym</span><span class="p">(</span><span class="n">loader</span><span class="o">.</span><span class="n">construct_sequence</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span></div>
+
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Basic</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Number</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Expr</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Add</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Mul</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Min</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Max</span><span class="p">,</span> <span class="n">yaml_sym_representer</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">,</span> <span class="n">yaml_matrix_representer</span><span class="p">)</span>
+
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_constructor</span><span class="p">(</span><span class="s1">&#39;!SymExpr&#39;</span><span class="p">,</span> <span class="n">yaml_sym_constructor</span><span class="p">)</span>
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_constructor</span><span class="p">(</span><span class="s1">&#39;!SymMatrix&#39;</span><span class="p">,</span> <span class="n">yaml_matrix_constructor</span><span class="p">)</span>
+
+<span class="n">YAML</span> <span class="o">=</span> <span class="n">yaml</span>
+
+
+
+<div class="viewcode-block" id="saturate"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.saturate">[docs]</a><span class="k">def</span> <span class="nf">saturate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+	<span class="n">breadth_scale</span> <span class="o">=</span> <span class="mi">6</span> <span class="o">/</span> <span class="n">high</span> <span class="o">-</span> <span class="n">low</span>
+	<span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">sp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span> <span class="p">(</span> <span class="n">x</span> <span class="o">*</span> <span class="n">breadth_scale</span> <span class="o">+</span> <span class="n">low</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="tip_at_one"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.tip_at_one">[docs]</a><span class="k">def</span> <span class="nf">tip_at_one</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">4</span><span class="o">*</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="mi">3</span></div>
+
+
+<div class="viewcode-block" id="abs"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.abs">[docs]</a><span class="k">def</span> <span class="nf">abs</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+	<span class="k">return</span> <span class="n">sp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cmdDictToJointState"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.cmdDictToJointState">[docs]</a><span class="k">def</span> <span class="nf">cmdDictToJointState</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+	<span class="n">js</span> <span class="o">=</span> <span class="n">JointStateMsg</span><span class="p">()</span>
+	<span class="n">js</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+	<span class="k">for</span> <span class="n">joint</span><span class="p">,</span> <span class="n">vel</span> <span class="ow">in</span> <span class="n">command</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">joint</span><span class="p">))</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">velocity</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vel</span><span class="p">)</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">effort</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+	<span class="k">return</span> <span class="n">js</span></div>
+
+<div class="viewcode-block" id="subs_if_sym"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.subs_if_sym">[docs]</a><span class="k">def</span> <span class="nf">subs_if_sym</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">subs_dict</span><span class="p">):</span>
+	<span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">int</span> <span class="ow">or</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">float</span> <span class="ow">or</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">var</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">subs_dict</span><span class="p">)</span></div>
+
+<span class="c1"># Returns [x,y,z,w]</span>
+<span class="n">QuatT</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;QuatT&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">])</span>
+<span class="n">RPY</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;RPY&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="rot3_to_quat"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.rot3_to_quat">[docs]</a><span class="k">def</span> <span class="nf">rot3_to_quat</span><span class="p">(</span><span class="n">rot3</span><span class="p">):</span>
+	<span class="n">w</span>  <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.5</span>
+	<span class="n">w4</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">w</span>
+	<span class="n">x</span>  <span class="o">=</span> <span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">w4</span>
+	<span class="n">y</span>  <span class="o">=</span> <span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">w4</span>
+	<span class="n">z</span>  <span class="o">=</span> <span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">w4</span>
+	<span class="k">return</span> <span class="n">QuatT</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">,</span><span class="n">w</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="rot3_to_rpy"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.rot3_to_rpy">[docs]</a><span class="k">def</span> <span class="nf">rot3_to_rpy</span><span class="p">(</span><span class="n">rot3</span><span class="p">,</span> <span class="n">evaluate</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+	<span class="n">sy</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+
+	<span class="k">if</span> <span class="n">sy</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">6</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">evaluate</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">RPY</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">evalf</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">sy</span><span class="p">)</span><span class="o">.</span><span class="n">evalf</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">evalf</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">RPY</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">]),</span> <span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">sy</span><span class="p">),</span> <span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]))</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">evaluate</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">RPY</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">evalf</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">sy</span><span class="p">)</span><span class="o">.</span><span class="n">evalf</span><span class="p">(</span><span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">RPY</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="n">rot3</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]),</span> <span class="n">sp</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="o">-</span><span class="n">rot3</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="n">sy</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">std_msgs.msg</span> <span class="k">import</span> <span class="n">Header</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">Float64</span><span class="p">,</span> <span class="n">Bool</span><span class="p">,</span> <span class="n">Int32</span>
+<span class="kn">from</span> <span class="nn">geometry_msgs.msg</span> <span class="k">import</span> <span class="n">Pose</span><span class="p">,</span> <span class="n">Point</span><span class="p">,</span> <span class="n">Vector3</span><span class="p">,</span> <span class="n">Quaternion</span><span class="p">,</span> <span class="n">PoseStamped</span>
+
+<span class="n">JointState</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;JointState&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="s1">&#39;velocity&#39;</span><span class="p">,</span> <span class="s1">&#39;effort&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="jsDictToJSMsg"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.jsDictToJSMsg">[docs]</a><span class="k">def</span> <span class="nf">jsDictToJSMsg</span><span class="p">(</span><span class="n">js_dict</span><span class="p">):</span>
+	<span class="n">js</span> <span class="o">=</span> <span class="n">JointStateMsg</span><span class="p">()</span>
+	<span class="n">js</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span> <span class="o">=</span> <span class="n">rospy</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+	<span class="k">for</span> <span class="n">joint</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">js_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">joint</span><span class="p">)</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">velocity</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+		<span class="n">js</span><span class="o">.</span><span class="n">effort</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">effort</span><span class="p">)</span>
+
+	<span class="k">return</span> <span class="n">js</span></div>
+
+<div class="viewcode-block" id="ros_msg_to_expr"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.ros_msg_to_expr">[docs]</a><span class="k">def</span> <span class="nf">ros_msg_to_expr</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">):</span>
+	<span class="n">t_msg</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="nb">int</span> <span class="ow">or</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="nb">float</span> <span class="ow">or</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="nb">bool</span> <span class="ow">or</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">ros_msg</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">PObject</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">pobj_to_expr</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">Pose</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">frame3_quaternion</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">x</span><span class="p">,</span>
+								 <span class="n">ros_msg</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+								 <span class="n">ros_msg</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">z</span><span class="p">,</span>
+								 <span class="n">ros_msg</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span><span class="p">,</span>
+								 <span class="n">point3</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">z</span><span class="p">))</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">Point</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">point3</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">Vector3</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">vec3</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">Quaternion</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">rotation3_quaternion</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">z</span><span class="p">,</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">PoseStamped</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">StampedData</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">stamp</span><span class="p">,</span> <span class="n">ros_msg_to_expr</span><span class="p">(</span><span class="n">t_msg</span><span class="o">.</span><span class="n">pose</span><span class="p">))</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">[</span><span class="n">ros_msg_to_expr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ros_msg</span><span class="p">]</span>
+	<span class="k">elif</span> <span class="n">t_msg</span> <span class="o">==</span> <span class="n">JointStateMsg</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">{</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="n">x</span><span class="p">]:</span> <span class="n">JointState</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">velocity</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="n">ros_msg</span><span class="o">.</span><span class="n">effort</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ros_msg</span><span class="o">.</span><span class="n">name</span><span class="p">))}</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">):</span>
+			<span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+			<span class="k">if</span> <span class="n">field</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span> <span class="o">!=</span> <span class="n">Header</span><span class="p">:</span>
+				<span class="nb">setattr</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">ros_msg_to_expr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">ros_msg</span><span class="p">,</span> <span class="n">field</span><span class="p">)))</span>
+		<span class="k">return</span> <span class="n">ros_msg</span></div>
+
+
+<div class="viewcode-block" id="expr_to_rosmsg"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.expr_to_rosmsg">[docs]</a><span class="k">def</span> <span class="nf">expr_to_rosmsg</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+	<span class="n">t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">String</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">expr</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">int</span><span class="p">:</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Int32</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">expr</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Float64</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">expr</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Bool</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">expr</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">list</span> <span class="ow">or</span> <span class="n">t</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">:</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">float</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">int</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="n">sp</span><span class="o">.</span><span class="n">RealDouble</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">expr</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+				<span class="n">out</span> <span class="o">=</span> <span class="n">Vector3</span><span class="p">()</span>
+				<span class="n">out</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+				<span class="n">out</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+				<span class="n">out</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+			<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">expr</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+				<span class="n">out</span> <span class="o">=</span> <span class="n">Point</span><span class="p">()</span>
+				<span class="n">out</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+				<span class="n">out</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+				<span class="n">out</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Can only convert lists of length 3 or 4 to rosmsg, with the contents being numbers! Given list:</span><span class="se">\n</span><span class="s1">   {}</span><span class="se">\n</span><span class="s1">   Inner types: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">expr</span><span class="p">),</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">])))</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">ncols</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">nrows</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">nrows</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">):</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Vector3</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">ncols</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">nrows</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">expr</span><span class="p">[</span><span class="n">expr</span><span class="o">.</span><span class="n">nrows</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">):</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Point</span><span class="p">()</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+	<span class="c1"># elif DLRotation().is_a(expr):</span>
+	<span class="c1"># 	out = Quaternion()</span>
+	<span class="c1"># 	out.w = sqrt(1 + expr[0,0] + expr[1,1] + expr[2,2]) * 0.5</span>
+	<span class="c1"># 	w4 = 4 * out.w</span>
+	<span class="c1"># 	out.x = (expr[2,1] - expr[1,2]) / w4</span>
+	<span class="c1"># 	out.y = (expr[0,2] - expr[2,0]) / w4</span>
+	<span class="c1"># 	out.z = (expr[1,0] - expr[0,1]) / w4</span>
+	<span class="k">elif</span> <span class="n">t</span> <span class="ow">is</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">ncols</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">nrows</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Pose</span><span class="p">()</span>
+		<span class="n">quat</span> <span class="o">=</span> <span class="n">quaternion_from_matrix</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">quat</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">quat</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">quat</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">orientation</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">quat</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Can not convert {} of type {} to ROS message&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">expr</span><span class="p">),</span> <span class="n">t</span><span class="p">))</span>
+	<span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="Blank"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.Blank">[docs]</a><span class="k">class</span> <span class="nc">Blank</span><span class="p">:</span>
+	<span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;{}: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">)))</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">field</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">))])</span>
+
+	<span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+		<span class="n">out</span> <span class="o">=</span> <span class="n">Blank</span><span class="p">()</span>
+		<span class="k">for</span> <span class="n">attrn</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span>  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">]:</span>
+			<span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrn</span><span class="p">)</span>
+			<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Basic</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Number</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Expr</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Add</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Mul</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Min</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Max</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">sp</span><span class="o">.</span><span class="n">Matrix</span><span class="p">):</span>
+				<span class="nb">setattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">attrn</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="nb">setattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">attrn</span><span class="p">,</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">memo</span><span class="p">))</span>
+		<span class="n">memo</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">out</span>
+		<span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="bb"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.bb">[docs]</a><span class="k">def</span> <span class="nf">bb</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">Blank</span><span class="p">()</span>
+	<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+		<span class="nb">setattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+	<span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="pobj_to_expr"><a class="viewcode-back" href="../gebsyas.html#gebsyas.utils.pobj_to_expr">[docs]</a><span class="k">def</span> <span class="nf">pobj_to_expr</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+	<span class="n">out</span> <span class="o">=</span> <span class="n">Blank</span><span class="p">()</span>
+	<span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;cube&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">x</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">width</span>  <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">y</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">z</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">*</span> <span class="n">out</span><span class="o">.</span><span class="n">width</span> <span class="o">*</span> <span class="n">out</span><span class="o">.</span><span class="n">length</span> <span class="o">*</span> <span class="mi">2699</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;sphere&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="mf">0.5</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">4.0</span><span class="o">/</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="n">out</span><span class="o">.</span><span class="n">radius</span><span class="o">**</span><span class="mi">3</span> <span class="o">*</span> <span class="mi">2699</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;cylinder&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="mf">0.5</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">dimensions</span><span class="o">.</span><span class="n">z</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="n">pi</span> <span class="o">+</span> <span class="n">out</span><span class="o">.</span><span class="n">radius</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">*</span> <span class="mi">2699</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;coke&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="mf">0.034</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">0.126</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">presurized</span> <span class="o">=</span> <span class="kc">True</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">0.4</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;pringles&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="mf">0.039</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">0.248</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">0.3</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;blue_box&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="mf">0.079</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">width</span>  <span class="o">=</span> <span class="mf">0.079</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">0.038</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">0.3</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;blue_cup&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="mf">0.045</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">0.146</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">subObject</span> <span class="o">=</span> <span class="n">bb</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;rim&#39;</span><span class="p">,</span> <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.049</span><span class="p">,</span> <span class="n">rotation_axis</span> <span class="o">=</span> <span class="n">vec3</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">pose</span> <span class="o">=</span> <span class="n">frame3_rpy</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="n">point3</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.073</span><span class="p">)))</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">0.1</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;blueberry_box&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="mf">0.133</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">width</span>  <span class="o">=</span> <span class="mf">0.133</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">0.056</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">0.2</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;clorox&#39;</span><span class="p">:</span>
+		<span class="n">body</span> <span class="o">=</span> <span class="n">bb</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="n">radius</span> <span class="o">=</span> <span class="mf">0.37</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">0.131</span><span class="p">,</span> <span class="n">pose</span><span class="o">=</span><span class="n">frame3_rpy</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="n">point3</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mf">0.04</span><span class="p">)))</span>
+		<span class="n">cap</span>  <span class="o">=</span> <span class="n">bb</span><span class="p">(</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.026</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span> <span class="n">pose</span><span class="o">=</span><span class="n">frame3_rpy</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="n">point3</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.065</span><span class="p">)))</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">subObject</span> <span class="o">=</span><span class="p">[</span><span class="n">body</span><span class="p">,</span> <span class="n">cap</span><span class="p">]</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">1.2</span>
+	<span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">==</span> <span class="s1">&#39;delight&#39;</span><span class="p">:</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="mf">0.152</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">width</span>  <span class="o">=</span> <span class="mf">0.114</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="mf">0.070</span>
+		<span class="n">out</span><span class="o">.</span><span class="n">mass</span>   <span class="o">=</span> <span class="mf">1.0</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unrecognized semantic class &#39;{}&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span><span class="p">))</span>
+
+	<span class="n">out</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">id</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">pose</span> <span class="o">=</span> <span class="n">ros_msg_to_expr</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">pose</span><span class="p">)</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">semantic_class</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">semantic_class</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">probability_class</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">probability_class</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">probability_position</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">probability_position</span>
+	<span class="n">out</span><span class="o">.</span><span class="n">probability_rotation</span> <span class="o">=</span> <span class="n">msg</span><span class="o">.</span><span class="n">probability_rotation</span>
+
+	<span class="k">return</span> <span class="n">out</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Adrian Röfer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
