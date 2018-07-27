@@ -2,12 +2,13 @@
 import sys
 import rospy
 import tf
-from std_msgs.msg import Empty
+
 from geometry_msgs.msg import PoseStamped
+from gebsyas.msg import ProbabilisticObject as POMsg
+from std_msgs.msg import Empty
 from visualization_msgs.msg import InteractiveMarkerInit as IMIMsg
 from visualization_msgs.msg import InteractiveMarkerFeedback as IMFMsg
 from visualization_msgs.msg import Marker
-from gebsyas.msg import ProbabilisticObject as POMsg
 
 publisher = None
 objects = {}
