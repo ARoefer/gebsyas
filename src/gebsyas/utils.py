@@ -1,11 +1,12 @@
+import symengine as sp
+import rospy
+import yaml
+
 from collections import namedtuple
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState as JointStateMsg
 from gebsyas.msg import ProbabilisticObject as PObject
 from copy import deepcopy
-import symengine as sp
-import rospy
-import yaml
 
 StampedData = namedtuple('StampedData', ['stamp', 'data'])
 

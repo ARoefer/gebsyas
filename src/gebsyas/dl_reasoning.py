@@ -1,6 +1,7 @@
-from collections import namedtuple
 import symengine as spw
-from giskardpy.robot import Robot, Gripper, Camera
+
+from collections import namedtuple
+from giskardpy.symengine_robot import Robot, Gripper, Camera
 from giskardpy.symengine_wrappers import *
 from gebsyas.utils import StampedData, JointState
 

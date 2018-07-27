@@ -1,8 +1,9 @@
+import symengine as sp
+
 from giskardpy.symengine_wrappers import *
 from giskardpy.qp_problem_builder import SoftConstraint as SC
 from gebsyas.utils import *
 from gebsyas.dl_reasoning import *
-import symengine as sp
 
 class BasicGraspAffordances(object):
     """

@@ -1,6 +1,6 @@
 from giskardpy.symengine_wrappers import point3, norm
-from giskardpy.input_system import Point3Input, Vec3Input
-from gebsyas.simulator import AABB, vec_add, vec_sub, vec3_to_list, frame_tuple_to_sym_frame, invert_transform
+from giskardpy.input_system import Point3Input, Vector3Input
+from iai_bullet_sim.simulator import AABB, vec_add, vec_sub, vec3_to_list, frame_tuple_to_sym_frame, invert_transform
 from math import sqrt
 
 class ClosestPointQuery(object):

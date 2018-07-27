@@ -1,8 +1,8 @@
 from gebsyas.dl_reasoning import DLCompoundObject, DLRigidObject, DLShape, DLCube, DLSphere, DLCylinder, DLIded
-from urdf_parser_py.urdf import Link, Joint, Collision, Visual, Pose, JointDynamics, JointLimit, Inertial, Sphere, Box, Cylinder, Inertia
-from giskardpy.symengine_wrappers import *
 from gebsyas.utils import rot3_to_rpy
 from gebsyas.simulator import vec3_to_list
+from giskardpy.symengine_wrappers import *
+from urdf_parser_py.urdf import Link, Joint, Collision, Visual, Pose, JointDynamics, JointLimit, Inertial, Sphere, Box, Cylinder, Inertia
 
 def add_dl_object_to_urdf(urdf_model, attachment_link, dl_object, transform):
 	"""Generates a new URDF in which the given dl-object is attached to the specified link of the robot."""

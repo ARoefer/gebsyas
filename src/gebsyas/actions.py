@@ -1,3 +1,5 @@
+import rospy
+
 from collections import namedtuple
 from pprint import pprint
 
@@ -6,7 +8,6 @@ from gebsyas.dl_reasoning import DLDisjunction, DLConjunction
 from gebsyas.numeric_scene_state import AssertionDrivenPredicateState, pfd_str
 from gebsyas.predicates import Predicate
 from gebsyas.ros_visualizer import ROSVisualizer
-import rospy
 
 
 Context = namedtuple('Context', ['agent', 'log', 'display'])

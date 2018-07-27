@@ -1,6 +1,8 @@
 import rospy
 import sensor_msgs
 import std_msgs
+import yaml
+
 from control_msgs.msg import GripperCommandActionGoal
 from gebsyas.actions import Context, Logger, ActionManager
 from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded, SymbolicData
@@ -13,7 +15,6 @@ from gebsyas.trackers import VisualObjectTracker, JointStateTracker
 from gebsyas.utils import StampedData, ros_msg_to_expr, cmdDictToJointState, Blank
 from giskardpy.symengine_wrappers import *
 from copy import copy
-import yaml
 
 class Agent(object):
 	"""

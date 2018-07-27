@@ -1,5 +1,9 @@
-from giskardpy.qpcontroller import QPController
-from giskardpy.robot import Joint
+import symengine as spw
+import copy
+import rospy
+
+from giskardpy.symengine_controller import SymEngineController
+from giskardpy.symengine_robot import Joint
 from giskardpy.symengine_wrappers import *
 from giskardpy.qp_problem_builder import JointConstraint, HardConstraint, SoftConstraint, BIG_NUMBER
 from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
@@ -9,10 +13,6 @@ from fetch_giskard.fetch_robot import Gripper
 from collections import OrderedDict, namedtuple
 
 from sensor_msgs.msg import JointState as JointStateMsg
-
-import symengine as spw
-import copy
-import rospy
 
 
 GNP = namedtuple('GNP', ['gnp_scs', 'gripper_t0_frame', 'object_t1_frame'])

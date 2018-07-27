@@ -79,7 +79,21 @@ class DLSpatialFunction(DLAtom):
 		super(DLSpatialFunction, self).__init__('SpatialFunction')
 
 	def is_a(self, obj):
-		return type(obj) == type(self.is_a) and obj.im_self is SR
+		return type(obj) == type(self.is_a) and (obj.im_self is DSR or obj.im_self is NDSR)
+
+class DLDirectedSpatialFunction(DLAtom):
+	def __init__(self):
+		super(DLDirectedSpatialFunction, self).__init__('DirectedSpatialFunction')
+
+	def is_a(self, obj):
+		return type(obj) == type(self.is_a) and obj.im_self is DSR
+
+class DLNonDirectedSpatialFunction(DLAtom):
+	def __init__(self):
+		super(DLNonDirectedSpatialFunction, self).__init__('NonDirectedSpatialFunction')
+
+	def is_a(self, obj):
+		return type(obj) == type(self.is_a) and obj.im_self is NDSR
 
 class DLGraspFunction(DLAtom):
 	def __init__(self):

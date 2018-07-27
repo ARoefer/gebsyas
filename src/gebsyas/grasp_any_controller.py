@@ -1,11 +1,12 @@
-from giskardpy.qpcontroller import QPController
+import symengine as sp
+
+from giskardpy.symengine_controller import SymEngineController
 from giskardpy.qp_problem_builder import SoftConstraint
 from gebsyas.grasp_affordances import *
 from gebsyas.object_input import ProbabilisticObjectInput as POInput
 from gebsyas.object_input import vector_to_tuple
 from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
 
-import symengine as sp
 
 class GraspAnyController(QPController):
     def __init__(self, robot, grippers, candidates):

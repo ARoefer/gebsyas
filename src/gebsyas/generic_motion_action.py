@@ -11,7 +11,7 @@ from gebsyas.utils import saturate, tip_at_one
 from gebsyas.trackers import SymbolicObjectPoseTracker
 
 from giskardpy.symengine_wrappers import *
-from giskardpy.qpcontroller import QPController
+from giskardpy.symengine_controller import SymEngineController
 from giskardpy.qp_problem_builder import SoftConstraint
 
 from sensor_msgs.msg import JointState
