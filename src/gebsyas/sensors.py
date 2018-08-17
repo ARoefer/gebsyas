@@ -1,7 +1,8 @@
 import rospy
 
 from gebsyas.dl_reasoning import DLAtom
-from gebsyas.utils import StampedData, ros_msg_to_expr
+from gebsyas.utils import ros_msg_to_expr
+from gebsyas.data_structures import StampedData
 
 
 class Sensor(object):
