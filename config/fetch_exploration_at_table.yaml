@@ -1,0 +1,89 @@
+gravity: [0, 0, -9.81]
+plugins:
+- {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JointVelocityController'>,
+  topic_prefix: fetch, watchdog_timeout: 0.2}
+- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
+- {plugin_type: <class 'gebsyas.simulator_plugins.FullPerceptionPublisher'>, topic_prefix: ''}
+- {body: fetch, plugin_type: <class 'gebsyas.simulator_plugins.LocalizationPublisher'>,
+  topic_prefix: fetch}
+- {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>, topic_prefix: fetch}
+tick_rate: 50
+world:
+  constraints: []
+  objects:
+  - color: [0.95, 0.28500000000000003, 1.0266873868748658, 1.0]
+    extents: [1.0, 2.0, 0.8]
+    geom_type: box
+    height: 0.8
+    initial_pose:
+      position: [2.4867160320281982, -2.049234390258789, 0.39924830198287964]
+      rotation: [-3.787797441152929e-13, 3.87104194185528e-13, -0.23429036140441895,
+        0.9721666574478149]
+    mass: 100.0
+    name: table
+    radius: 1.0
+    type: rigid_body
+  - color: [0.8326430019869472, 0.95, 0.28500000000000003, 1.0]
+    extents: [1.0, 2.0, 0.8]
+    geom_type: box
+    height: 0.8
+    initial_pose:
+      position: [2.2868402004241943, 2.9997644424438477, 0.39925897121429443]
+      rotation: [6.854820266966044e-09, -1.640377966793949e-08, 0.4221267104148865,
+        0.9065368175506592]
+    mass: 100.0
+    name: table1
+    radius: 1.0
+    type: rigid_body
+  - color: [0.28500000000000003, 0.9441811328392679, 0.95, 1.0]
+    extents: [20.0, 20.0, 1.0]
+    geom_type: box
+    height: 1.0
+    initial_pose:
+      position: [-0.00047326087951660156, -0.0004405975341796875, -0.5007410049438477]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 0.0
+    name: floor
+    radius: 1.0
+    type: rigid_body
+  - fixed_base: true
+    initial_joint_state: {bellows_joint: 0.0, elbow_flex_joint: -2.155466379029744,
+      forearm_roll_joint: -1.106404147046963, gripper_joint: 0.0, head_pan_joint: 0.2538912136166552,
+      head_tilt_joint: 1.22637068297174, l_gripper_finger_joint: 0.0, l_wheel_joint: -1.0,
+      r_gripper_finger_joint: 0.0, r_wheel_joint: -1.0, shoulder_lift_joint: 0.6234586818886207,
+      shoulder_pan_joint: -1.198809265503651, torso_lift_joint: 0.3860999999999983,
+      upperarm_roll_joint: -1.413329615908279, wrist_flex_joint: -1.509688682874709,
+      wrist_roll_joint: 3.636479350249048e-16}
+    initial_pose:
+      position: [1.7815967798233032, 2.098428726196289, -0.016191519796848297]
+      rotation: [-0.00069941341644153, 0.0011770004639402032, 0.509753406047821, 0.8603194952011108]
+    joint_driver: {driver_type: <class 'gebsyas.simulator_plugins.FetchDriver'>,
+      max_ang_vel: 0.2, max_lin_vel: 0.5, x_lin_joint: base_linear_joint, z_ang_joint: base_angular_joint}
+    name: fetch
+    sensors: []
+    type: multibody
+    urdf_path: package://fetch_giskard/robots/fetch.urdf
+  - color: [0.28500000000000003, 0.8888069465339584, 0.95, 1.0]
+    extents: [0.03, 0.03, 0.24]
+    geom_type: cylinder
+    height: 0.24
+    initial_pose:
+      position: [2.5726141929626465, 2.4619481563568115, 0.919330894947052]
+      rotation: [6.0971829952904955e-05, 2.6190651624347083e-05, -0.011733181774616241,
+        0.9999311566352844]
+    mass: 0.5
+    name: pringle
+    radius: 0.03
+    type: rigid_body
+  - color: [0, 0.1, 0.8, 1.0]
+    extents: [0.03, 0.03, 0.12]
+    geom_type: sphere
+    height: 0.12
+    initial_pose:
+      position: [2.27156400680542, 2.756291151046753, 0.8592312335968018]
+      rotation: [1.0017895419878187e-06, -2.7337405299476814e-06, 0.9144997000694275,
+        -0.4045865833759308]
+    mass: 0.5
+    name: ball
+    radius: 0.04
+    type: rigid_body
