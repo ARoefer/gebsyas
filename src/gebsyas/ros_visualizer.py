@@ -65,14 +65,14 @@ class ROSVisualizer():
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = Marker.SPHERE
 		marker.pose.position = expr_to_rosmsg(position)
-		marker.scale = expr_to_rosmsg([radius] * 3)
+		marker.scale = expr_to_rosmsg([radius * 2] * 3)
 		self.current_msg.markers.append(marker)
 
 	def draw_cube(self, namespace, pose, scale, r=0, g=0, b=1, a=1, frame=None):
 		self.draw_shape(namespace, pose, scale, Marker.CUBE, r, g, b, a, frame)
 
 	def draw_cylinder(self, namespace, pose, length, radius, r=0, g=0, b=1, a=1, frame=None):
-		self.draw_shape(namespace, pose, (radius, radius, length), Marker.CYLINDER, r, g, b, a, frame)
+		self.draw_shape(namespace, pose, (radius * 2, radius * 2, length), Marker.CYLINDER, r, g, b, a, frame)
 
 	def draw_arrow(self, namespace, start, end, r=1, g=1, b=1, a=1, width=0.01, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
@@ -110,16 +110,18 @@ class ROSVisualizer():
 		self.current_msg.markers.append(marker)
 
 	def draw_robot_pose(self, namespace, robot, joint_pos_dict, frame=None, tint=(1,1,1,1)):
-		if robot.urdf_robot == None:
+		if robot._urdf_robot == None:
 			return
 
-		urdf = robot.urdf_robot
-		for link_name, symframe in robot.frames.items():
+		joint_pos_dict = {robot.joint_states_input.joint_map[j]: p for j, p in joint_pos_dict.items()}
+
+		urdf = robot._urdf_robot
+		for link_name in robot.get_controllable_links(urdf.get_root()):
 			if link_name in urdf.link_map and urdf.link_map[link_name].visual != None:
 				visual = urdf.link_map[link_name].visual
-				t_vis = type(visual.geometry)
-				pose = symframe.subs(joint_pos_dict)
-				color = tint
+				t_vis  = type(visual.geometry)
+				pose   = robot.get_fk_expression(self.base_frame, link_name).subs(joint_pos_dict)
+				color  = tint
 				if visual.material != None and visual.material.color != None:
 				 	color = (visual.material.color.rgba[0] * tint[0], visual.material.color.rgba[1] * tint[1], visual.material.color.rgba[2] * tint[2], visual.material.color.rgba[3] * tint[3])
 
