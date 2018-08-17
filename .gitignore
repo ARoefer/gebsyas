@@ -2,3 +2,5 @@
 *.gv
 *.pdf
 *.controllers/*
+*.sublime-project
+*.sublime-workspace
