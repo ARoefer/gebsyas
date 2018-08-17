@@ -3,7 +3,8 @@ import traceback
 import rospy
 
 from gebsyas.actions import Action
-from gebsyas.dl_reasoning import bool_expr_tree_to_dl, SymbolicData
+from gebsyas.data_structures import SymbolicData
+from gebsyas.dl_reasoning import bool_expr_tree_to_dl
 from gebsyas.expression_parser import parse_bool_expr, parse_path, normalize, UnaryOp, BinaryOp, Function, parse_name
 from gebsyas.predicate_state_action import PSAction
 from gebsyas.utils import YAML
@@ -76,9 +77,15 @@ class SimpleAgentIOAction(Action):
 		self.println("{}X? -- Where X is the Id of something that I know".format(self.objectQuery))
 		self.println("   >> {}object4?".format(self.objectQuery))
 		self.println("X? -- You can also inquire about my knowledge of the world using predicates")
-		self.println("   >> onTop(box1, table)?")
+		self.println("   >> OnTop(box1, table)?")
+		self.println("{}X? -- Where X is the an object class. I will tell you what makes an X in my opinion.".format(self.type_structure_query))
+		self.println("   >> {}Robot?".format(self.type_structure_query))
 		self.println("{}X -- I will try to come up with a way to affect the changes needed to make X true".format(self.actionQuery))
 		self.println("   >> {}onTop(box1, table) and rightOf(box1, glass1, table/forward)!".format(self.actionQuery))
+		self.println("{}X -- I will display a piece of my current knowledge as yaml to you.".format(self.dumpQuery))
+		self.println("   >> {}object4".format(self.dumpQuery))
+		self.println("{}X as Y -- I will memorize the data labeled X as Y.".format(self.memorize))
+		self.println("   >> {}object4 as awesome_thing".format(self.memorize))
 		self.println("If you're done for the moment you can just say 'bye'.")
 
 		command_history = []
@@ -87,11 +94,12 @@ class SimpleAgentIOAction(Action):
 		end_msg = ""
 
 
+		#for x in range(1):
 		while not rospy.is_shutdown():
 			context.display.begin_draw_cycle()
 
 
-			command = raw_input('> ') #'Do: LeftOf(coke1, box1, me) and Free(gripper)'
+			command = raw_input('> ') #'do: PointingAt(camera, pringles)' #'Do: LeftOf(coke1, box1, me) and Free(gripper)'# 
 			# 'Do: LeftOf(coke, pringles, me) and Upright(coke) and OnTop(coke, table) and PointingAt(camera, coke)'
 
 			if command == 'bye' or rospy.is_shutdown():
@@ -136,10 +144,7 @@ class SimpleAgentIOAction(Action):
 				Id, remainder = parse_path(parser_input)
 				if remainder == '':
 					# Just for nicer interactions
-					if Id[:3] == 'you':
-						Id = 'me' + Id[3:]
-					elif Id[:2] == 'me':
-						Id = 'you' + Id[2:]
+					Id = self.__change_pov([Id])[0]
 					################
 
 					try:
@@ -240,6 +245,7 @@ class SimpleAgentIOAction(Action):
 			context.display.render()
 
 
+
 	def evaluate_bool_query(self, predicate_state, query, context):
 		tq = type(query)
 		if tq == bool:
@@ -260,9 +266,9 @@ class SimpleAgentIOAction(Action):
 	def __change_pov(self, ids):
 		out = []
 		for x in ids:
-			if x[:2] == 'me':
+			if x[:3] == 'me' and (len(x) == 2 or x[3] in ['/', ' ']):
 				out.append('you' + x[2:])
-			elif x[:3] == 'you':
+			elif x[:3] == 'you' and (len(x) == 3 or x[4] in ['/', ' ']):
 				out.append('me' + x[3:])
 			else:
 				out.append(x)
