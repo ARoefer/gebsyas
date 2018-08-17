@@ -1,7 +1,6 @@
 import traceback
 import string
 from gebsyas.constants import *
-from gebsyas.gnp_planner import GNPPlanner
 from gebsyas.basic_controllers import InEqController, run_ineq_controller
 from gebsyas.bullet_based_controller import InEqBulletController
 from gebsyas.actions import Action, PActionInterface, PWrapperInstance
@@ -28,23 +27,23 @@ class GenericMotionAction(Action):
 	"""
 	@brief      This action converts a set of inequality constraints directly into a controller and runs it.
 	"""
-	def __init__(self, ineq_constraints):
+	def __init__(self, ineq_constraints, allowed_collision_ids={}):
 		super(GenericMotionAction, self).__init__('GenericMotion')
 		self.ineq_constraints = ineq_constraints
 		self.terminal = Terminal()
+		self.allowed_collision_ids = allowed_collision_ids
 
 	def execute(self, context):
 		try:
 			original_constraints = set(self.ineq_constraints.keys())
 			motion_ctrl = InEqBulletController(context,
 											   context.agent.get_data_state().dl_data_iterator(DLRigidObject),
-											   self.ineq_constraints,
+											   self.allowed_collision_ids,
 											   3,
-											   None,
-											   1,
 											   self.clear_and_print) #context.log
+			motion_ctrl.init(self.ineq_constraints)
 
-			motion_success, m_lf, t_log = run_ineq_controller(context.agent.robot, motion_ctrl, 45.0, 1.5, context.agent, task_constraints=original_constraints)
+			motion_success, m_lf, t_log = run_ineq_controller(context.agent.robot, motion_ctrl, 45.0, 3.5, context.agent, task_constraints=original_constraints)
 
 			context.display.draw_robot_trajectory('motion_action', context.agent.robot, t_log)
 
@@ -68,8 +67,8 @@ class FreeformMotionInterface(PActionInterface):
  	def __init__(self, postcons):
  		super(FreeformMotionInterface, self).__init__(
  			'Move{}'.format(''.join([p.predicate.P for p in postcons])),
- 			[PInstance(IsControlled, (postcons[0].args[0],), True),
- 			 PInstance(InPosture, ('me/robot/state', 'me/memory/basic_stance'), True)],
+ 			[PInstance(IsControlled, (postcons[0].args[0],), True)],
+ 			 #PInstance(InPosture, ('me/robot/state', 'me/memory/basic_stance'), True)],
  			postcons, 2.0)
 
 	def instantiate_action(self, context, assignments):
@@ -115,6 +114,33 @@ class GenericMotionInterface(PActionInterface):
 
 		return GenericMotionAction(ineq_constraints)
 
+
+class GraspableMotionInterface(PActionInterface):
+	def __init__(self):
+		super(GraspableMotionInterface, self).__init__(
+			'Move{}'.format(Graspable.P),
+			[],
+			[PInstance(Graspable, ('m', 'b'), True)],
+			2.0)
+
+	"""
+	@brief      Symbolic motion action interface which instantiates a GenericMotionAction.
+	"""
+	def instantiate_action(self, context, assignments):
+		ineq_constraints = {}
+		pred_state = context.agent.get_predicate_state()
+		d_assignments =  {a: pred_state.map_to_data(s).data for a, s in assignments.items()}
+		for k in d_assignments.keys():
+			v = d_assignments[k]
+			if type(v) == SymbolicData:
+				d_assignments[k] = v.data
+
+		for p, args in self.postcons.items():
+			for at, value in args.items():
+				fargs = [d_assignments[a] for a in at]
+				ineq_constraints.update(p.fp(context, *fargs))
+
+		return GenericMotionAction(ineq_constraints, {assignments['b']})
 
 class SimpleBinaryMoveAction(GenericMotionInterface):
 	"""
@@ -173,8 +199,10 @@ class UnconditionalMotionAction(GenericMotionInterface):
 			[PInstance(predicate, tuple(string.ascii_lowercase[:len(predicate.dl_args)]), True)],
 			2.0)
 
+
+
 # List of action interfaces defined in this file.
-ACTIONS = [UnconditionalMotionAction(Graspable),
+ACTIONS = [GraspableMotionInterface(),
 		   # SimpleBinaryMoveAction(PointingAt),
 		   # SimpleBinaryMoveAction(OnTop),
 		   # #SimpleBinaryMoveAction(Above),
