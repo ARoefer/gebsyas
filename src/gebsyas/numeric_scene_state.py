@@ -1,8 +1,9 @@
 import rospy
 from collections import namedtuple
 from gebsyas.constants import LBA_BOUND, UBA_BOUND
-from gebsyas.dl_reasoning import SymbolicData, DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape
-from gebsyas.utils import StampedData, ros_msg_to_expr
+from gebsyas.data_structures import StampedData, SymbolicData
+from gebsyas.dl_reasoning import DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape
+from gebsyas.utils import ros_msg_to_expr
 from gebsyas.predicates import Predicate
 from giskardpy.symengine_wrappers import pos_of
 from yaml import load, dump
@@ -28,9 +29,9 @@ def visualize_obj(obj, display, pose, ns='objects', color=(0,0,1,1)):
 		if DLCube.is_a(obj):
 			display.draw_cube(ns, pose, (obj.length, obj.width, obj.height), color[0], color[1], color[2], color[3])
 		elif DLCylinder.is_a(obj):
-			display.draw_cylinder(ns, pose, obj.height, 2*obj.radius, color[0], color[1], color[2], color[3])
+			display.draw_cylinder(ns, pose, obj.height, obj.radius, color[0], color[1], color[2], color[3])
 		elif DLSphere.is_a(obj):
-			display.draw_sphere(ns, pos_of(pose), 2*obj.radius, color[0], color[1], color[2], color[3])
+			display.draw_sphere(ns, pos_of(pose), obj.radius, color[0], color[1], color[2], color[3])
 
 	if DLCompoundObject.is_a(obj):
 		if type(obj.subObject) == list:

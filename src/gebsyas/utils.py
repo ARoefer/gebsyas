@@ -1,14 +1,59 @@
+import os
 import symengine as sp
 import rospy
 import yaml
 
 from collections import namedtuple
+from gebsyas.data_structures import StampedData, JointState
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState as JointStateMsg
-from gebsyas.msg import ProbabilisticObject as PObject
+from gop_gebsyas_msgs.msg import ProbObject as PObject
+from iai_bullet_sim.utils import Frame, Vector3
 from copy import deepcopy
 
-StampedData = namedtuple('StampedData', ['stamp', 'data'])
+pi = 3.14159265359
+
+def symbol_formatter(symbol_name):
+	if '__' in symbol_name:
+		raise Exception('Illegal character sequence in symbol name "{}"! Double underscore "__" is a separator sequence.'.format(symbol_name))
+	return sp.Symbol(symbol_name.replace('/', '__'))
+
+def fake_heaviside(expr):
+	return 0 if expr <= 0 else 1
+
+def res_pkg_path(rpath):
+    """Resolves a ROS package relative path to a global path.
+    :param rpath: Potential ROS URI to resolve.
+    :type rpath: str
+    :return: Local file system path
+    :rtype: str
+    """
+    if rpath[:10] == 'package://':
+        paths = os.environ['ROS_PACKAGE_PATH'].split(':')
+
+        rpath = rpath[10:]
+        pkg = rpath[:rpath.find('/')]
+
+        for rpp in paths:
+            if rpp[rpp.rfind('/') + 1:] == pkg:
+                return '{}/{}'.format(rpp[:rpp.rfind('/')], rpath)
+            if os.path.isdir('{}/{}'.format(rpp, pkg)):
+                return '{}/{}'.format(rpp, rpath)
+        raise Exception('Package "{}" can not be found in ROS_PACKAGE_PATH!'.format(pkg))
+    return rpath
+
+
+def import_class(class_path):
+    """Imports a class using a type string.
+    :param class_path: Type string of the class.
+    :type  class_path: str
+    :rtype: type
+    """
+    components = class_path.split('.')
+    mod = __import__(components[0])
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
 
 def nested_list_to_sym(l):
 	if type(l) == list:
@@ -109,9 +154,11 @@ def rot3_to_rpy(rot3, evaluate=False):
 			return RPY(sp.atan2(-rot3[1,2], rot3[1,1]), sp.atan2(-rot3[2,0], sy), 0)
 
 from std_msgs.msg import Header, String, Float64, Bool, Int32
-from geometry_msgs.msg import Pose, Point, Vector3, Quaternion, PoseStamped
-
-JointState = namedtuple('JointState', ['position', 'velocity', 'effort'])
+from geometry_msgs.msg import Pose    as PoseMsg
+from geometry_msgs.msg import Point   as PointMsg
+from geometry_msgs.msg import Vector3 as Vector3Msg 
+from geometry_msgs.msg import Quaternion as QuaternionMsg
+from geometry_msgs.msg import PoseStamped as PoseStampedMsg
 
 def jsDictToJSMsg(js_dict):
 	js = JointStateMsg()
@@ -130,28 +177,34 @@ def ros_msg_to_expr(ros_msg):
 		return ros_msg
 	elif t_msg == PObject:
 		return pobj_to_expr(ros_msg)
-	elif t_msg == Pose:
-		return frame3_quaternion(ros_msg.orientation.x,
+	elif t_msg == PoseMsg:
+		return frame3_quaternion(ros_msg.position.x, 
+								 ros_msg.position.y, 
+								 ros_msg.position.z,
+								 ros_msg.orientation.x,
 								 ros_msg.orientation.y,
 								 ros_msg.orientation.z,
-								 ros_msg.orientation.w,
-								 point3(ros_msg.position.x, ros_msg.position.y, ros_msg.position.z))
-	elif t_msg == Point:
+								 ros_msg.orientation.w)
+	elif t_msg == PointMsg:
 		return point3(ros_msg.x, ros_msg.y, ros_msg.z)
-	elif t_msg == Vector3:
+	elif t_msg == Vector3Msg:
 		return vec3(ros_msg.x, ros_msg.y, ros_msg.z)
-	elif t_msg == Quaternion:
+	elif t_msg == QuaternionMsg:
 		return rotation3_quaternion(ros_msg.x, ros_msg.y, ros_msg.z, ros_msg.w)
-	elif t_msg == PoseStamped:
+	elif t_msg == PoseStampedMsg:
 		return StampedData(ros_msg.header.stamp, ros_msg_to_expr(t_msg.pose))
 	elif t_msg == list:
+		if len(ros_msg) == 36 and type(ros_msg[0]) == float:
+			return sp.Matrix([t_msg[x * 6: x*6 + 6] for x in range(6)]) # Construct covariance matrix
 		return [ros_msg_to_expr(x) for x in ros_msg]
 	elif t_msg == JointStateMsg:
 		return {ros_msg.name[x]: JointState(ros_msg.position[x], ros_msg.velocity[x], ros_msg.effort[x]) for x in range(len(ros_msg.name))}
 	else:
 		for field in dir(ros_msg):
+			if field[0] == '_':
+				continue
 			attr = getattr(ros_msg, field)
-			if field[0] != '_' and not callable(attr) and type(attr) != Header:
+			if not callable(attr) and type(attr) != Header:
 				setattr(ros_msg, field, ros_msg_to_expr(getattr(ros_msg, field)))
 		return ros_msg
 
@@ -173,36 +226,36 @@ def expr_to_rosmsg(expr):
 	elif t == list or t == tuple:
 		if len(expr) >= 3 and type(expr[0]) == float or type(expr[0]) == int or type(expr[0]) == sp.RealDouble:
 			if len(expr) == 3 or (len(expr) == 4 and expr[3] == 0):
-				out = Vector3()
+				out = Vector3Msg()
 				out.x = expr[0]
 				out.y = expr[1]
 				out.z = expr[2]
 			elif len(expr) == 4 and expr[3] == 1:
-				out = Point()
+				out = PointMsg()
 				out.x = expr[0]
 				out.y = expr[1]
 				out.z = expr[2]
 		else:
 			raise Exception('Can only convert lists of length 3 or 4 to rosmsg, with the contents being numbers! Given list:\n   {}\n   Inner types: {}'.format(str(expr), ', '.join([str(type(x)) for x in expr])))
 	elif t is sp.Matrix and expr.ncols() == 1 and (expr[expr.nrows() - 1] == 0 or expr[expr.nrows() - 1] == 0.0):
-		out = Vector3()
+		out = Vector3Msg()
 		out.x = expr[0]
 		out.y = expr[1]
 		out.z = expr[2]
 	elif t is sp.Matrix and expr.ncols() == 1 and (expr[expr.nrows() - 1] == 1 or expr[expr.nrows() - 1] == 1.0):
-		out = Point()
+		out = PointMsg()
 		out.x = expr[0]
 		out.y = expr[1]
 		out.z = expr[2]
 	# elif DLRotation().is_a(expr):
-	# 	out = Quaternion()
+	# 	out = QuaternionMsg()
 	# 	out.w = sqrt(1 + expr[0,0] + expr[1,1] + expr[2,2]) * 0.5
 	# 	w4 = 4 * out.w
 	# 	out.x = (expr[2,1] - expr[1,2]) / w4
 	# 	out.y = (expr[0,2] - expr[2,0]) / w4
 	# 	out.z = (expr[1,0] - expr[0,1]) / w4
 	elif t is sp.Matrix and expr.ncols() == 4 and expr.nrows() == 4:
-		out = Pose()
+		out = PoseMsg()
 		quat = quaternion_from_matrix(expr)
 		out.orientation.w = quat[3]
 		out.orientation.x = quat[0]
@@ -211,6 +264,20 @@ def expr_to_rosmsg(expr):
 		out.position.x = expr[0, 3]
 		out.position.y = expr[1, 3]
 		out.position.z = expr[2, 3]
+	elif t == Vector3:
+		out = Vector3Msg()
+		out.x = expr[0]
+		out.y = expr[1]
+		out.z = expr[2]
+	elif t == Frame:
+		out = PoseMsg()
+		out.orientation.x = expr.quaternion[0]
+		out.orientation.y = expr.quaternion[1]
+		out.orientation.z = expr.quaternion[2]
+		out.orientation.w = expr.quaternion[3]
+		out.position.x = expr.position[0]
+		out.position.y = expr.position[1]
+		out.position.z = expr.position[2]
 	else:
 		raise Exception('Can not convert {} of type {} to ROS message'.format(str(expr), t))
 	return out
@@ -241,60 +308,62 @@ def bb(**kwargs):
 
 def pobj_to_expr(msg):
 	out = Blank()
-	if msg.semantic_class == 'cube':
-		out.length = msg.dimensions.x
-		out.width  = msg.dimensions.y
-		out.height = msg.dimensions.z
-		out.mass   = out.height * out.width * out.length * 2699
-	elif msg.semantic_class == 'sphere':
-		out.radius = msg.dimensions.x * 0.5
-		out.mass   = 4.0/3.0 * pi * out.radius**3 * 2699
-	elif msg.semantic_class == 'cylinder':
-		out.radius = msg.dimensions.x * 0.5
-		out.height = msg.dimensions.z
-		out.mass   = pi + out.radius**2 * out.height * 2699
-	elif msg.semantic_class == 'coke':
+	
+	msg.name = ''.join([i for i in msg.name if not i.isdigit()])
+
+	if msg.name == 'coke':
 		out.radius = 0.034
 		out.height = 0.126
 		out.presurized = True
 		out.mass   = 0.4
-	elif msg.semantic_class == 'pringles':
+	elif msg.name == 'pringle':
 		out.radius = 0.039
 		out.height = 0.248
 		out.mass   = 0.3
-	elif msg.semantic_class == 'blue_box':
+	elif msg.name == 'blue_box':
 		out.length = 0.079
 		out.width  = 0.079
 		out.height = 0.038
 		out.mass   = 0.3
-	elif msg.semantic_class == 'blue_cup':
+	elif msg.name == 'blue_cup':
 		out.radius = 0.045
 		out.height = 0.146
 		out.subObject = bb(name='rim', radius = 0.049, rotation_axis = vec3(0,0,1), pose = frame3_rpy(0,0,0, point3(0,0, -0.073)))
 		out.mass   = 0.1
-	elif msg.semantic_class == 'blueberry_box':
+	elif msg.name == 'blueberry_box':
 		out.length = 0.133
 		out.width  = 0.133
 		out.height = 0.056
 		out.mass   = 0.2
-	elif msg.semantic_class == 'clorox':
+	elif msg.name == 'clorox':
 		body = bb(name = 'body', radius = 0.37, height=0.131, pose=frame3_rpy(0,0,0, point3(0,0,-0.04)))
 		cap  = bb(name = 'cap', radius=0.026, height=0.04, pose=frame3_rpy(0,0,0, point3(0,0, 0.065)))
 		out.subObject =[body, cap]
 		out.mass   = 1.2
-	elif msg.semantic_class == 'delight':
+	elif msg.name == 'delight':
 		out.length = 0.152
 		out.width  = 0.114
 		out.height = 0.070
 		out.mass   = 1.0
+	elif msg.name == 'table':
+		out.width  = 1.15
+		out.height = 0.84
+		out.length = 0.54
+		out.mass   = 100.0
+	elif msg.name == 'floor':
+		out.width  = 20.0
+		out.height = 1.0
+		out.length = 20.0
+	elif msg.name == 'ball':
+		out.radius = 0.04
+		out.mass   = 0.5
 	else:
-		raise Exception("Unrecognized semantic class '{}'".format(msg.semantic_class))
+		pass	
+	#raise Exception("Unrecognized semantic class '{}'".format(msg.name))
 
-	out.id = msg.id
-	out.pose = ros_msg_to_expr(msg.pose)
-	out.semantic_class = msg.semantic_class
-	out.probability_class = msg.probability_class
-	out.probability_position = msg.probability_position
-	out.probability_rotation = msg.probability_rotation
+	out.id = '{}{}'.format(msg.name, msg.id)
+	out.pose = ros_msg_to_expr(msg.cov_pose.pose)
+	out.pose_cov = ros_msg_to_expr(msg.cov_pose.covariance)
+	out.concepts = {msg.name}
 
 	return out

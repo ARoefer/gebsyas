@@ -1,5 +1,6 @@
 from gebsyas.dl_reasoning import *
-from gebsyas.spatial_relations import SpatialRelations as SR
+from gebsyas.spatial_relations import DirectedSpatialRelations    as DSR
+from gebsyas.spatial_relations import NonDirectedSpatialRelations as NDSR
 from gebsyas.grasp_affordances import BasicGraspAffordances as BGA
 from giskardpy.qp_problem_builder import SoftConstraint as SC
 from giskardpy.symengine_wrappers import norm
@@ -65,6 +66,12 @@ class IntrospectiveFunctions(object):
 	@classmethod
 	def is_in_posture(cls, context, joint_state, posture):
 		return {jn: SC(state.position - joint_state[jn].position, state.position - joint_state[jn].position, 1, joint_state[jn].position) for jn, state in posture.items() if jn in joint_state}
+		
+	@classmethod
+	def exists(cls, context, dl_class):
+		for Id in context.agent.data_state.dl_iterator(dl_class):
+			return {'exists': SC(0, 0, 1, 0)}
+		return {'exists': SC(1, 0, 1, 0)}
 
 
 class DLPredicate(DLAtom):
@@ -118,20 +125,23 @@ class DLStateAssessment(DLAtom):
 
 DLGraspPredicate     = DLConjunction(DLPredicate(), DLExistsRA('fp', DLGraspFunction()))
 DLSpatialPredicate   = DLConjunction(DLPredicate(), DLExistsRA('fp', DLSpatialFunction()))
+DLDirectedSpatialPredicate = DLConjunction(DLPredicate(), DLExistsRA('fp', DLDirectedSpatialFunction()))
+DLNonDirectedSpatialPredicate = DLConjunction(DLPredicate(), DLExistsRA('fp', DLNonDirectedSpatialFunction()))
 DLAxiomaticPredicate = DLConjunction(DLPredicate(), DLExistsRA('fp', DLConstFunction()))
 DLSymbolicPredicate  = DLConjunction(DLPredicate(), DLExistsRA('fp', DLStateAssessment()))
 
-OnTop     = Predicate('OnTop',     SR.on,          (DLRigidObject, DLRigidObject))
-At        = Predicate('At',        SR.at,          (DLRigidObject, DLRigidObject))
-Inside    = Predicate('Inside',    SR.inside,      (DLRigidObject, DLRigidObject))
-Below     = Predicate('Below',     SR.below,       (DLRigidObject, DLRigidObject, DLObserver))
-Above     = Predicate('Above',     SR.above,       (DLRigidObject, DLRigidObject, DLObserver))
-RightOf   = Predicate('RightOf',   SR.right_of,    (DLRigidObject, DLRigidObject, DLObserver))
-LeftOf    = Predicate('LeftOf',    SR.left_of,     (DLRigidObject, DLRigidObject, DLObserver))
-InFrontOf = Predicate('InFrontOf', SR.in_front_of, (DLRigidObject, DLRigidObject, DLObserver))
-Behind    = Predicate('Behind',    SR.behind,      (DLRigidObject, DLRigidObject, DLObserver))
-Upright   = Predicate('Upright',   SR.upright,     (DLRigidObject,))
-PointingAt= Predicate('PointingAt',SR.pointing_at, (DLPhysicalThing, DLPhysicalThing))
+OnTop     = Predicate('OnTop',     DSR.on,          (DLRigidObject, DLRigidObject))
+At        = Predicate('At',        DSR.at,          (DLRigidObject, DLRigidObject))
+Inside    = Predicate('Inside',    DSR.inside,      (DLRigidObject, DLRigidObject))
+Below     = Predicate('Below',     DSR.below,       (DLRigidObject, DLRigidObject, DLObserver))
+Above     = Predicate('Above',     DSR.above,       (DLRigidObject, DLRigidObject, DLObserver))
+RightOf   = Predicate('RightOf',   DSR.right_of,    (DLRigidObject, DLRigidObject, DLObserver))
+LeftOf    = Predicate('LeftOf',    DSR.left_of,     (DLRigidObject, DLRigidObject, DLObserver))
+InFrontOf = Predicate('InFrontOf', DSR.in_front_of, (DLRigidObject, DLRigidObject, DLObserver))
+Behind    = Predicate('Behind',    DSR.behind,      (DLRigidObject, DLRigidObject, DLObserver))
+Upright   = Predicate('Upright',  NDSR.upright,     (DLRigidObject,))
+PointingAt= Predicate('PointingAt',DSR.pointing_at, (DLPhysicalThing, DLPhysicalThing))
+NextTo    = Predicate('NextTo',   NDSR.next_to,     (DLRigidObject, DLRigidObject))
 
 Free      = Predicate('Free',        IntrospectiveFunctions.is_free, (DLManipulator,))
 Graspable = Predicate('Graspable',     BGA.object_grasp, (DLManipulator, DLRigidObject))
@@ -140,6 +150,7 @@ IsGrasped    = Predicate('IsGrasped', IntrospectiveFunctions.is_grasped, (DLMani
 IsControlled = Predicate('IsControlled', IntrospectiveFunctions.is_controlled, (DLDisjunction(DLRigidObject, DLManipulator, DLCamera()),))
 
 InPosture = Predicate('InPosture', IntrospectiveFunctions.is_in_posture, (DLBodyPosture(), DLBodyPosture()))
+Exists    = Predicate('Exists',    IntrospectiveFunctions.exists, (DLTop(), ))
 
 PREDICATE_TBOX_LIST = [DLPredicate(), DLSpatialFunction(), DLConstFunction(), DLStateAssessment(), DLSpatialPredicate, DLAxiomaticPredicate, DLGraspPredicate, DLSymbolicPredicate]
 PREDICATE_TBOX = PREDICATE_TBOX_LIST + [('SpatialPredicate', DLSpatialPredicate),
@@ -147,6 +158,6 @@ PREDICATE_TBOX = PREDICATE_TBOX_LIST + [('SpatialPredicate', DLSpatialPredicate)
 										('GraspPredicate', DLGraspPredicate),
 										('SymbolicPredicate', DLSymbolicPredicate)]
 
-PREDICATES_LIST = [OnTop, Below, At, Inside, Above, RightOf, LeftOf, InFrontOf, Behind, Upright, PointingAt, Free, Graspable, IsGrasped, IsControlled, InPosture]
+PREDICATES_LIST = [OnTop, NextTo, Below, At, Inside, Above, RightOf, LeftOf, InFrontOf, Behind, Upright, PointingAt, Free, Graspable, IsGrasped, IsControlled, InPosture, Exists]
 PREDICATES = dict([(p.P, p) for p in PREDICATES_LIST])
 
