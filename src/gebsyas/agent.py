@@ -3,15 +3,22 @@ import sensor_msgs
 import std_msgs
 import yaml
 
+
 from control_msgs.msg import GripperCommandActionGoal
+from geometry_msgs.msg import Twist as TwistMsg
+
+from gebsyas.msg import Pose2DStamped as Pose2DStampedMsg
+
 from gebsyas.actions import Context, Logger, ActionManager
-from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded, SymbolicData
-from gebsyas.msg import ProbabilisticObject as PObject
+from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded
+from gebsyas.data_structures import SymbolicData, StampedData
+from gop_gebsyas_msgs.msg import ProbObject as PObject
+from gop_gebsyas_msgs.msg import ProbObjectList as PObjectList
 from gebsyas.numeric_scene_state import DataSceneState, DataDrivenPredicateState
 from gebsyas.ros_visualizer import ROSVisualizer
 from gebsyas.sensors import TopicSensor
 from gebsyas.simple_agent_actions import SimpleAgentIOAction
-from gebsyas.trackers import VisualObjectTracker, JointStateTracker
+from gebsyas.trackers import VisualObjectTracker, JointStateTracker, LocalizationTracker
 from gebsyas.utils import StampedData, ros_msg_to_expr, cmdDictToJointState, Blank
 from giskardpy.symengine_wrappers import *
 from copy import copy
@@ -28,7 +35,7 @@ class Agent(object):
 		self.name        = name
 		self.reasoner    = reasoner
 		self.logger      = logger     if     logger != None else Logger()
-		self.visualizer  = visualizer if visualizer != None else ROSVisualizer('{}_vis'.format(name))
+		self.visualizer  = visualizer if visualizer != None else ROSVisualizer('{}_vis'.format(name), 'map')
 		self.data_state  = data_state if data_state != None else DataSceneState()
 		self.predicate_state = DataDrivenPredicateState(self.reasoner, predicates, self.data_state)
 		self.sensors     = {}
@@ -75,26 +82,29 @@ class Agent(object):
 		return self.action_manager
 
 
-class SimpleAgent(Agent):
+class BasicAgent(Agent):
 	"""
 	This agent implementation runs a simple IO behavior through wich a user can issue simple commands to the agent.
 	The agent controls a robot, percieves objects from a topic and can memorize data across sessions.
 	"""
 	def __init__(self, name, reasoner, predicates, robot, capabilities=[], memory_path=None, logger=None, visualizer=None):
-		super(SimpleAgent, self).__init__(name, reasoner, predicates, capabilities, logger, visualizer, DataSceneState())
-		self.add_sensor('object sensor', TopicSensor(self.on_object_sensed, '/perceived_objects', PObject, 12))
-		self.add_sensor('joint sensor', TopicSensor(self.on_joint_state_sensed, '/joint_states', sensor_msgs.msg.JointState))
+		super(BasicAgent, self).__init__(name, reasoner, predicates, capabilities, logger, visualizer, DataSceneState())
+		self.add_sensor('object sensor', TopicSensor(self.on_objects_sensed, '/perceived_objects', PObjectList, 12))
+		self.add_sensor('joint sensor', TopicSensor(self.on_joint_state_sensed, '/fetch/joint_states', sensor_msgs.msg.JointState))
 		self.add_tracker(JointStateTracker('joint_state', self.data_state))
+		self.add_tracker(LocalizationTracker('localization', self.data_state))
+		self.add_sensor('localization', TopicSensor(self.trackers['localization'].process_data, '/fetch/localization', Pose2DStampedMsg, 1))
 		self.reasoner.add_to_abox((self.name, DLAgent()))
 		self.robot = robot
-		self.frame_of_reference = self.robot.frames['base_link'][:4, :3].row_join(pos_of(self.robot.camera.pose))
+		self.frame_of_reference = self.robot.get_fk_expression('base_link', 'base_link')[:4, :3].row_join(pos_of(self.robot.camera.pose))
 		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self.robot.gripper, f_convert=self.robot.do_gripper_fk, args=['joint_state'])), 'gripper')
 		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self.robot.camera, f_convert=self.robot.do_camera_fk, args=['joint_state'])), 'camera')
 		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self, f_convert=self.convert_to_numeric, args=['joint_state'])), 'me')
 		self.data_state.insert_data(StampedData(rospy.Time.now(), Agent('You', reasoner, predicates)), 'you')
 		self.js_callbacks = []
-		self.command_publisher = rospy.Publisher('/simulator/commands', sensor_msgs.msg.JointState, queue_size=5) #  /velocity_controller/joint_velocity_controller/joint_velocity_commands
+		self.command_publisher = rospy.Publisher('/fetch/commands/joint_velocities', sensor_msgs.msg.JointState, queue_size=5) #  /velocity_controller/joint_velocity_controller/joint_velocity_commands
 		self.gripper_command_publisher = rospy.Publisher('/gripper_controller/gripper_action/goal', GripperCommandActionGoal, queue_size=5)
+		self.base_command_publisher = rospy.Publisher('/base_command', TwistMsg, queue_size=1)
 		self.smwyg_pub = rospy.Publisher('/show_me_what_you_got', std_msgs.msg.Empty, queue_size=1)
 		self.memory_path = memory_path if memory_path != None else '{}_memory.yaml'.format(name)
 
@@ -107,12 +117,13 @@ class SimpleAgent(Agent):
 			pass
 
 
-	def on_object_sensed(self, stamped_object):
+	def on_objects_sensed(self, stamped_object_list):
 		"""Callback for a sensed object."""
-		if stamped_object.data.id not in self.trackers:
-			self.trackers[stamped_object.data.id] = VisualObjectTracker(stamped_object.data.id, self.data_state)
+		for object in stamped_object_list.data.objects:
+			if object.id not in self.trackers:
+				self.trackers[object.id] = VisualObjectTracker(object.id, self.data_state)
 
-		self.trackers[stamped_object.data.id].process_data(stamped_object)
+			self.trackers[object.id].process_data(StampedData(stamped_object_list.stamp, object))
 
 	def on_joint_state_sensed(self, joint_state):
 		"""Callback for a sensed joint state"""
@@ -121,13 +132,12 @@ class SimpleAgent(Agent):
 		for cb in self.js_callbacks:
 			cb(new_js)
 
-	def awake(self):
+	def awake(self, initial_action):
 		"""Activates the sensors and starts the IO behavior."""
-		super(SimpleAgent, self).awake()
+		super(BasicAgent, self).awake()
 		rospy.sleep(0.3)
 		self.smwyg_pub.publish(std_msgs.msg.Empty())
-		action = SimpleAgentIOAction(self)
-		action.execute(Context(self, self.logger, self.visualizer))
+		initial_action.execute(Context(self, self.logger, self.visualizer))
 		f = open(self.memory_path, 'w+')
 		f.write(yaml.dump(self.memory))
 		f.close()
@@ -169,6 +179,12 @@ class SimpleAgent(Agent):
 				gripper_command.goal.command.position = self.data_state['joint_state/gripper_joint/position'].data
 			self.gripper_command_publisher.publish(gripper_command)
 
+		base_msg = TwistMsg()
+		if 'base_linear_joint' in js_command:
+			base_msg.linear.x = js_command['base_linear_joint']
+		if 'base_angular_joint' in js_command:
+			base_msg.angular.z = js_command['base_angular_joint']
+		self.base_command_publisher.publish(base_msg)
 
 	def convert_to_numeric(self, joint_state):
 		"""Creates a fully numeric version of this agent."""

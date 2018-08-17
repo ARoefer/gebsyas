@@ -8,15 +8,16 @@ from time import time
 from guppy import hpy
 h = hpy()
 from gebsyas.predicates import * # PREDICATE_TBOX, PREDICATES
-from gebsyas.agent import SimpleAgent
+from gebsyas.agent import BasicAgent
 from gebsyas.dl_reasoning import Reasoner, BASIC_TBOX, DLRobot, DLManipulationCapable, DLGripper
 from gebsyas.utils import Blank, StampedData
 from gebsyas.actions import Context
 from gebsyas.generic_motion_action import ACTIONS as MACTIONS
 from gebsyas.grasp_action import ACTIONS as GACTIONS
+from gebsyas.simple_agent_action import SimpleAgentIOAction
 
 from fetch_giskard.fetch_robot import Fetch
-from giskardpy.robot import Robot
+from giskardpy.symengine_robot import Robot
 import symengine as sp
 
 from pprint import pprint
@@ -42,9 +43,9 @@ if __name__ == '__main__':
 	print('{}'.format('\n'.join([str(action) for action in capabilities])))
 
 	if len(sys.argv) == 2:
-		agent = SimpleAgent('Elliot', reasoner, PREDICATES, robot, capabilities)
+		agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities)
 	else:
-		agent = SimpleAgent('Elliot', reasoner, PREDICATES, robot, capabilities, sys.argv[2])
+		agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities, sys.argv[2])
 
 	# print(reasoner.inclusions_str())
 	# print(reasoner.included_str())
@@ -68,4 +69,4 @@ if __name__ == '__main__':
 	# for x in testWrapper.parameterize_by_postcon(Context(agent, agent.logger, agent.visualizer), testPostMap):
 	# 	pprint(x)
 
-	agent.awake()
+	agent.awake(SimpleAgentIOAction(agent))
