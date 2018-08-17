@@ -1,7 +1,6 @@
 import traceback
 
 from gebsyas.constants import *
-from gebsyas.gnp_planner import GNPPlanner
 from gebsyas.basic_controllers import InEqController, InEqFFBRunner
 from gebsyas.actions import Action, PActionInterface
 from gebsyas.dl_reasoning import DLCube
@@ -32,7 +31,8 @@ class GripperAction(Action):
 
 	def execute(self, context):
 		ineq_c = {'gripper': SC(self.goal - self.gripper.opening, self.goal - self.gripper.opening, 1, self.gripper.opening)}
-		motion_ctrl = InEqController(context.agent.robot, ineq_c, None, 1, context.log)
+		motion_ctrl = InEqController(context.agent.robot, context.log)
+		motion_ctrl.init(self.ineq_c)
 		runner = InEqFFBRunner(context.agent.robot,
 							   motion_ctrl,
 							   10.0, 1.5,
