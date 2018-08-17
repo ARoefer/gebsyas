@@ -10,14 +10,13 @@ from gebsyas.dl_reasoning import DLSymbolic, SymbolicData, DLManipulator
 from gebsyas.dl_urdf_tools import add_dl_object_to_urdf
 from gebsyas.predicates import IsControlled, IsGrasped
 from gebsyas.numeric_scene_state import visualize_obj
+from gebsyas.simulator import GebsyasSimulator, frame_tuple_to_sym_frame
 from gebsyas.ros_visualizer import ROSVisualizer
-from gebsyas.simulator import BulletSimulator, frame_tuple_to_sym_frame
 from gebsyas.utils import StampedData, rot3_to_quat
 from giskardpy import print_wrapper
-from giskardpy.input_system import Point3Input, Vector3Input
 from giskardpy.qp_problem_builder import SoftConstraint as SC
-from giskardpy.symengine_controller import SymEngineController
 from giskardpy.symengine_wrappers import *
+from iai_bullet_sim.utils import Frame
 from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 
@@ -28,114 +27,107 @@ class InEqBulletController(InEqController):
     """
     @brief      This controller is a specialization of the inequality controller, but also provides a simple collision avoidance system.
     """
-    def __init__(self, context, stamped_objects, ineq_constraints, ppl=3, builder_backend=None, weight=1, logging=print_wrapper):
+    def __init__(self, context, avoid_collisions, allow_collisions, ppl=3, logging=print_wrapper):
         """
         Constructor. Uses a context and a map of stamped objects to create collision avoidance scene.
         """
-        self.simulator = BulletSimulator(50)
+        super(InEqBulletController, self).__init__(context.agent.robot, logging)
+        self.simulator = GebsyasSimulator(50)
         self.simulator.init()
-        self.closest_point_queries = []
         self.controlled_objects = {}
-        self.robot_name = context.agent.robot.urdf_robot.name
-        self.filter_set = {self.robot_name}
+        robot_name = context.agent.robot._urdf_robot.name
         self.closest_point_queries = []
         self.predicate_state = context.agent.get_predicate_state()
 
-        temp_urdf = URDF.from_xml(context.agent.robot.urdf_robot.to_xml())
+        temp_urdf = URDF.from_xml(context.agent.robot._urdf_robot.to_xml())
 
-        for Id, stamped in stamped_objects:
+        self.included_objects = []
+
+        for Id, stamped in avoid_collisions:
             # Static objects
-            if type(stamped.data) != SymbolicData:
-                self.simulator.add_object(stamped.data)
-            # Attached objects
-            elif context.agent.get_predicate_state().evaluate(context, IsControlled, (Id, )):
-                stamped = stamped.data
+            if Id not in allow_collisions:
+                if type(stamped.data) != SymbolicData and 'floor' not in Id:
+                    self.simulator.add_object(stamped.data)
+                    self.included_objects.append(stamped.data)
+                # Attached objects
+                elif context.agent.get_predicate_state().evaluate(context, IsControlled, (Id, )):
+                    stamped = stamped.data
 
-                # Find the controlling manipulator. This could be standardized
-                for manipulator_id in context.agent.get_data_state().dl_iterator(DLManipulator):
-                    if context.agent.get_predicate_state().evaluate(context, IsGrasped, (manipulator_id, Id)):
-                        manipulator = context.agent.get_predicate_state().map_to_numeric(manipulator_id).data
-                        num_object  = context.agent.get_predicate_state().map_to_numeric(Id).data
-                        obj_in_manipulator = manipulator.pose.inv() * num_object.pose
+                    # Find the controlling manipulator. This could be standardized
+                    for manipulator_id in context.agent.get_data_state().dl_iterator(DLManipulator):
+                        if context.agent.get_predicate_state().evaluate(context, IsGrasped, (manipulator_id, Id)):
+                            manipulator = context.agent.get_predicate_state().map_to_numeric(manipulator_id).data
+                            num_object  = context.agent.get_predicate_state().map_to_numeric(Id).data
+                            obj_in_manipulator = manipulator.pose.inv() * num_object.pose
 
-                        add_dl_object_to_urdf(temp_urdf, manipulator.link_name, num_object, obj_in_manipulator)
+                            add_dl_object_to_urdf(temp_urdf, manipulator.link_name, num_object, obj_in_manipulator)
 
-                        logging(stamped.data.pose)
-                        self.controlled_objects[Id] = num_object
-                        # Avoid the environment
-                        # self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, Id, stamped.data.pose, filter=self.filter_set, n=6), 0.03))
-                        # # Avoid the torso
-                        # self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, Id,
-                        #                                                                 self.robot_name, 'torso_lift_link',
-                        #                                                                 stamped.data.pose,
-                        #                                                                 context.agent.robot.frames['torso_lift_link']), 0.03))
-                        break
+                            logging(stamped.data.pose)
+                            self.controlled_objects[Id] = num_object
+                            # Avoid the environment
+                            # self.closest_point_queries.append((ClosestPointQuery_AnyN(robot_name, Id, stamped.data.pose, filter=self.filter_set, n=6), 0.03))
+                            # # Avoid the torso
+                            # self.closest_point_queries.append((ClosestPointQuery_Specific_BA(robot_name, Id,
+                            #                                                                 robot_name, 'torso_lift_link',
+                            #                                                                 stamped.data.pose,
+                            #                                                                 context.agent.robot.frames['torso_lift_link']), 0.03))
+                            break
 
-        f = open('{}_temp.urdf'.format(self.robot_name), 'w+')
+        f = open('{}_temp.urdf'.format(robot_name), 'w+')
         f.write(temp_urdf.to_xml_string())
         f.close()
-        self.simulator.load_robot('{}_temp.urdf'.format(self.robot_name))
+        self.bullet_bot = self.simulator.load_urdf('{}_temp.urdf'.format(robot_name))
+        self.filter_set = {self.bullet_bot}
 
-        # for link_name, margin in [('forearm_roll_link', 0.05),
-        #                         ('wrist_roll_link',   0.01),
-        #                         ('gripper_link',      0.005),
-        #                         ('r_gripper_finger_link', 0.001),
-        #                         ('l_gripper_finger_link', 0.001)]:
-        #     self.closest_point_queries.append((ClosestPointQuery_AnyN(self.robot_name, link_name,
-        #                                                               context.agent.robot.frames[link_name],
-        #                                                               filter=self.filter_set), margin))
+        self.avoidance_constraints = {}
+        for link, (margin, blowup) in self.robot.collision_avoidance_links.items():
+            cpq = ClosestPointQuery_AnyN(self.bullet_bot, link, self.robot.get_fk_expression('map', link), margin, filter=self.filter_set, n=2, aabb_border=blowup)
+            self.closest_point_queries.append(cpq)
+            self.avoidance_constraints.update(cpq.generate_constraints())
 
-        # for link_name1, link_name2, margin in [('forearm_roll_link', 'torso_lift_link', 0.05),
-        #                                        ('wrist_roll_link', 'torso_lift_link', 0.05),
-        #                                        ('gripper_link', 'torso_lift_link', 0.05)]:
-        #     self.closest_point_queries.append((ClosestPointQuery_Specific_BA(self.robot_name, link_name1,
-        #                                                                      self.robot_name, link_name2,
-        #                                                                      context.agent.robot.frames[link_name1],
-        #                                                                      context.agent.robot.frames[link_name2]), margin))
+        for link_a, link_b, margin in self.robot.self_collision_avoidance_pairs:
+            cpq = ClosestPointQuery_Specific_BA(self.bullet_bot, link_a, self.bullet_bot, link_b, 
+                                                self.robot.get_fk_expression('map', link_a),
+                                                self.robot.get_fk_expression('map', link_b),
+                                                margin)
 
         self.ppl = ppl
         self.link_cd_inputs = {}
-        self.visualizer = ROSVisualizer('bullet_motion_controller/vis')
-        self.aabb_border = vec3(*([0.2]*3))
+        self.visualizer = ROSVisualizer('bullet_motion_controller/vis', 'map')
+        self.aabb_border = vector3(*([0.2]*3))
         self.dist_exprs = {}
+        self.data_state = context.agent.get_data_state()
+        self.obstacle_color = (0,1,0,1)
 
-        super(InEqBulletController, self).__init__(context.agent.robot, ineq_constraints, builder_backend, weight, logging)
-
-    # @profile
-    def add_inputs(self, robot):
-        pass
-
-    # @profile
-    def make_constraints(self, robot):
-        """Adds inequality constraints to the controller and generates additional constraints for collision avoidance."""
-        super(InEqBulletController, self).make_constraints(robot)
         # start_position = pos_of(start_pose)
-        for cpp, margin in self.closest_point_queries:
-            if isinstance(cpp, ClosestPointQuery_AnyN):
-                for x in range(cpp.n):
-                    dist = dot(cpp.point_1_expression(x) - cpp.point_2_expression(x), cpp.normal_expression(x))
-                    self._soft_constraints['closest_any_{}_{}_{}'.format(cpp.body_name, cpp.link_name, x)] = SC(margin - dist, 100, 100, dist)
-            else:
-                dist = dot(cpp.point_1_expression() - cpp.point_2_expression(), cpp.normal_expression())
-                self._soft_constraints['closest_{}_{}_to_{}_{}'.format(cpp.body_name, cpp.link_name, cpp.other_body, cpp.other_link)] = SC(margin - dist, 100, 100, dist)
 
+
+    def init(self, soft_constraints):
+        soft_constraints = soft_constraints.copy()
+        soft_constraints.update(self.avoidance_constraints)
+        #self.hard_constraints.update(self.avoidance_constraints)
+        super(InEqBulletController, self).init(soft_constraints)
 
     # @profile
-    def get_next_command(self):
+    def get_cmd(self, nWSR=None):
         """Processes new joint state, updates the simulation and then generates the new command."""
         if self.visualizer:
             self.visualizer.begin_draw_cycle()
 
-        robot_state = self.get_robot().get_state()
-        self.simulator.set_joint_positions(self.get_robot().urdf_robot.name, {j: p for j, p in robot_state.items() if j[-10:] != '_cc_weight'})
+        self.bullet_bot.set_joint_positions({j: self.current_subs[self.robot.joint_states_input.joint_map[j]] for j in self.robot.get_joint_names()})
 
-        for cpp, margin in self.closest_point_queries:
-            self.update_observables(cpp.get_update_dict(self.simulator, self.visualizer))
+        localization = self.data_state['localization'].data
+        quat = pb.getQuaternionFromEuler((0,0,localization.az))
+        self.bullet_bot.set_pose(Frame((localization.x, localization.y, localization.z), quat))
 
-        cmd = super(InEqBulletController, self).get_next_command()
+        for cpp in self.closest_point_queries:
+            cpp.update_subs_dict(self.simulator, self.current_subs, self.visualizer)
+
+        cmd = super(InEqBulletController, self).get_cmd()
+
         if self.visualizer:
             for Id, obj in self.controlled_objects.items():
-                new_frame = frame_tuple_to_sym_frame(self.simulator.get_link_state(self.robot_name, Id).worldFrame)
+                new_frame = frame_tuple_to_sym_frame(self.bullet_bot.get_link_state(Id).worldFrame)
                 visualize_obj(obj, self.visualizer, new_frame, 'controlled_objects', [0,1,0,1])
                 new_numeric = self.predicate_state.map_to_numeric(Id).data
                 visualize_obj(obj, self.visualizer, new_numeric.pose, 'controlled_objects', [1,0,0,1])
@@ -143,11 +135,17 @@ class InEqBulletController(InEqController):
                 # for x in range(cpp.n):
                 #     self.visualizer.draw_sphere('ccp', cpp.point_1_expression(x).subs(self.get_state()), 0.01, r=1)
                 #     self.visualizer.draw_sphere('ccp', cpp.point_2_expression(x).subs(self.get_state()), 0.01, g=1)
+
+            for obj in self.included_objects:
+                visualize_obj(obj, self.visualizer, obj.pose, 'obstacles', self.obstacle_color)
             self.visualizer.render()
+
+        #self.print_fn('\n'.join(['{}: {} -> {}'.format(n, c.lower.subs(self.current_subs), c.expression.subs(self.current_subs)) for n, c in self.avoidance_constraints.items()]))
+
 
 
         #self.qp_problem_builder.log_jacobian()
-        self.qp_problem_builder.log_lbA_ubA()
+        #self.qp_problem_builder.log_lbA_ubA()
         return cmd
 
     def stop(self):

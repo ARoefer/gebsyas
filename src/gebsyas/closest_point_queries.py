@@ -1,7 +1,11 @@
-from giskardpy.symengine_wrappers import point3, norm
+from giskardpy.symengine_wrappers import point3, norm, dot, translation3
 from giskardpy.input_system import Point3Input, Vector3Input
-from iai_bullet_sim.simulator import AABB, vec_add, vec_sub, vec3_to_list, frame_tuple_to_sym_frame, invert_transform
+from gebsyas.simulator import frame_tuple_to_sym_frame, invert_transform
+from iai_bullet_sim.basic_simulator import transform_point, vec_add, vec_sub, vec3_to_list, vec_scale
+from iai_bullet_sim.utils import Frame, AABB
+from gebsyas.utils import symbol_formatter
 from math import sqrt
+from giskardpy.qp_problem_builder import SoftConstraint as SC
 
 class ClosestPointQuery(object):
 	"""
@@ -30,66 +34,88 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 	"""
 	@brief      Point query which returns the closest N points.
 	"""
-	def __init__(self, body_name, link_name, active_frame, n=3, aabb_border=0.2, filter=set()):
+	def __init__(self, bullet_body, link_name, active_frame, margin, n=3, aabb_border=0.2, filter=set()):
 		"""Constructor.
 		Requires the name of the body that the link belongs to,
 		the name of the link and
 		an expression for the link's frame.
 		Additionally, n can be supplied, as well as the margin of the search box and a set of bodies' names to ignore in the queries.
 		"""
-		self.body_name = body_name
+		self.body = bullet_body
 		self.link_name = link_name
 		self.active_frame = active_frame
 		self.n = n
 		self.aabb_border = [aabb_border]*3
+		self.search_dist = aabb_border
 		self.point1 = []
 		self.point2 = []
 		self.normal = []
-		self.filter = filter.union({body_name})
+		self.filter = filter.union({self.body.bId()})
+		self.margin = margin
 
 		for x in range(self.n):
-			self.point1.append(Point3Input('any_point_{}_{}_on_link_{}'.format(body_name, link_name, x)))
-			self.point2.append(Point3Input('any_point_{}_{}_in_world_{}'.format(body_name, link_name, x)))
-			self.normal.append(Vec3Input('any_point_{}_{}_normal_{}'.format(body_name, link_name, x)))
+			self.point1.append(Point3Input.prefix(symbol_formatter, 'any_point_{}_{}_on_link_{}'.format(self.body.bId(), link_name, x)))
+			self.point2.append(Point3Input.prefix(symbol_formatter, 'any_point_{}_{}_in_world_{}'.format(self.body.bId(), link_name, x)))
+			self.normal.append(Vector3Input.prefix(symbol_formatter, 'any_point_{}_{}_normal_{}'.format(self.body.bId(), link_name, x)))
 
-	def point_1_expression(self, index=0):
-		return self.active_frame * self.point1[index].get_expression()
+	def generate_constraints(self):
+		out = {}
+		for x in range(self.n):
+			dist = dot((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression(), self.normal[x].get_expression())
+			out['closest_any_{}_{}_{}'.format(self.body.bId(), self.link_name, x)] = SC(
+					self.margin - dist, 
+					1000,
+					100,
+					dist)
 
-	def point_2_expression(self, index=0):
-		return self.point2[index].get_expression()
+		return out
 
-	def normal_expression(self, index=0):
-		return self.normal[index].get_expression()
 
 	# Returns dict with new values
-	def get_update_dict(self, simulator, visualizer=None):
-		aabb = simulator.get_AABB(self.body_name, self.link_name)
+	def update_subs_dict(self, simulator, subs, visualizer=None):
+		aabb = self.body.get_AABB(self.link_name)
 		blownup_aabb = AABB(vec_sub(aabb.min, self.aabb_border), vec_add(aabb.max, self.aabb_border))
+
+		if visualizer != None:
+			visualizer.draw_mesh('aabb', 
+								 Frame(vec_scale(vec_add(blownup_aabb.min, blownup_aabb.max), 0.5), (0,0,0,1)),
+								 vec_sub(blownup_aabb.max, blownup_aabb.min),
+								 'package://gebsyas/meshes/bounding_box.dae')
 
 		# Get overlapping objects to minimize computation
 		overlapping = simulator.get_overlapping(blownup_aabb, self.filter)
 		closest = []
-		for bodyId, linkId in overlapping:
-			bodyAABB = simulator.get_AABB(bodyId, linkId)
-			closest += simulator.get_closest_points(self.body_name, bodyId, self.link_name)
+		for body, linkId in overlapping:
+			closest += self.body.get_closest_points(body, self.link_name, linkId, self.search_dist)
 
 		closest = sorted(closest)
-		link_frame_inv = frame_tuple_to_sym_frame(invert_transform(simulator.get_link_state(self.body_name, self.link_name).worldFrame))
-		obs = {}
+		link_frame_inv = invert_transform(self.body.get_link_state(self.link_name).worldFrame)
+
 		for x in range(self.n):
 			if x < len(closest):
 				#raise Exception('FIXME! A and B are reversed for external objects.')
-				onA = link_frame_inv * point3(*closest[x].posOnA)
+				onA = transform_point(link_frame_inv, closest[x].posOnA)
 				if visualizer != None:
-					visualizer.draw_arrow('cpq', point3(*closest[x].posOnB), point3(*closest[x].posOnA))
-				obs.update(self.point1[x].get_update_dict(*vec3_to_list(onA)))
-				obs.update(self.point2[x].get_update_dict(*vec3_to_list(closest[x].posOnB)))
-				obs.update(self.normal[x].get_update_dict(*vec3_to_list(closest[x].normalOnB)))
+					visualizer.draw_arrow('cpq', closest[x].posOnB, closest[x].posOnA, g=0, b=0)
+				subs[self.point1[x].x] = onA[0]
+				subs[self.point2[x].x] = closest[x].posOnB[0]
+				subs[self.normal[x].x] = closest[x].normalOnB[0]
+				subs[self.point1[x].y] = onA[1]
+				subs[self.point2[x].y] = closest[x].posOnB[1]
+				subs[self.normal[x].y] = closest[x].normalOnB[1]
+				subs[self.point1[x].z] = onA[2]
+				subs[self.point2[x].z] = closest[x].posOnB[2]
+				subs[self.normal[x].z] = closest[x].normalOnB[2]
 			else:
-				obs.update(self.point1[x].get_update_dict(0,0,0))
-				obs.update(self.point2[x].get_update_dict(0,0,0))
-				obs.update(self.normal[x].get_update_dict(0,0,1))
-		return obs
+				subs[self.point1[x].x] = 0
+				subs[self.point2[x].x] = 0
+				subs[self.normal[x].x] = 0
+				subs[self.point1[x].y] = 0
+				subs[self.point2[x].y] = 0
+				subs[self.normal[x].y] = 0
+				subs[self.point1[x].z] = 0
+				subs[self.point2[x].z] = -10000
+				subs[self.normal[x].z] = 1
 
 
 class ClosestPointQuery_Any(ClosestPointQuery_AnyN):
@@ -104,83 +130,90 @@ class ClosestPointQuery_Specific(ClosestPointQuery):
 	"""
 	@brief      Superclass for closest point queries between two specific bodies.
 	"""
-	def __init__(self, body_name, link_name, other_body, other_link):
+	def __init__(self, body, link_name, other_body, other_link, margin, dist=0.2):
 		"""Constructor. Requires the names of the two bodies and their links."""
-		self.body_name  = body_name
+		self.body  = body
 		self.link_name  = link_name
 		self.other_body = other_body
 		self.other_link = other_link
-		self.point1 = Point3Input('closest_on_{}_{}_to_{}_{}'.format(body_name, link_name, other_body, other_link))
-		self.point2 = Point3Input('closest_on_{}_{}_to_{}_{}'.format(other_body, other_link, body_name, link_name))
-		self.normal = Vec3Input('normal_from_{}_{}_to_{}_{}'.format(other_body, other_link, body_name, link_name))
+		self.point1 = Point3Input.prefix(symbol_formatter, 'closest_on_{}_{}_to_{}_{}'.format(body.bId(), link_name, other_body.bId(), other_link))
+		self.point2 = Point3Input.prefix(symbol_formatter, 'closest_on_{}_{}_to_{}_{}'.format(other_body.bId(), other_link, body.bId(), link_name))
+		self.normal = Vector3Input.prefix(symbol_formatter, 'normal_from_{}_{}_to_{}_{}'.format(other_body.bId(), other_link, body.bId(), link_name))
+		self.margin = margin
+		self.dist   = dist
 
 
 class ClosestPointQuery_Specific_SA(ClosestPointQuery_Specific):
 	"""
 	@brief      Subclass for a specific single point query. In this implementation, only the first body has an active frame.
 	"""
-	def __init__(self, body_name, link_name, other_body, other_link, active_frame):
-		super(ClosestPointQuery_Specific_SA, self).__init__(body_name, link_name, other_body, other_link)
+	def __init__(self, body, link_name, other_body, other_link, active_frame, margin, dist=0.2):
+		super(ClosestPointQuery_Specific_SA, self).__init__(body, link_name, other_body, other_link, margin, dist)
 		self.active_frame = active_frame
 
-	def point_1_expression(self):
-		return self.active_frame * self.point1.get_expression()
-
-	def point_2_expression(self):
-		return self.point2.get_expression()
-
-	def normal_expression(self):
-		return self.normal.get_expression()
+	def generate_constraints(self):
+		dist = (self.active_frame * self.point1.get_expression()) - self.point2.get_expression()
+		return {'closest_between_{}_{}_and_{}_{}'.format(self.body.bId(), self.link_name, self.other_body.bId(), self.other_link):
+				SC(self.margin - dist, 1000, 100, dist)}
 
 	# Returns dict with new values
-	def get_update_dict(self, simulator, visualizer=None):
-		closest = simulator.get_closest_points(self.body_name, self.other_body, self.link_name, self.other_link)
-		link_frame_inv = frame_tuple_to_sym_frame(invert_transform(simulator.get_link_state(self.body_name, self.link_name).worldFrame))
-		obs = {}
+	def update_subs_dict(self, simulator, subs, visualizer=None):
+		closest = self.body.get_closest_points(self.other_body, self.link_name, self.other_link, self.dist)
 		if len(closest) > 0:
+			link_frame_inv = invert_transform(self.body.get_link_state(self.link_name).worldFrame)
+			closest = closest[0]
 			if visualizer != None:
-				visualizer.draw_arrow('cpq', point3(*closest[0].posOnB), point3(*closest[0].posOnA), g=0, b=0)
-			obs.update(self.point1.get_update_dict(*vec3_to_list(link_frame_inv * point3(*closest[0].posOnA))))
-			obs.update(self.point2.get_update_dict(*closest[0].posOnB))
-			obs.update(self.normal.get_update_dict(*closest[0].normalOnB))
+				visualizer.draw_arrow('cpq', closest.posOnB, closest.posOnA, r=0, b=0)
+
+			onA = transform_point(link_frame_inv, closest.posOnA)
+
+			subs[self.point1.x] = onA[0]
+			subs[self.point2.x] = closest.posOnB[0]
+			#subs[self.normal.x] = closest.normalOnB[0]
+			subs[self.point1.y] = onA[1]
+			subs[self.point2.y] = closest.posOnB[1]
+			#subs[self.normal.y] = closest.normalOnB[1]
+			subs[self.point1.z] = onA[2]
+			subs[self.point2.z] = closest.posOnB[2]
+			#subs[self.normal.z] = closest.normalOnB[2]
 		# else:
 		#     obs.update(self.normal.get_update_dict(*vec3_to_list()))
-		return obs
 
 
 class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 	"""
 	@brief      Subclass for a specific single point query. In this implementation, both bodies have an active frame.
 	"""
-	def __init__(self, body_name, link_name, other_body, other_link, active_frame, other_active_frame):
-		super(ClosestPointQuery_Specific_BA, self).__init__(body_name, link_name, other_body, other_link)
+	def __init__(self, body, link_name, other_body, other_link, active_frame, other_active_frame, margin, dist=0.2):
+		super(ClosestPointQuery_Specific_BA, self).__init__(body, link_name, other_body, other_link, margin, dist)
 		self.active_frame = active_frame
 		self.other_active_frame = other_active_frame
 
-	def point_1_expression(self):
-		return self.active_frame * self.point1.get_expression()
-
-	def point_2_expression(self):
-		return self.other_active_frame * self.point2.get_expression()
-
-	def normal_expression(self):
-		return self.normal.get_expression()
+	# Returns dict with new values
+	def generate_constraints(self):
+		dist = (self.active_frame * self.point1.get_expression()) - (self.other_active_frame * self.point2.get_expression())
+		return {'closest_between_{}_{}_and_{}_{}'.format(self.body.bId(), self.link_name, self.other_body.bId(), self.other_link):
+				SC(self.margin - dist, 1000, 100, dist)}
 
 	# Returns dict with new values
-	def get_update_dict(self, simulator, visualizer=None):
-		closest = simulator.get_closest_points(self.body_name, self.other_body, self.link_name, self.other_link)
-		link_frame_inv = frame_tuple_to_sym_frame(invert_transform(simulator.get_link_state(self.body_name, self.link_name).worldFrame))
-		other_frame_inv = frame_tuple_to_sym_frame(invert_transform(simulator.get_link_state(self.other_body, self.other_link).worldFrame))
-
-		obs = {}
+	def update_subs_dict(self, simulator, subs, visualizer=None):
+		closest = self.body.get_closest_points(self.other_body, self.link_name, self.other_link, self.dist)
 		if len(closest) > 0:
+			link_frame_inv  = invert_transform(self.body.get_link_state(self.link_name).worldFrame)
+			other_frame_inv = invert_transform(self.other_body.get_link_state(self.other_link_name).worldFrame)
+			closest = closest[0]
 			if visualizer != None:
-				visualizer.draw_arrow('cpq', point3(*closest[0].posOnB), point3(*closest[0].posOnA), g=0, b=0)
-			obs.update(self.point1.get_update_dict(*vec3_to_list(link_frame_inv * point3(*closest[0].posOnA))))
-			obs.update(self.point2.get_update_dict(*vec3_to_list(other_frame_inv * point3(*closest[0].posOnB))))
-			obs.update(self.normal.get_update_dict(*closest[0].normalOnB))
-		else:
-			obs.update(self.point1.get_update_dict(0,0,0))
-			obs.update(self.point2.get_update_dict(0,0,0))
-			obs.update(self.normal.get_update_dict(0,0,1))
-		return obs
+				visualizer.draw_arrow('cpq', closest.posOnB, closest.posOnA, r=0, b=0)
+
+			onA = transform_point(link_frame_inv, closest.posOnA)
+			onB = transform_point(other_frame_inv, closest.posOnB)
+
+			subs[self.point1.x] = onA[0]
+			subs[self.point2.x] = onB[0]
+			#subs[self.normal.x] = closest.normalOnB[0]
+			subs[self.point1.y] = onA[1]
+			subs[self.point2.y] = onB[1]
+			#subs[self.normal.y] = closest.normalOnB[1]
+			subs[self.point1.z] = onA[2]
+			subs[self.point2.z] = onB[2]
+			#subs[self.normal.z] = closest.normalOnB[2]
