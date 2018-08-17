@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   control_msgs
   sensor_msgs
   giskardpy
+  iai_bullet_sim
   rospy
 )
 
@@ -56,6 +57,7 @@ add_message_files(
    ProbabilisticObject.msg
    StringArray.msg
    FloatTable.msg
+   Pose2DStamped.msg
  )
 
 ## Generate services in the 'srv' folder
