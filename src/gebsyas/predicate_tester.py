@@ -1,7 +1,16 @@
 import rospy
 from gebsyas.ros_visualizer import ROSVisualizer
-from gebsyas.dl_reasoning import DLRigidObject, DLCube, DLSphere, DLCylinder, DLPhysicalThing, DLTransform, DLVector, DLScalar, DLObserver, DLDisjunction
-from gebsyas.utils import StampedData
+from gebsyas.dl_reasoning import DLRigidObject,   \
+								 DLCube,          \
+								 DLSphere,        \
+								 DLCylinder,      \
+								 DLPhysicalThing, \
+								 DLTransform,     \
+								 DLVector,        \
+								 DLScalar,        \
+								 DLObserver,      \
+								 DLDisjunction
+from gebsyas.data_structures import StampedData
 from giskardpy.input_system import ScalarInput, Vec3Input, FrameInputRPY
 from gebsyas.actions import Context, Logger
 from gebsyas.agent import Agent
