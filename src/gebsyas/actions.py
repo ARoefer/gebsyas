@@ -34,7 +34,7 @@ class Logger():
 	    """
 		title_str = '{:>12.4f}:{} | '.format((rospy.Time.now() - self.log_birth).to_sec(), '  ' * self.indentation)
 		pure_data_str = str(data)
-		if pure_data_str[-1] == '\n':
+		if len(pure_data_str) > 0 and pure_data_str[-1] == '\n':
 			data_str = pure_data_str[:-1].replace('\n', '\n{}| '.format(' ' * (len(title_str) - 2)))
 		else:
 			data_str = pure_data_str.replace('\n', '\n{}| '.format(' ' * (len(title_str) - 2)))
