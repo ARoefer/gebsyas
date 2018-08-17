@@ -4,11 +4,10 @@ from collections import namedtuple
 from giskardpy.symengine_robot import Robot, Gripper, Camera
 from giskardpy.symengine_wrappers import *
 from gebsyas.utils import StampedData, JointState
+from gebsyas.data_structures import SymbolicData
 
-# Class structure for symbolic data. Consists of the data itself, a conversion function and the arguments needed for the conversion.
-SymbolicData = namedtuple('SymbolicData', ['data', 'f_convert', 'args'])
 
-DLInstance = namedtuple('DLInstance', ['thing', 'label', 'concepts'])
+DLInstance = namedtuple('DLInstance', ['thing', 'label', 'concepts']) 
 
 class DLConcept(object):
 	"""
@@ -90,14 +89,15 @@ class DLAtom(DLConcept):
 
 	def is_a(self, obj):
 		"""Expects objects to have a member set called "concepts". Will return true if its name is in that set."""
-		return self.name in obj.concepts
+		if hasattr(obj, 'concepts'):
+			return self.name in obj.concepts
+		return False
 
 	def __str__(self):
 		return self.name
 
 	def __eq__(self, other):
 		return isinstance(other, DLAtom) and other.name == self.name
-
 
 class DLNegation(DLConcept):
 	"""
@@ -622,7 +622,7 @@ DLManipulationCapable     = DLDisjunction(DLMultiManipulatorRobot, DLSingleManip
 # Description logical concept modeling an observer
 DLObserver = DLExistsRA('frame_of_reference', DLTransform())
 
-#DLMesh     = DLConjunction(DLShape, DLExistsRA('radius', DLScalar))
+DLMesh     = DLConjunction(DLShape, DLExistsRA('radius', DLScalar()))
 
 # Description logical concept modeling a physical thing
 DLPhysicalThing  = DLExistsRA('pose', DLTransform())
@@ -636,7 +636,8 @@ DLCompoundObject = DLConjunction(DLRigidObject, DLExistsRA('subObject', DLRigidO
 # List of all concepts in this file
 BASIC_TBOX_LIST = [DLString(), DLScalar(),
 				   DLVector(), DLPoint(), DLRotation(), DLTranslation(),
-				   DLTransform(), DLStamp(), DLSymbolic(), DLRobot(), DLGripper(), DLJointState(), DLBodyPosture(),
+				   DLTransform(), DLStamp(), DLSymbolic(), DLRobot(), DLGripper(), 
+				   DLJointState(), DLBodyPosture(),
 				   DLManipulator, DLMultiManipulatorRobot, DLSingleManipulatorRobot, DLManipulationCapable,
 				   DLSphere, DLPartialSphere, DLRectangle, DLCube, DLCylinder, DLShape, DLIded, DLObserver]
 
@@ -655,7 +656,8 @@ BASIC_TBOX = BASIC_TBOX_LIST + [('Sphere', DLSphere),
 				   				('ManipulationCapable', DLManipulationCapable),
 				   				('Observer', DLObserver),
 				   				DLInclusion(DLCamera(), DLPhysicalThing),
-				   				DLInclusion(DLManipulator, DLPhysicalThing)]
+				   				DLInclusion(DLManipulator, DLPhysicalThing)
+				   				]
 
 from gebsyas.expression_parser import UnaryOp, BinaryOp, Function
 
