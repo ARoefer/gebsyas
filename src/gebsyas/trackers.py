@@ -1,6 +1,6 @@
 import rospy
 
-from gebsyas.utils import StampedData, JointState
+from gebsyas.data_structures import StampedData, JointState, LocalizationPose
 from gebsyas.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject
 from copy import copy
 
@@ -22,7 +22,7 @@ class VisualObjectTracker(Tracker):
 
 	def process_data(self, data_set):
 		if type(data_set) == StampedData and DLRigidObject.is_a(data_set.data) and DLIded.is_a(data_set.data):
-			self.data_state.insert_data(data_set, data_set.data.id)
+			self.data_state.insert_data(data_set, self.data_id)
 
 
 class JointStateTracker(Tracker):
@@ -36,6 +36,15 @@ class JointStateTracker(Tracker):
 				finger_state = data_set.data['r_gripper_finger_joint']
 				data_set.data['gripper_joint'] = JointState(finger_state.position * 2, finger_state.velocity * 2, finger_state.effort)
 				#print('added gripper joint to joint state')
+
+			localization = self.data_state['localization']
+			if localization.data != None:
+				data_set.data['localization_x'] = JointState(localization.data.x, 0, 0)
+				data_set.data['localization_y'] = JointState(localization.data.y, 0, 0)
+				data_set.data['localization_z'] = JointState(localization.data.z, 0, 0)
+				data_set.data['localization_z_ang'] = JointState(localization.data.az, 0, 0)
+				data_set.data['base_linear_joint']  = JointState(0, 0, 0)
+				data_set.data['base_angular_joint'] = JointState(0, 0, 0)
 
 			if old_js.data != None:
 				for name, state in data_set.data.items():
@@ -51,7 +60,6 @@ class SymbolicObjectPoseTracker(Tracker):
 	def __init__(self, data_id, pred_state, anchor_id):
 		super(SymbolicObjectPoseTracker, self).__init__(data_id, pred_state.data_state)
 		self.pred_state = pred_state
-		self.data_id = data_id
 		self.anchor_id = anchor_id
 		obj_data  = self.pred_state.map_to_numeric(data_id).data
 		anchor = self.pred_state.map_to_data(anchor_id).data
@@ -77,6 +85,15 @@ class SymbolicObjectPoseTracker(Tracker):
 
 	def process_data(self, data_set):
 		pass
+
+
+class LocalizationTracker(Tracker):
+	def __init__(self, data_id, data_state):
+		super(LocalizationTracker, self).__init__(data_id, data_state)
+
+	def process_data(self, data_set):
+		self.data_state.insert_data(StampedData(data_set.stamp, LocalizationPose(data_set.data.pose.x, data_set.data.pose.y, 0, data_set.data.pose.theta)), self.data_id)
+
 
 class DLTracker(DLAtom):
 	def __init__(self):
