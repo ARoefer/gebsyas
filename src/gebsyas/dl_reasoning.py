@@ -524,6 +524,15 @@ class DLTransform(DLAtom):
 	def is_a(self, obj):
 		return type(obj) is spw.Matrix and obj.ncols() == 4 and obj.nrows() == 4
 
+class DLCovarianceMatrix(DLAtom):
+	"""Description logical representation of a 3d covariance matrix."""
+	def __init__(self):
+		super(DLCovarianceMatrix, self).__init__('CovarianceMatrix')
+
+	def is_a(self, obj):
+		return type(obj) is spw.Matrix and obj.ncols() == 6 and obj.nrows() == 6
+
+
 class DLStamp(DLAtom):
 	"""Description logical representation of a time stamp."""
 	def __init__(self):
@@ -586,51 +595,54 @@ class DLBodyPosture(DLAtom):
 	def is_a(self, obj):
 		return type(obj) is dict and len(obj) > 0 and DLJointState().is_a(obj.values()[0])
 
-# Description logical concept modeling a sphere
+# Description logical concept modelling a sphere
 DLSphere   = DLExistsRA('radius', DLScalar())
 
-# Description logical concept modeling a dome
+# Description logical concept modelling a dome
 DLPartialSphere = DLConjunction(DLSphere,  DLExistsRA('angle', DLScalar()))
 
-# Description logical concept modeling a rectangle
+# Description logical concept modelling a rectangle
 DLRectangle = DLConjunction(DLExistsRA('width', DLScalar()), DLExistsRA('length', DLScalar()))
 
-# Description logical concept modeling a cube
+# Description logical concept modelling a cube
 DLCube      = DLConjunction(DLExistsRA('height', DLScalar()), DLRectangle)
 
-# Description logical concept modeling a cylinder
+# Description logical concept modelling a cylinder
 DLCylinder  = DLConjunction(DLExistsRA('radius', DLScalar()), DLExistsRA('height', DLScalar()))
 
-# Description logical concept modeling a geometric shape
+# Description logical concept modelling a geometric shape
 DLShape     = DLDisjunction(DLSphere, DLCube, DLCylinder, DLRectangle)
 
-# Description logical concept modeling an piece of data which has an Id
+# Description logical concept modelling an piece of data which has an Id
 DLIded      = DLExistsRA('id', DLTop())
 
-# Description logical concept modeling any manipulator
+# Description logical concept modelling any manipulator
 DLManipulator = DLDisjunction(DLGripper())
 
-# Description logical concept modeling a robot with more than one manipulator
+# Description logical concept modelling a robot with more than one manipulator
 DLMultiManipulatorRobot   = DLConjunction(DLRobot(), DLExistsRA('grippers', DLManipulator))
 
-# Description logical concept modeling a robot with only one manipulator
+# Description logical concept modelling a robot with only one manipulator
 DLSingleManipulatorRobot  = DLConjunction(DLRobot(), DLExistsRA('gripper', DLManipulator))
 
-# Description logical concept modeling any thing which is capable of manipulating things
+# Description logical concept modelling any thing which is capable of manipulating things
 DLManipulationCapable     = DLDisjunction(DLMultiManipulatorRobot, DLSingleManipulatorRobot)
 
-# Description logical concept modeling an observer
+# Description logical concept modelling an observer
 DLObserver = DLExistsRA('frame_of_reference', DLTransform())
 
 DLMesh     = DLConjunction(DLShape, DLExistsRA('radius', DLScalar()))
 
-# Description logical concept modeling a physical thing
+# Description logical concept modelling a physical thing
 DLPhysicalThing  = DLExistsRA('pose', DLTransform())
 
-# Description logical concept modeling a hard-surface object
+# Description logical concept modelling a hard-surface object
 DLRigidObject    = DLConjunction(DLPhysicalThing, DLShape, DLExistsRA('mass', DLScalar()))
 
-# Description logical concept modeling an object which is composed of other objects
+# Description logical concept modelling an object with a probabilistic location and rotation
+DLProbabilisticThing = DLConjunction(DLPhysicalThing, DLExistsRA('pose_cov', DLCovarianceMatrix()))
+
+# Description logical concept modelling an object which is composed of other objects
 DLCompoundObject = DLConjunction(DLRigidObject, DLExistsRA('subObject', DLRigidObject))
 
 # List of all concepts in this file
@@ -649,6 +661,7 @@ BASIC_TBOX = BASIC_TBOX_LIST + [('Sphere', DLSphere),
 							    ('Cylinder', DLCylinder),
 							    ('Shape', DLShape),
 				   				('PhysicalThing', DLPhysicalThing),
+				   				('ProbabilisticThing', DLProbabilisticThing),
 				   				('RigidObject', DLRigidObject),
 				   				('CompoundObject', DLCompoundObject),
 				   				('Ided', DLIded),

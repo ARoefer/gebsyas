@@ -8,7 +8,7 @@ from gebsyas.data_structures import StampedData, JointState
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState as JointStateMsg
 from gop_gebsyas_msgs.msg import ProbObject as PObject
-from iai_bullet_sim.utils import Frame, Vector3
+from iai_bullet_sim.utils import Frame, Vector3, Point3
 from copy import deepcopy
 
 pi = 3.14159265359
@@ -266,6 +266,11 @@ def expr_to_rosmsg(expr):
 		out.position.z = expr[2, 3]
 	elif t == Vector3:
 		out = Vector3Msg()
+		out.x = expr[0]
+		out.y = expr[1]
+		out.z = expr[2]
+	elif t == Point3:
+		out = PointMsg()
 		out.x = expr[0]
 		out.y = expr[1]
 		out.z = expr[2]
