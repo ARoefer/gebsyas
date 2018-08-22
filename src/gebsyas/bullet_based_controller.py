@@ -138,6 +138,8 @@ class InEqBulletController(InEqController):
 
             for obj in self.included_objects:
                 visualize_obj(obj, self.visualizer, obj.pose, 'obstacles', self.obstacle_color)
+            
+            self.draw_tie_in()
             self.visualizer.render()
 
         #self.print_fn('\n'.join(['{}: {} -> {}'.format(n, c.lower.subs(self.current_subs), c.expression.subs(self.current_subs)) for n, c in self.avoidance_constraints.items()]))
@@ -150,3 +152,6 @@ class InEqBulletController(InEqController):
 
     def stop(self):
         self.simulator.kill()
+
+    def draw_tie_in(self):
+        pass
