@@ -1,6 +1,7 @@
 gravity: [0, 0, -9.81]
 plugins:
-- {plugin_type: <class 'gebsyas.simulator_plugins.FullPerceptionPublisher'>, topic_prefix: ''}
+- plugin_type: <class 'gebsyas.simulator_plugins.FullPerceptionPublisher'>
+  topic_prefix: '' 
 - {body: fetch, plugin_type: <class 'gebsyas.simulator_plugins.LocalizationPublisher'>,
   topic_prefix: fetch}
 - {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
@@ -96,8 +97,8 @@ world:
     type: rigid_body
   - fixed_base: true
     initial_joint_state: {bellows_joint: 0.0, elbow_flex_joint: -2.155466379029744,
-      forearm_roll_joint: -1.106404147046963, gripper_joint: 0, head_pan_joint: 0.2538912136166552,
-      head_tilt_joint: 1.22637068297174, l_gripper_finger_joint: 0.0, l_wheel_joint: -1.0,
+      forearm_roll_joint: -1.106404147046963, gripper_joint: 0, head_pan_joint: 0.0,
+      head_tilt_joint: 0.4, l_gripper_finger_joint: 0.0, l_wheel_joint: -1.0,
       r_gripper_finger_joint: 0.0, r_wheel_joint: -1.0, shoulder_lift_joint: 0.6234586818886207,
       shoulder_pan_joint: -1.198809265503651, torso_lift_joint: 0.3860999999999983,
       upperarm_roll_joint: -1.413329615908279, wrist_flex_joint: -1.509688682874709,
