@@ -61,6 +61,13 @@ class ROSVisualizer():
 			return self.base_frame
 		return frame
 
+	def draw_cube_batch(self, namespace, pose, size, positions, r=1, g=0, b=0, a=1, frame=None):
+		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
+		marker.type = Marker.CUBE_LIST
+		marker.points = [expr_to_rosmsg(p) for p in positions]
+		marker.size.x = size
+		self.current_msg.markers.append(marker)
+
 	def draw_sphere(self, namespace, position, radius, r=1, g=0, b=0, a=1, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = Marker.SPHERE
