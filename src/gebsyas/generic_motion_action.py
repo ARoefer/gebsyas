@@ -2,7 +2,7 @@ import traceback
 import string
 from gebsyas.constants import *
 from gebsyas.basic_controllers import InEqController, run_ineq_controller
-from gebsyas.bullet_based_controller import InEqBulletController
+from gebsyas.bullet_oct_map_controller import InEqBulletOctMapController
 from gebsyas.actions import Action, PActionInterface, PWrapperInstance
 from gebsyas.dl_reasoning import DLRigidObject
 from gebsyas.predicates import *
@@ -36,7 +36,7 @@ class GenericMotionAction(Action):
 	def execute(self, context):
 		try:
 			original_constraints = set(self.ineq_constraints.keys())
-			motion_ctrl = InEqBulletController(context,
+			motion_ctrl = InEqBulletOctMapController(context,
 											   context.agent.get_data_state().dl_data_iterator(DLRigidObject),
 											   self.allowed_collision_ids,
 											   3,
