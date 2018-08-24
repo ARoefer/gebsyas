@@ -1,0 +1,7 @@
+<launch>
+    <arg name="mode" default="direct"/>
+
+    <rosparam command="load" file="$(find gebsyas)/config/floaty_exploration.yaml" ns="/sim_config"/>
+    <node name="gebsyas_sim" pkg="gebsyas" type="simulator_node.py" args="$(arg mode)" output="screen"/>
+    
+</launch>
