@@ -42,43 +42,45 @@ class InEqBulletController(InEqController):
         temp_urdf = URDF.from_xml(context.agent.robot._urdf_robot.to_xml())
 
         self.included_objects = []
+        self.allowed_objects = {}
 
         for Id, stamped in avoid_collisions:
             # Static objects
-            if Id not in allow_collisions:
-                if type(stamped.data) != SymbolicData and 'floor' not in Id:
-                    self.simulator.add_object(stamped.data)
-                    self.included_objects.append(stamped.data)
-                # Attached objects
-                elif context.agent.get_predicate_state().evaluate(context, IsControlled, (Id, )):
-                    stamped = stamped.data
+            if type(stamped.data) != SymbolicData and 'floor' not in Id:
+                bullet_obj = self.simulator.add_object(stamped.data)
+                self.included_objects.append(stamped.data)
+                if Id in allow_collisions:
+                    self.allowed_objects[Id] = bullet_obj
+            # Attached objects
+            elif context.agent.get_predicate_state().evaluate(context, IsControlled, (Id, )):
+                stamped = stamped.data
 
-                    # Find the controlling manipulator. This could be standardized
-                    for manipulator_id in context.agent.get_data_state().dl_iterator(DLManipulator):
-                        if context.agent.get_predicate_state().evaluate(context, IsGrasped, (manipulator_id, Id)):
-                            manipulator = context.agent.get_predicate_state().map_to_numeric(manipulator_id).data
-                            num_object  = context.agent.get_predicate_state().map_to_numeric(Id).data
-                            obj_in_manipulator = manipulator.pose.inv() * num_object.pose
+                # Find the controlling manipulator. This could be standardized
+                for manipulator_id in context.agent.get_data_state().dl_iterator(DLManipulator):
+                    if context.agent.get_predicate_state().evaluate(context, IsGrasped, (manipulator_id, Id)):
+                        manipulator = context.agent.get_predicate_state().map_to_numeric(manipulator_id).data
+                        num_object  = context.agent.get_predicate_state().map_to_numeric(Id).data
+                        obj_in_manipulator = manipulator.pose.inv() * num_object.pose
 
-                            add_dl_object_to_urdf(temp_urdf, manipulator.link_name, num_object, obj_in_manipulator)
+                        add_dl_object_to_urdf(temp_urdf, manipulator.link_name, num_object, obj_in_manipulator)
 
-                            logging(stamped.data.pose)
-                            self.controlled_objects[Id] = num_object
-                            # Avoid the environment
-                            # self.closest_point_queries.append((ClosestPointQuery_AnyN(robot_name, Id, stamped.data.pose, filter=self.filter_set, n=6), 0.03))
-                            # # Avoid the torso
-                            # self.closest_point_queries.append((ClosestPointQuery_Specific_BA(robot_name, Id,
-                            #                                                                 robot_name, 'torso_lift_link',
-                            #                                                                 stamped.data.pose,
-                            #                                                                 context.agent.robot.frames['torso_lift_link']), 0.03))
-                            break
+                        logging(stamped.data.pose)
+                        self.controlled_objects[Id] = num_object
+                        # Avoid the environment
+                        # self.closest_point_queries.append((ClosestPointQuery_AnyN(robot_name, Id, stamped.data.pose, filter=self.filter_set, n=6), 0.03))
+                        # # Avoid the torso
+                        # self.closest_point_queries.append((ClosestPointQuery_Specific_BA(robot_name, Id,
+                        #                                                                 robot_name, 'torso_lift_link',
+                        #                                                                 stamped.data.pose,
+                        #                                                                 context.agent.robot.frames['torso_lift_link']), 0.03))
+                        break
 
         f = open('{}_temp.urdf'.format(robot_name), 'w+')
         f.write(temp_urdf.to_xml_string())
         f.close()
         self.bullet_bot = self.simulator.load_urdf('{}_temp.urdf'.format(robot_name))
-        self.filter_set = {self.bullet_bot}
 
+        self.filter_set = {self.bullet_bot}.union(self.allowed_objects.values())
         self.avoidance_constraints = {}
         for link, (margin, blowup) in self.robot.collision_avoidance_links.items():
             cpq = ClosestPointQuery_AnyN(self.bullet_bot, link, self.robot.get_fk_expression('map', link), margin, filter=self.filter_set, n=2, aabb_border=blowup)
