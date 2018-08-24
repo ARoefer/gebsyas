@@ -1,6 +1,6 @@
 import rospy
 from gebsyas.actions import Action
-from gebsyas.predicates import IsGrasped, Graspable, PointingAt
+from gebsyas.predicates import IsGrasped, Graspable, PointingAt, ClearlyPerceived
 from gebsyas.dl_reasoning import DLTop, DLExistsRA
 from gebsyas.predicate_state_action import PSAction
 
@@ -15,7 +15,8 @@ class SingleObjectSearchAction(Action):
         context.display.begin_draw_cycle()
         while not rospy.is_shutdown() and not done:
             for Id, data in context.agent.data_state.dl_data_iterator(self.dl_searched_class):
-                feedback = self.execute_subaction(context, PSAction({Graspable: {('gripper', Id): True}}))
+                #feedback = self.execute_subaction(context, PSAction({Graspable: {('gripper', Id): True}}))
+                feedback = self.execute_subaction(context, PSAction({ClearlyPerceived: {(Id, ): True}}))
                 context.log('Execution for grapsing {} finished with {}'.format(Id, feedback))
                 done = True
                 break
