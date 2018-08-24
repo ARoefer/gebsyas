@@ -18,8 +18,8 @@ from gebsyas.search_behavior import SingleObjectSearchAction
 
 from iai_bullet_sim.srv import Empty as EmptySrv
 
-from fetch_giskard.fetch_robot import Fetch
-from giskardpy.symengine_robot import Robot
+from fetch_giskard.fetch_robot import Fetch as Robot
+#from gebsyas.floaty_robot import Floaty as Robot
 import symengine as sp
 
 from pprint import pprint
@@ -36,8 +36,12 @@ if __name__ == '__main__':
 
     rospy.init_node('agent_node')
 
-    srv_reset = rospy.ServiceProxy('/reset', EmptySrv)
-    srv_reset()
+    try:
+        srv_reset = rospy.ServiceProxy('/reset', EmptySrv)
+        srv_reset()
+    except (rospy.ServiceException, rospy.ROSException), e:
+        print('Simulator does not seem to be running...')
+
 
     from gebsyas.agent import TBOX as ATBOX
     from gebsyas.sensors import TBOX as STBOX
@@ -46,7 +50,7 @@ if __name__ == '__main__':
     tbox = BASIC_TBOX + ATBOX + STBOX + TTBOX + PREDICATE_TBOX
 
     reasoner = Reasoner(tbox, {})
-    robot = Fetch(sys.argv[1])
+    robot = Robot(sys.argv[1])
     PREDICATES = {p.P: Predicate(p.P, p.fp, tuple([reasoner[dlc] if dlc in reasoner else dlc for dlc in p.dl_args])) for p in PREDICATES.values()}
     capabilities = MACTIONS + GACTIONS
 
