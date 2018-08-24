@@ -1,7 +1,6 @@
 import rospy
 import math
 import numpy as np
-import gebsyas.np_transformations as nt
 
 from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform
 from iai_bullet_sim.rigid_body import RigidBody
@@ -12,6 +11,7 @@ from gebsyas.utils import expr_to_rosmsg
 from gebsyas.simulator import frame_tuple_to_sym_frame
 from gebsyas.ros_visualizer import ROSVisualizer
 from gebsyas.np_transformations import *
+from giskardpy.symengine_wrappers import *
 from gop_gebsyas_msgs.msg import ProbObject as POMsg
 from gop_gebsyas_msgs.msg import ProbObjectList as POLMsg
 from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
@@ -107,7 +107,7 @@ class FullPerceptionPublisher(SimulatorPlugin):
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        return FullPerceptionPublisher(init_dict['topic_prefix'])
+        return cls(init_dict['topic_prefix'])
 
 
 class ProbPerceptionPublisher(SimulatorPlugin):
@@ -121,16 +121,11 @@ class ProbPerceptionPublisher(SimulatorPlugin):
         self.fov         = fov
         self.near        = near
         self.far         = far
+        self.camera_h_gain = h_precision_gain
+        self.camera_d_gain = d_precision_gain 
         self._enabled = True
         self.object_cov = {}
         self.visualizer = ROSVisualizer('probabilistic_vis', 'map')
-        self.projection = np.identity(4)
-        self.last_camera_position = None#np.array([0, 0, 0, 1])
-        self.R  = np.random.random((3, 3))
-        self.Q  = np.concatenate((np.concatenate((np.random.random((3, 3)) * 0.01, np.array([[0]*3]))), np.array([[0]]*4)), 1)
-
-
-        print(self.c_pos_igain_matrix)
 
 
     def post_physics_update(self, simulator, deltaT):
@@ -143,8 +138,9 @@ class ProbPerceptionPublisher(SimulatorPlugin):
             return
 
         cf_tuple = self.multibody.get_link_state(self.camera_link).worldFrame
-        camera_frame = nt.translation_matrix(cf_tuple.position) * nt.quaternion_matrix(cf_tuple.quaternion)
-        
+        camera_frame = frame3_quaternion(cf_tuple.position.x, cf_tuple.position.y, cf_tuple.position.z, *cf_tuple.quaternion)
+        cov_proj = rot_of(camera_frame)[:3, :3]
+        inv_cov_proj = cov_proj.T
 
         self.visualizer.begin_draw_cycle()
 
@@ -168,7 +164,7 @@ class ProbPerceptionPublisher(SimulatorPlugin):
                     opgc = OPGCMsg()
                     opgc.weight = 1.0
                     msg.object_pose_gmm.append(opgc)
-                    object_cov = np.identity(6)#.col_join(zeros(3)).row_join(zeros(3).col_join(ones(3)))
+                    object_cov = eye(6)#.col_join(zeros(3)).row_join(zeros(3).col_join(ones(3)))
                     self.object_cov[name] = object_cov
                     self.message_templates[name] = msg
                 else:
@@ -177,35 +173,39 @@ class ProbPerceptionPublisher(SimulatorPlugin):
 
                 tpose   = body.pose()
                 obj_pos = point3(*tpose.position)
-                c2o     = obj_pos - pos_of(camera_frame) 
-                dist    = norm(c2o)
-                if dist < self.far and dist > self.near and acos(dot(c2o, x_of(camera_frame)) / dist) < self.fov * 0.5:
+                c2o  = obj_pos - pos_of(camera_frame)
+                dist = norm(c2o) 
+                if dist < self.far and dist > self.near and dot(c2o, x_of(camera_frame)) > cos(self.fov * 0.5) * dist:
+                    
+                    s_h = min(1, max(0.01, 1 - self.camera_h_gain / dist * deltaT))
+                    s_d = min(1, max(0.01, 1 - self.camera_d_gain / dist * deltaT))
+                    S_pos = diag(s_d, s_h, s_h)
+                    S_rot = diag(s_h, s_d, s_d)
+                    new_pos_cov = cov_proj * S_pos * inv_cov_proj * object_cov[:3, :3]
+                    new_rot_cov = cov_proj * S_rot * inv_cov_proj * object_cov[3:, 3:]
+                    for x in range(3):
+                        new_pos_cov[x,x] = max(0.0001, new_pos_cov[x, x])
 
-                    subs = {self.dt_sym: deltaT, self.dist_sym: dist}
+                    object_cov = new_pos_cov.col_join(zeros(3)).row_join(zeros(3).col_join(new_rot_cov))
 
-                    inv_pose  = frame_tuple_to_sym_frame(invert_transform(tpose))[:3, :3]
-                    current_pos_gain_in_obj  = (inv_pose * current_pos_gain_in_world).subs(subs) 
-                    positive_pos_gain_in_obj = Matrix([[min(1, abs(current_pos_gain_in_obj[x,y])) 
-                                                        for x in range(current_pos_gain_in_obj.cols)] 
-                                                        for y in range(current_pos_gain_in_obj.rows)])
-                    current_rot_gain_in_obj  = (inv_pose * current_rot_gain_in_world).subs(subs)
-                    positive_rot_gain_in_obj = Matrix([[min(1, abs(current_rot_gain_in_obj[x,y])) 
-                                                        for x in range(current_rot_gain_in_obj.cols)] 
-                                                        for y in range(current_rot_gain_in_obj.rows)])
-                    gainmatrix = positive_pos_gain_in_obj.col_join(zeros(3)).row_join(zeros(3).col_join(current_rot_gain_in_obj))
-                    object_cov = object_cov * gainmatrix
-                    print(object_cov)
+                    #print(object_cov)
                     self.object_cov[name] = object_cov
 
                     #print(object_cov)
 
-                x_vec = x_of(object_cov)
-                y_vec = y_of(object_cov)
-                z_vec = z_of(object_cov)
+                np_pos_cov = np.array(object_cov[:3, :3].tolist(), dtype=float).reshape((3,3))
+                w, v = np.linalg.eig(np_pos_cov)
+                pos_eig = v * w
 
-                self.visualizer.draw_vector('cov', obj_pos, x_vec, g=0, b=0)
-                self.visualizer.draw_vector('cov', obj_pos, y_vec, r=0, b=0)
-                self.visualizer.draw_vector('cov', obj_pos, z_vec, r=0, g=0)
+
+                if np.isrealobj(pos_eig):
+                    x_vec = vector3(*pos_eig[:, 0])
+                    y_vec = vector3(*pos_eig[:, 1])
+                    z_vec = vector3(*pos_eig[:, 2])
+
+                    self.visualizer.draw_vector('cov', obj_pos, x_vec, r=0.5, g=0.5, b=0.5)
+                    self.visualizer.draw_vector('cov', obj_pos, y_vec, r=0.5, g=0.5, b=0.5)
+                    self.visualizer.draw_vector('cov', obj_pos, z_vec, r=0.5, g=0.5, b=0.5)
 
                 msg.header.stamp = rospy.Time.now()
                 msg.object_pose_gmm[0].cov_pose.pose.position  = expr_to_rosmsg(tpose.position)
@@ -250,20 +250,20 @@ class ProbPerceptionPublisher(SimulatorPlugin):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return ProbPerceptionPublisher(body,
-                                       init_dict['camera_link'],
-                                       init_dict['fov'],
-                                       init_dict['near'],
-                                       init_dict['far'],
-                                       init_dict['h_precision_gain'],
-                                       init_dict['d_precision_gain'],
-                                       init_dict['topic_prefix'])
+        return cls(body,
+                   init_dict['camera_link'],
+                   init_dict['fov'],
+                   init_dict['near'],
+                   init_dict['far'],
+                   init_dict['h_precision_gain'],
+                   init_dict['d_precision_gain'],
+                   init_dict['topic_prefix'])
 
 
     def reset(self, simulator):
         for name, msg in self.message_templates.items():
             msg.object_pose_gmm[0].cov_pose.covariance = ([1,0,0,0,0,0,0] * 6)[:36]
-            self.object_cov[name]   = eye(6)#.col_join(zeros(3)).row_join(zeros(3).col_join(ones(3)))
+            self.object_cov[name] = eye(6)#.col_join(zeros(3)).row_join(zeros(3).col_join(ones(3)))
 
 class LocalizationPublisher(SimulatorPlugin):
     def __init__(self, body, topic_prefix=''):
@@ -318,4 +318,4 @@ class LocalizationPublisher(SimulatorPlugin):
         body = simulator.get_body(init_dict['body'])
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
-        return LocalizationPublisher(body, init_dict['topic_prefix'])
+        return cls(body, init_dict['topic_prefix'])
