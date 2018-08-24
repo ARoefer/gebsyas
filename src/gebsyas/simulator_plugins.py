@@ -18,6 +18,7 @@ from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
 from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGCMsg
 
 from symengine import ones
+import symengine as sp
 
 
 class FetchDriver(SimpleBaseDriver):
@@ -201,11 +202,13 @@ class ProbPerceptionPublisher(SimulatorPlugin):
                 if np.isrealobj(pos_eig):
                     x_vec = vector3(*pos_eig[:, 0])
                     y_vec = vector3(*pos_eig[:, 1])
-                    z_vec = vector3(*pos_eig[:, 2])
+                    #z_vec = vector3(*pos_eig[:, 2])
+                    x_vec *= 1.0 / norm(x_vec)
+                    y_vec *= 1.0 / norm(y_vec)
+                    #z_vec *= 1.0 / norm(z_vec)
+                    M = x_vec.row_join(y_vec).row_join(cross(x_vec, y_vec)).row_join(obj_pos)
 
-                    self.visualizer.draw_vector('cov', obj_pos, x_vec, r=0.5, g=0.5, b=0.5)
-                    self.visualizer.draw_vector('cov', obj_pos, y_vec, r=0.5, g=0.5, b=0.5)
-                    self.visualizer.draw_vector('cov', obj_pos, z_vec, r=0.5, g=0.5, b=0.5)
+                    self.visualizer.draw_shape('cov', M, w.astype(float), 2, r=0.5, g=0.5, b=0.5, a=0.7)
 
                 msg.header.stamp = rospy.Time.now()
                 msg.object_pose_gmm[0].cov_pose.pose.position  = expr_to_rosmsg(tpose.position)

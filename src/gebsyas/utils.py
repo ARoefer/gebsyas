@@ -1,5 +1,6 @@
 import os
 import symengine as sp
+import numpy as np
 import rospy
 import yaml
 
@@ -157,6 +158,37 @@ def rot3_to_rpy(rot3, evaluate=False):
 		else:
 			return RPY(sp.atan2(-rot3[1,2], rot3[1,1]), sp.atan2(-rot3[2,0], sy), 0)
 
+
+def real_quat_from_matrix(frame):
+	tr = frame[0,0] + frame[1,1] + frame[2,2]
+
+	if tr > 0: 
+		S = sqrt(tr+1.0) * 2 # S=4*qw 
+		qw = 0.25 * S
+		qx = (frame[2,1] - frame[1,2]) / S
+		qy = (frame[0,2] - frame[2,0]) / S 
+		qz = (frame[1,0] - frame[0,1]) / S 
+	elif frame[0,0] > frame[1,1] and frame[0,0] > frame[2,2]: 
+		S  = sqrt(1.0 + frame[0,0] - frame[1,1] - frame[2,2]) * 2 # S=4*qx 
+		qw = (frame[2,1] - frame[1,2]) / S
+		qx = 0.25 * S
+		qy = (frame[0,1] + frame[1,0]) / S 
+		qz = (frame[0,2] + frame[2,0]) / S 
+	elif frame[1,1] > frame[2,2]: 
+		S  = sqrt(1.0 + frame[1,1] - frame[0,0] - frame[2,2]) * 2 # S=4*qy
+		qw = (frame[0,2] - frame[2,0]) / S
+		qx = (frame[0,1] + frame[1,0]) / S 
+		qy = 0.25 * S
+		qz = (frame[1,2] + frame[2,1]) / S 
+	else: 
+		S  = sqrt(1.0 + frame[2,2] - frame[0,0] - frame[1,1]) * 2 # S=4*qz
+		qw = (frame[1,0] - frame[0,1]) / S
+		qx = (frame[0,2] + frame[2,0]) / S
+		qy = (frame[1,2] + frame[2,1]) / S
+		qz = 0.25 * S
+	return (qx, qy, qz, qw)
+
+
 from std_msgs.msg import Header, String, Float64, Bool, Int32
 from geometry_msgs.msg import Pose    as PoseMsg
 from geometry_msgs.msg import Point   as PointMsg
@@ -221,6 +253,8 @@ def ros_msg_to_expr(ros_msg):
 
 def expr_to_rosmsg(expr):
 	t = type(expr)
+
+	#try:
 	if t == str:
 		out = String()
 		out.data = expr
@@ -257,6 +291,11 @@ def expr_to_rosmsg(expr):
 		out.x = expr[0]
 		out.y = expr[1]
 		out.z = expr[2]
+	elif t is np.ndarray and (expr.shape == (3,) or (expr.shape == (4,) and expr[3] == 0.0)):
+		out = Vector3Msg()
+		out.x = expr[0]
+		out.y = expr[1]
+		out.z = expr[2]
 	# elif DLRotation().is_a(expr):
 	# 	out = QuaternionMsg()
 	# 	out.w = sqrt(1 + expr[0,0] + expr[1,1] + expr[2,2]) * 0.5
@@ -266,7 +305,7 @@ def expr_to_rosmsg(expr):
 	# 	out.z = (expr[1,0] - expr[0,1]) / w4
 	elif t is sp.Matrix and expr.ncols() == 4 and expr.nrows() == 4:
 		out = PoseMsg()
-		quat = quaternion_from_matrix(expr)
+		quat = real_quat_from_matrix(expr)
 		out.orientation.w = quat[3]
 		out.orientation.x = quat[0]
 		out.orientation.y = quat[1]
@@ -295,6 +334,13 @@ def expr_to_rosmsg(expr):
 		out.position.z = expr.position[2]
 	else:
 		raise Exception('Can not convert {} of type {} to ROS message'.format(str(expr), t))
+	# except ROSSerializationException as e:
+	# 	if t == list or t == tuple or t == sp.Matrix:
+	# 		type_str = 'Outer type {}\n Inner types: [{}]'.format(str(t), ', '.join([str(type(x)) for x in expr]))
+	# 	else:
+	# 		type_str = 'Type: {}'.format(str(t))
+	# 	raise Exception('Conversion failure: {}\n{}'.format(str(e), type_str))
+
 	return out
 
 
