@@ -35,7 +35,8 @@ class BCControllerWrapper(SymEngineController):
 
     def set_robot_js(self, js):
         for j, s in js.items():
-            self.current_subs[self.robot.get_joint_symbol_map().joint_map[j]] = s.position
+            if j in self.robot.joint_states_input.joint_map:
+                self.current_subs[self.robot.joint_states_input.joint_map[j]] = s.position
 
     def get_cmd(self, nWSR=None):
         return super(BCControllerWrapper, self).get_cmd({str(s): p for s, p in self.current_subs.items()}, nWSR)
