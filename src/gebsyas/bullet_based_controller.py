@@ -6,7 +6,7 @@ from time import time
 
 from gebsyas.basic_controllers import InEqController
 from gebsyas.closest_point_queries import ClosestPointQuery_AnyN, ClosestPointQuery_Specific_SA, ClosestPointQuery_Specific_BA
-from gebsyas.dl_reasoning import DLSymbolic, SymbolicData, DLManipulator
+from gebsyas.dl_reasoning import DLSymbolic, SymbolicData, DLManipulator, DLRigidObject, DLRigidGMMObject
 from gebsyas.dl_urdf_tools import add_dl_object_to_urdf
 from gebsyas.predicates import IsControlled, IsGrasped
 from gebsyas.numeric_scene_state import visualize_obj
@@ -137,7 +137,12 @@ class InEqBulletController(InEqController):
                 #     self.visualizer.draw_sphere('ccp', cpp.point_2_expression(x).subs(self.get_state()), 0.01, g=1)
 
             for obj in self.included_objects:
-                visualize_obj(obj, self.visualizer, obj.pose, 'obstacles', self.obstacle_color)
+                if DLRigidObject.is_a(obj):
+                    pose = obj.pose
+                elif DLRigidGMMObject.is_a(obj):
+                    pose = sorted(obj.gmm)[0].pose
+
+                visualize_obj(obj, self.visualizer, pose, 'obstacles', self.obstacle_color)
             self.visualizer.render()
 
         #self.print_fn('\n'.join(['{}: {} -> {}'.format(n, c.lower.subs(self.current_subs), c.expression.subs(self.current_subs)) for n, c in self.avoidance_constraints.items()]))

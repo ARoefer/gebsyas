@@ -2,7 +2,7 @@ import rospy
 from collections import namedtuple
 from gebsyas.constants import LBA_BOUND, UBA_BOUND
 from gebsyas.data_structures import StampedData, SymbolicData
-from gebsyas.dl_reasoning import DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape
+from gebsyas.dl_reasoning import DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape, DLRigidGMMObject
 from gebsyas.utils import ros_msg_to_expr
 from gebsyas.predicates import Predicate
 from giskardpy.symengine_wrappers import pos_of
@@ -265,6 +265,7 @@ class DataSceneState(object):
 		self.id_map = {}
 		self.searchable_objects = searchable_objects
 		self.parent = parent
+		self.data_change_callbacks = {}
 
 	def __getitem__(self, key):
 		return self.find_by_path(key)
@@ -338,6 +339,9 @@ class DataSceneState(object):
 		else:
 			if Id not in self.id_map or self.id_map[Id].stamp < stamped_data.stamp:
 				self.id_map[Id] = stamped_data
+		if Id in self.data_change_callbacks:
+			for cb in self.data_change_callbacks[Id]:
+				cb(stamped_data.data)
 
 	def get_data_map(self):
 		out = self.id_map.copy()
@@ -346,6 +350,16 @@ class DataSceneState(object):
 			for f in fields:
 				out[f] = StampedData(rospy.Time.now(), getattr(root, f))
 		return out
+
+	def register_on_change_cb(self, Id, cb):
+		if Id not in self.data_change_callbacks:
+			self.data_change_callbacks[Id] = set()
+
+		self.data_change_callbacks[Id].add(cb)
+
+	def deregister_on_change_cb(self, Id, cb):
+		if Id in self.data_change_callbacks:
+			self.data_change_callbacks[Id].remove(cb)
 
 
 class DataIterator(object):

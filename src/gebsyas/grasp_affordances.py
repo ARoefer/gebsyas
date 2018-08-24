@@ -309,23 +309,32 @@ class BasicGraspAffordances(object):
     @classmethod
     def object_grasp(cls, context, gripper, obj):
         """Generates a set of constraints to grasp a generic object."""
-        if DLRigidObject.is_a(obj):
-            if DLCompoundObject.is_a(obj):
-                if type(obj.subObject) == list:
-                    raise Exception('Needs to be updated to use inequality constraints')
-                    return cls.combine_expressions_max(True, [cls.object_grasp(gripper, so) for so in obj.subObject])
-                else:
-                    return cls.object_grasp(gripper, obj.subObject)
+        if DLRigidGMMObject.is_a(obj):
+            mlgc = sorted(obj.gmm)[0]
+            if abs(mlgc.cov[0,0]) > 0.02 and abs(mlgc.cov[1,1]) > 0.02 and abs(mlgc.cov[2,2]) > 0.02:
+                return {'clearly_perceived': SC(1, 0, 1, 0)}
             else:
-                if DLCube.is_a(obj):
-                    return cls.box_grasp(gripper, obj.pose, obj.length, obj.width, obj.height)
-                elif DLPartialSphere.is_a(obj):
-                    return cls.partial_sphere_grasp(gripper, pos_of(obj.pose), z_of(obj.pose), 2*obj.radius, obj.angle)
-                elif DLCylinder.is_a(obj):
-                    return cls.rod_grasp(gripper, pos_of(obj.pose), z_of(obj.pose), obj.height, 2*obj.radius) #obj.height, 2*obj.radius
-                elif DLSphere.is_a(obj):
-                    return cls.sphere_grasp(gripper, pos_of(obj.pose), 2*obj.radius)
+                pose = mlgc.pose
+
+        if DLRigidObject.is_a(obj):
+            pose = obj.pose
+
+        if DLCompoundObject.is_a(obj):
+            if type(obj.subObject) == list:
+                raise Exception('Needs to be updated to use inequality constraints')
+                return cls.combine_expressions_max(True, [cls.object_grasp(gripper, so) for so in obj.subObject])
+            else:
+                return cls.object_grasp(gripper, obj.subObject)
         else:
-            context.log("Can't grasp {}, because it's not a rigid object.".format(str(obj)))
+            if DLCube.is_a(obj):
+                return cls.box_grasp(gripper, pose, obj.length, obj.width, obj.height)
+            elif DLPartialSphere.is_a(obj):
+                return cls.partial_sphere_grasp(gripper, pos_of(pose), z_of(pose), 2*obj.radius, obj.angle)
+            elif DLCylinder.is_a(obj):
+                return cls.rod_grasp(gripper, pos_of(pose), z_of(pose), obj.height, 2*obj.radius) #obj.height, 2*obj.radius
+            elif DLSphere.is_a(obj):
+                return cls.sphere_grasp(gripper, pos_of(pose), 2*obj.radius)
+            else:
+                context.log("Can't grasp {}, because it's not a rigid object.".format(str(obj)))
 
         return 0

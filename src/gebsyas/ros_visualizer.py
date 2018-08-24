@@ -113,7 +113,7 @@ class ROSVisualizer():
 		if robot._urdf_robot == None:
 			return
 
-		joint_pos_dict = {robot.joint_states_input.joint_map[j]: p for j, p in joint_pos_dict.items()}
+		joint_pos_dict = {robot.joint_states_input.joint_map[j]: p for j, p in joint_pos_dict.items() if j in robot.joint_states_input.joint_map}
 
 		urdf = robot._urdf_robot
 		for link_name in robot.get_controllable_links(urdf.get_root()):

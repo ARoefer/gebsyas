@@ -74,6 +74,19 @@ class IntrospectiveFunctions(object):
 		return {'exists': SC(1, 0, 1, 0)}
 
 
+	@classmethod
+	def perceived_clearly(cls, context, p_object):
+		if DLPhysicalGMMThing.is_a(p_object):
+			cov = sorted(p_object.gmm)[0].cov
+
+		if DLProbabilisticThing.is_a(p_object):
+			cov = p_object.pose_cov
+
+		if abs(cov[0,0]) <= 0.02 and abs(cov[1,1]) <= 0.02 and abs(cov[2,2]) <= 0.02:
+			return {'clearly_perceived': SC(0, 0, 1, 0)}
+		return {'clearly_perceived': SC(1, 0, 1, 0)}
+
+
 class DLPredicate(DLAtom):
 	def __init__(self):
 		super(DLPredicate, self).__init__('Predicate')
@@ -144,13 +157,16 @@ PointingAt= Predicate('PointingAt',DSR.pointing_at, (DLPhysicalThing, DLPhysical
 NextTo    = Predicate('NextTo',   NDSR.next_to,     (DLRigidObject, DLRigidObject))
 
 Free      = Predicate('Free',        IntrospectiveFunctions.is_free, (DLManipulator,))
-Graspable = Predicate('Graspable',     BGA.object_grasp, (DLManipulator, DLRigidObject))
+Graspable = Predicate('Graspable',     BGA.object_grasp, (DLManipulator, DLDisjunction(DLRigidObject,
+																					   DLPhysicalGMMThing, 
+																					   DLProbabilisticThing)))
 
 IsGrasped    = Predicate('IsGrasped', IntrospectiveFunctions.is_grasped, (DLManipulator, DLRigidObject))
 IsControlled = Predicate('IsControlled', IntrospectiveFunctions.is_controlled, (DLDisjunction(DLRigidObject, DLManipulator, DLCamera()),))
 
 InPosture = Predicate('InPosture', IntrospectiveFunctions.is_in_posture, (DLBodyPosture(), DLBodyPosture()))
 Exists    = Predicate('Exists',    IntrospectiveFunctions.exists, (DLTop(), ))
+ClearlyPerceived = Predicate('ClearlyPerceived', IntrospectiveFunctions.perceived_clearly, (DLDisjunction(DLPhysicalGMMThing, DLProbabilisticThing), ))
 
 PREDICATE_TBOX_LIST = [DLPredicate(), DLSpatialFunction(), DLConstFunction(), DLStateAssessment(), DLSpatialPredicate, DLAxiomaticPredicate, DLGraspPredicate, DLSymbolicPredicate]
 PREDICATE_TBOX = PREDICATE_TBOX_LIST + [('SpatialPredicate', DLSpatialPredicate),

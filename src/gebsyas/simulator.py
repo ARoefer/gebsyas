@@ -1,5 +1,6 @@
 from gebsyas.dl_reasoning import DLCompoundObject, \
                                  DLRigidObject,    \
+                                 DLRigidGMMObject, \
                                  DLIded,           \
                                  DLSphere,         \
                                  DLCylinder,       \
@@ -23,24 +24,28 @@ class GebsyasSimulator(BasicSimulator):
         if DLCompoundObject.is_a(dl_object):
             raise Exception('Compund objects are not supported at this time.')
         elif DLRigidObject.is_a(dl_object):
-            Id = None
-            if DLIded.is_a(dl_object):
-                Id = dl_object.id
+          pose = dl_object.pose
+        elif DLRigidGMMObject.is_a(dl_object):
+          pose = sorted(dl_object.gmm)[0].pose
+
+        Id = None
+        if DLIded.is_a(dl_object):
+            Id = dl_object.id
             
             if DLCube.is_a(dl_object):
                 return self.create_box([dl_object.length, dl_object.width, dl_object.height],
-                                       vec3_to_list(pos_of(dl_object.pose)),
-                                       list(quaternion_from_matrix(dl_object.pose)),
+                                       vec3_to_list(pos_of(pose)),
+                                       list(quaternion_from_matrix(pose)),
                                        dl_object.mass)
             elif DLCylinder.is_a(dl_object):
                 return self.create_cylinder(dl_object.radius, dl_object.height,
-                                       vec3_to_list(pos_of(dl_object.pose)),
-                                       list(quaternion_from_matrix(dl_object.pose)),
+                                       vec3_to_list(pos_of(pose)),
+                                       list(quaternion_from_matrix(pose)),
                                        dl_object.mass)
             elif DLSphere.is_a(dl_object):
                 return self.create_sphere(dl_object.radius,
-                                       vec3_to_list(pos_of(dl_object.pose)),
-                                       list(quaternion_from_matrix(dl_object.pose)),
+                                       vec3_to_list(pos_of(pose)),
+                                       list(quaternion_from_matrix(pose)),
                                        dl_object.mass)
             else:
                 Exception('Cannot generate Bullet-body for object which is not a sphere, box, or cylinder.\nObject: {}'.format(str(dl_object)))  

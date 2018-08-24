@@ -4,14 +4,18 @@ import rospy
 import yaml
 
 from collections import namedtuple
-from gebsyas.data_structures import StampedData, JointState
+from gebsyas.data_structures import StampedData, JointState, GaussianPoseComponent
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState as JointStateMsg
 from gop_gebsyas_msgs.msg import ProbObject as PObject
+from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGMsg
+from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
 from iai_bullet_sim.utils import Frame, Vector3, Point3
 from copy import deepcopy
 
 pi = 3.14159265359
+rad2deg = 57.2957795131
+deg2rad = 1.0 / rad2deg
 
 def symbol_formatter(symbol_name):
 	if '__' in symbol_name:
@@ -177,6 +181,8 @@ def ros_msg_to_expr(ros_msg):
 		return ros_msg
 	elif t_msg == PObject:
 		return pobj_to_expr(ros_msg)
+	elif t_msg == SearchObjectMsg:
+		return gmm_obj_to_expr(ros_msg)
 	elif t_msg == PoseMsg:
 		return frame3_quaternion(ros_msg.position.x, 
 								 ros_msg.position.y, 
@@ -193,12 +199,16 @@ def ros_msg_to_expr(ros_msg):
 		return rotation3_quaternion(ros_msg.x, ros_msg.y, ros_msg.z, ros_msg.w)
 	elif t_msg == PoseStampedMsg:
 		return StampedData(ros_msg.header.stamp, ros_msg_to_expr(t_msg.pose))
-	elif t_msg == list:
+	elif t_msg == list or t_msg == tuple:
 		if len(ros_msg) == 36 and type(ros_msg[0]) == float:
-			return sp.Matrix([t_msg[x * 6: x*6 + 6] for x in range(6)]) # Construct covariance matrix
+			return sp.Matrix([ros_msg[x * 6: x*6 + 6] for x in range(6)]) # Construct covariance matrix
 		return [ros_msg_to_expr(x) for x in ros_msg]
 	elif t_msg == JointStateMsg:
 		return {ros_msg.name[x]: JointState(ros_msg.position[x], ros_msg.velocity[x], ros_msg.effort[x]) for x in range(len(ros_msg.name))}
+	elif t_msg == OPGMsg:
+		return GaussianPoseComponent(ros_msg.weight, 
+									 ros_msg_to_expr(ros_msg.cov_pose.pose), 
+									 ros_msg_to_expr(ros_msg.cov_pose.covariance))
 	else:
 		for field in dir(ros_msg):
 			if field[0] == '_':
@@ -311,64 +321,85 @@ def bb(**kwargs):
 		setattr(out, k, v)
 	return out
 
+def decode_obj_shape(name, out):
+	if name == 'coke':
+		out.radius = 0.034
+		out.height = 0.126
+		out.presurized = True
+		out.mass   = 0.4
+	elif name == 'pringle':
+		out.radius = 0.039
+		out.height = 0.248
+		out.mass   = 0.3
+	elif name == 'blue_box':
+		out.length = 0.079
+		out.width  = 0.079
+		out.height = 0.038
+		out.mass   = 0.3
+	elif name == 'blue_cup':
+		out.radius = 0.045
+		out.height = 0.146
+		out.subObject = bb(name='rim', radius = 0.049, rotation_axis = vec3(0,0,1), pose = frame3_rpy(0,0,0, point3(0,0, -0.073)))
+		out.mass   = 0.1
+	elif name == 'blueberry_box':
+		out.length = 0.133
+		out.width  = 0.133
+		out.height = 0.056
+		out.mass   = 0.2
+	elif name == 'clorox':
+		body = bb(name = 'body', radius = 0.37, height=0.131, pose=frame3_rpy(0,0,0, point3(0,0,-0.04)))
+		cap  = bb(name = 'cap', radius=0.026, height=0.04, pose=frame3_rpy(0,0,0, point3(0,0, 0.065)))
+		out.subObject =[body, cap]
+		out.mass   = 1.2
+	elif name == 'delight':
+		out.length = 0.152
+		out.width  = 0.114
+		out.height = 0.070
+		out.mass   = 1.0
+	elif name == 'table':
+		out.width  = 1.15
+		out.height = 0.84
+		out.length = 0.54
+		out.mass   = 100.0
+	elif name == 'floor':
+		out.width  = 20.0
+		out.height = 1.0
+		out.length = 20.0
+	elif name == 'ball':
+		out.radius = 0.04
+		out.mass   = 0.5
+	else:
+		pass
+
+
 def pobj_to_expr(msg):
 	out = Blank()
 	
 	msg.name = ''.join([i for i in msg.name if not i.isdigit()])
 
-	if msg.name == 'coke':
-		out.radius = 0.034
-		out.height = 0.126
-		out.presurized = True
-		out.mass   = 0.4
-	elif msg.name == 'pringle':
-		out.radius = 0.039
-		out.height = 0.248
-		out.mass   = 0.3
-	elif msg.name == 'blue_box':
-		out.length = 0.079
-		out.width  = 0.079
-		out.height = 0.038
-		out.mass   = 0.3
-	elif msg.name == 'blue_cup':
-		out.radius = 0.045
-		out.height = 0.146
-		out.subObject = bb(name='rim', radius = 0.049, rotation_axis = vec3(0,0,1), pose = frame3_rpy(0,0,0, point3(0,0, -0.073)))
-		out.mass   = 0.1
-	elif msg.name == 'blueberry_box':
-		out.length = 0.133
-		out.width  = 0.133
-		out.height = 0.056
-		out.mass   = 0.2
-	elif msg.name == 'clorox':
-		body = bb(name = 'body', radius = 0.37, height=0.131, pose=frame3_rpy(0,0,0, point3(0,0,-0.04)))
-		cap  = bb(name = 'cap', radius=0.026, height=0.04, pose=frame3_rpy(0,0,0, point3(0,0, 0.065)))
-		out.subObject =[body, cap]
-		out.mass   = 1.2
-	elif msg.name == 'delight':
-		out.length = 0.152
-		out.width  = 0.114
-		out.height = 0.070
-		out.mass   = 1.0
-	elif msg.name == 'table':
-		out.width  = 1.15
-		out.height = 0.84
-		out.length = 0.54
-		out.mass   = 100.0
-	elif msg.name == 'floor':
-		out.width  = 20.0
-		out.height = 1.0
-		out.length = 20.0
-	elif msg.name == 'ball':
-		out.radius = 0.04
-		out.mass   = 0.5
-	else:
-		pass	
+	decode_obj_shape(msg.name, out)
+		
 	#raise Exception("Unrecognized semantic class '{}'".format(msg.name))
 
 	out.id = '{}{}'.format(msg.name, msg.id)
 	out.pose = ros_msg_to_expr(msg.cov_pose.pose)
 	out.pose_cov = ros_msg_to_expr(msg.cov_pose.covariance)
+	
+	out.concepts = {msg.name}
+
+	return out
+
+
+def gmm_obj_to_expr(msg):
+	out = Blank()
+	
+	msg.name = ''.join([i for i in msg.name if not i.isdigit()])
+
+	decode_obj_shape(msg.name, out)
+
+	out.id = '{}{}'.format(msg.name, msg.id)
+	out.gmm = ros_msg_to_expr(msg.object_pose_gmm)
+	
 	out.concepts = {msg.name}
 
 	return out

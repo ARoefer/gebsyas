@@ -249,6 +249,13 @@ class DirectedSpatialRelations(object):
 		return {'pointing_at': SC(ctrl, ctrl, 1, ang)}
 
 
+	@classmethod
+	def observe(cls, context, camera, obj):
+		if DLProbabilisticThing.is_a(obj):
+			x_variance = x_of(obj.pose_cov)
+			y_variance = y_of(obj.pose_cov)
+			z_variance = z_of(obj.pose_cov)
+
 
 class NonDirectedSpatialRelations(object):
 

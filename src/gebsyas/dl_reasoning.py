@@ -4,8 +4,7 @@ from collections import namedtuple
 from giskardpy.symengine_robot import Robot, Gripper, Camera
 from giskardpy.symengine_wrappers import *
 from gebsyas.utils import StampedData, JointState
-from gebsyas.data_structures import SymbolicData
-
+from gebsyas.data_structures import SymbolicData, GaussianPoseComponent
 
 DLInstance = namedtuple('DLInstance', ['thing', 'label', 'concepts']) 
 
@@ -595,6 +594,14 @@ class DLBodyPosture(DLAtom):
 	def is_a(self, obj):
 		return type(obj) is dict and len(obj) > 0 and DLJointState().is_a(obj.values()[0])
 
+class DLGMMPoseComponent(DLAtom):
+	def __init__(self):
+		super(DLGMMPoseComponent, self).__init__('GMMPoseComponent')
+
+	def is_a(self, obj):
+		return type(obj) == GaussianPoseComponent
+
+
 # Description logical concept modelling a sphere
 DLSphere   = DLExistsRA('radius', DLScalar())
 
@@ -641,6 +648,13 @@ DLRigidObject    = DLConjunction(DLPhysicalThing, DLShape, DLExistsRA('mass', DL
 
 # Description logical concept modelling an object with a probabilistic location and rotation
 DLProbabilisticThing = DLConjunction(DLPhysicalThing, DLExistsRA('pose_cov', DLCovarianceMatrix()))
+
+
+# Physical thing with its pose represented as gmm
+DLPhysicalGMMThing = DLExistsRA('gmm', DLGMMPoseComponent())
+
+DLRigidGMMObject   = DLConjunction(DLPhysicalGMMThing, DLShape, DLExistsRA('mass', DLScalar()))
+
 
 # Description logical concept modelling an object which is composed of other objects
 DLCompoundObject = DLConjunction(DLRigidObject, DLExistsRA('subObject', DLRigidObject))

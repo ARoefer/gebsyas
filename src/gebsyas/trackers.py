@@ -1,7 +1,7 @@
 import rospy
 
 from gebsyas.data_structures import StampedData, JointState, LocalizationPose
-from gebsyas.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject
+from gebsyas.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject, DLRigidGMMObject
 from copy import copy
 
 class Tracker(object):
@@ -17,11 +17,13 @@ class Tracker(object):
 
 
 class VisualObjectTracker(Tracker):
-	def __init__(self, data_id, data_state):
-		super(VisualObjectTracker, self).__init__(data_id, data_state)
-
 	def process_data(self, data_set):
 		if type(data_set) == StampedData and DLRigidObject.is_a(data_set.data) and DLIded.is_a(data_set.data):
+			self.data_state.insert_data(data_set, self.data_id)
+
+class GaussianObjectTracker(Tracker):
+	def process_data(self, data_set):
+		if type(data_set) == StampedData and DLRigidGMMObject.is_a(data_set.data) and DLIded.is_a(data_set.data):
 			self.data_state.insert_data(data_set, self.data_id)
 
 
@@ -45,6 +47,7 @@ class JointStateTracker(Tracker):
 				data_set.data['localization_z_ang'] = JointState(localization.data.az, 0, 0)
 				data_set.data['base_linear_joint']  = JointState(0, 0, 0)
 				data_set.data['base_angular_joint'] = JointState(0, 0, 0)
+				data_set.data['base_perp_joint'] = JointState(0, 0, 0)
 
 			if old_js.data != None:
 				for name, state in data_set.data.items():

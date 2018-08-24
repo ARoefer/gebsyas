@@ -119,7 +119,7 @@ class GraspableMotionInterface(PActionInterface):
 	def __init__(self):
 		super(GraspableMotionInterface, self).__init__(
 			'Move{}'.format(Graspable.P),
-			[],
+			[PInstance(ClearlyPerceived, ('b',), True)],
 			[PInstance(Graspable, ('m', 'b'), True)],
 			2.0)
 
@@ -141,6 +141,7 @@ class GraspableMotionInterface(PActionInterface):
 				ineq_constraints.update(p.fp(context, *fargs))
 
 		return GenericMotionAction(ineq_constraints, {assignments['b']})
+
 
 class SimpleBinaryMoveAction(GenericMotionInterface):
 	"""

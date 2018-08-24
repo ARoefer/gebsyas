@@ -14,11 +14,12 @@ from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded
 from gebsyas.data_structures import SymbolicData, StampedData
 from gop_gebsyas_msgs.msg import ProbObject as PObject
 from gop_gebsyas_msgs.msg import ProbObjectList as PObjectList
+from gop_gebsyas_msgs.msg import SearchObject   as SearchObjectMsg
 from gebsyas.numeric_scene_state import DataSceneState, DataDrivenPredicateState
 from gebsyas.ros_visualizer import ROSVisualizer
 from gebsyas.sensors import TopicSensor
 from gebsyas.simple_agent_actions import SimpleAgentIOAction
-from gebsyas.trackers import VisualObjectTracker, JointStateTracker, LocalizationTracker
+from gebsyas.trackers import GaussianObjectTracker, JointStateTracker, LocalizationTracker
 from gebsyas.utils import StampedData, ros_msg_to_expr, cmdDictToJointState, Blank
 from giskardpy.symengine_wrappers import *
 from copy import copy
@@ -85,24 +86,23 @@ class Agent(object):
 class BasicAgent(Agent):
 	"""
 	This agent implementation runs a simple IO behavior through wich a user can issue simple commands to the agent.
-	The agent controls a robot, percieves objects from a topic and can memorize data across sessions.
+	The agent controls a robot, perceives objects from a topic and can memorize data across sessions.
 	"""
 	def __init__(self, name, reasoner, predicates, robot, capabilities=[], memory_path=None, logger=None, visualizer=None):
 		super(BasicAgent, self).__init__(name, reasoner, predicates, capabilities, logger, visualizer, DataSceneState())
-		self.add_sensor('object sensor', TopicSensor(self.on_objects_sensed, '/perceived_objects', PObjectList, 12))
-		self.add_sensor('joint sensor', TopicSensor(self.on_joint_state_sensed, '/fetch/joint_states', sensor_msgs.msg.JointState))
+		self.add_sensor('object sensor', TopicSensor(self.on_objects_sensed, '/perceived_prob_objects', SearchObjectMsg, 12))
+		self.add_sensor('joint sensor', TopicSensor(self.on_joint_state_sensed, '/{}/joint_states'.format(robot._urdf_robot.name), sensor_msgs.msg.JointState))
 		self.add_tracker(JointStateTracker('joint_state', self.data_state))
 		self.add_tracker(LocalizationTracker('localization', self.data_state))
-		self.add_sensor('localization', TopicSensor(self.trackers['localization'].process_data, '/fetch/localization', Pose2DStampedMsg, 1))
+		self.add_sensor('localization', TopicSensor(self.trackers['localization'].process_data, '/{}/localization'.format(robot._urdf_robot.name), Pose2DStampedMsg, 1))
 		self.reasoner.add_to_abox((self.name, DLAgent()))
 		self.robot = robot
-		self.frame_of_reference = self.robot.get_fk_expression('base_link', 'base_link')[:4, :3].row_join(pos_of(self.robot.camera.pose))
-		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self.robot.gripper, f_convert=self.robot.do_gripper_fk, args=['joint_state'])), 'gripper')
+		self.frame_of_reference = self.robot.get_fk_expression('map', 'base_link')[:4, :3].row_join(pos_of(self.robot.camera.pose))
+		#self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self.robot.gripper, f_convert=self.robot.do_gripper_fk, args=['joint_state'])), 'gripper')
 		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self.robot.camera, f_convert=self.robot.do_camera_fk, args=['joint_state'])), 'camera')
 		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=self, f_convert=self.convert_to_numeric, args=['joint_state'])), 'me')
 		self.data_state.insert_data(StampedData(rospy.Time.now(), Agent('You', reasoner, predicates)), 'you')
-		self.js_callbacks = []
-		self.command_publisher = rospy.Publisher('/fetch/commands/joint_velocities', sensor_msgs.msg.JointState, queue_size=5) #  /velocity_controller/joint_velocity_controller/joint_velocity_commands
+		self.command_publisher = rospy.Publisher('/{}/commands/joint_velocities'.format(robot._urdf_robot.name), sensor_msgs.msg.JointState, queue_size=5) #  /velocity_controller/joint_velocity_controller/joint_velocity_commands
 		self.gripper_command_publisher = rospy.Publisher('/gripper_controller/gripper_action/goal', GripperCommandActionGoal, queue_size=5)
 		self.base_command_publisher = rospy.Publisher('/base_command', TwistMsg, queue_size=1)
 		self.smwyg_pub = rospy.Publisher('/show_me_what_you_got', std_msgs.msg.Empty, queue_size=1)
@@ -116,21 +116,22 @@ class BasicAgent(Agent):
 			self.memory = {}
 			pass
 
+	def add_data_cb(self, Id, cb):
+		self.data_state.register_on_change_cb(Id, cb)
 
-	def on_objects_sensed(self, stamped_object_list):
+	def remove_data_cb(self, Id, cb):
+		self.data_state.deregister_on_change_cb(Id, cb)
+
+	def on_objects_sensed(self, stamped_object):
 		"""Callback for a sensed object."""
-		for object in stamped_object_list.data.objects:
-			if object.id not in self.trackers:
-				self.trackers[object.id] = VisualObjectTracker(object.id, self.data_state)
+		if stamped_object.data.id not in self.trackers:
+			self.trackers[stamped_object.data.id] = GaussianObjectTracker(stamped_object.data.id, self.data_state)
 
-			self.trackers[object.id].process_data(StampedData(stamped_object_list.stamp, object))
+		self.trackers[stamped_object.data.id].process_data(stamped_object)
 
 	def on_joint_state_sensed(self, joint_state):
 		"""Callback for a sensed joint state"""
 		self.trackers['joint_state'].process_data(joint_state)
-		new_js = self.data_state['joint_state'].data
-		for cb in self.js_callbacks:
-			cb(new_js)
 
 	def awake(self, initial_action):
 		"""Activates the sensors and starts the IO behavior."""
@@ -161,7 +162,7 @@ class BasicAgent(Agent):
 
 	def add_js_callback(self, callback):
 		"""Adds an additional joint state callback."""
-		self.js_callbacks.append(callback)
+		self.data_state.register_on_change_cb('joint_state', callback)
 
 	def act(self, js_command):
 		"""Interfaces between internal commands and ROS-commands. Accepts joint velocity commands."""
