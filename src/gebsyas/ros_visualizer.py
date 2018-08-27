@@ -87,7 +87,7 @@ class ROSVisualizer():
 
 	def draw_text(self, namespace, position, text, r=1, g=1, b=1, a=1, height=0.08, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
-		marker.type = Marker.TEXT
+		marker.type = Marker.TEXT_VIEW_FACING
 		marker.pose.position = expr_to_rosmsg(position)
 		marker.scale.z = height
 		marker.text = text
