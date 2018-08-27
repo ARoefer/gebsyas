@@ -46,6 +46,8 @@ if __name__ == '__main__':
     pub_topic = '/gmm_vis'              if len(sys.argv) < 3 else sys.argv[2]
     frame     = 'map'                   if len(sys.argv) < 4 else sys.argv[3]
 
+    print('Subscribing to: {}\nPublishing at:{}\nIn frame:{}'.format(sub_topic, pub_topic, frame))
+
     node = SearchObjectVisualizer(sub_topic, pub_topic, frame)
 
     while not rospy.is_shutdown():
