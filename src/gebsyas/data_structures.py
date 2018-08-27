@@ -21,3 +21,8 @@ class GaussianPoseComponent(object):
         if type(other) != GaussianPoseComponent:
             raise Exception('<= only defined for GaussianPoseComponent')
         return self.weight <= other.weight
+
+    def __cmp__(self, other):
+        if type(other) != GaussianPoseComponent:
+            raise Exception('__cmp__ only defined for GaussianPoseComponent')
+        return cmp(self.weight, other.weight)

@@ -1,0 +1,5 @@
+string object_id
+float32 weight
+---
+bool success
+string error_msg

@@ -2,7 +2,7 @@ import rospy
 import math
 import numpy as np
 
-from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform
+from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform, hsva_to_rgba
 from iai_bullet_sim.rigid_body import RigidBody
 from iai_bullet_sim.multibody import SimpleBaseDriver
 
@@ -322,3 +322,100 @@ class LocalizationPublisher(SimulatorPlugin):
         if body is None:
             raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
         return cls(body, init_dict['topic_prefix'])
+
+
+class GMMObjectPublisher(SimulatorPlugin):
+    def __init__(self, topic_prefix=''):
+        super(GMMObjectPublisher, self).__init__('GMMObjectPublisher')
+        self.publisher = rospy.Publisher('{}/perceived_prob_objects'.format(topic_prefix), SearchObjectMsg, queue_size=1, tcp_nodelay=True)
+        self.visualizer = ROSVisualizer('gmm_vis', 'map')
+        self.message_templates = {}
+        self.topic_prefix = topic_prefix
+        self._enabled = True
+
+    def post_physics_update(self, simulator, deltaT):
+        if not self._enabled:
+            return
+
+        self.visualizer.begin_draw_cycle()
+        for name, gmm in simulator.gpcs.items():
+            if not name in self.message_templates:
+                body = simulator.bodies[name]
+                msg = SearchObjectMsg()
+                msg.id = body.bId()
+                msg.name = name.split('.')[0]
+                msg.object_pose_gmm.extend([OPGCMsg() for gc in gmm])
+                self.message_templates[name] = msg
+            else:
+                msg = self.message_templates[name]
+                if len(gmm) > len(msg.object_pose_gmm):
+                    msg.object_pose_gmm.extend([OPGCMsg() for x in range(len(gmm) - len(msg.object_pose_gmm))])
+                elif len(gmm) < len(msg.object_pose_gmm):
+                    msg.object_pose_gmm = msg.object_pose_gmm[:len(gmm)]
+
+            for x in range(len(gmm)):
+                gc = gmm[x]
+                gc_cov = gc.cov
+                np_pos_cov = np.array(gc_cov[:3, :3].tolist(), dtype=float).reshape((3,3))
+                w, v = np.linalg.eig(np_pos_cov)
+                pos_eig = v * w
+
+                if np.isrealobj(pos_eig):
+                    x_vec = vector3(*pos_eig[:, 0])
+                    y_vec = vector3(*pos_eig[:, 1])
+                    #z_vec = vector3(*pos_eig[:, 2])
+                    x_vec *= 1.0 / norm(x_vec)
+                    y_vec *= 1.0 / norm(y_vec)
+                    #z_vec *= 1.0 / norm(z_vec)
+                    M = x_vec.row_join(y_vec).row_join(cross(x_vec, y_vec)).row_join(point3(*gc.pose.position))
+
+                    self.visualizer.draw_shape('cov', M, w.astype(float), 2, *hsva_to_rgba((1.0 - gc.weight) * 0.65, 1, 1, 0.7))
+
+                msg.object_pose_gmm[x].cov_pose.pose.position  = expr_to_rosmsg(gc.pose.position)
+                msg.object_pose_gmm[x].cov_pose.pose.orientation.x = gc.pose.quaternion[0]
+                msg.object_pose_gmm[x].cov_pose.pose.orientation.y = gc.pose.quaternion[1]
+                msg.object_pose_gmm[x].cov_pose.pose.orientation.z = gc.pose.quaternion[2]
+                msg.object_pose_gmm[x].cov_pose.pose.orientation.w = gc.pose.quaternion[3]
+                msg.object_pose_gmm[x].cov_pose.covariance = list(gc_cov)
+                msg.object_pose_gmm[x].weight = gc.weight
+            msg.header.stamp = rospy.Time.now()
+            self.publisher.publish(msg)
+        self.visualizer.render()
+
+    def disable(self, simulator):
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
+        self._enabled = False
+        self.publisher.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+        return {'topic_prefix': self.topic_prefix}
+
+    def reset(self, simulator):
+        """Implements reset behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        self.message_templates = {}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        return cls(init_dict['topic_prefix'])
+
+
+def create_search_object_message(body, name):
+    msg = SearchObjectMsg()
+    msg.id = body.bId()
+    msg.name = name.split('.')[0]
+    opgc = OPGCMsg()
+    opgc.weight = 1.0
+    msg.object_pose_gmm.append(opgc)
+    return msg

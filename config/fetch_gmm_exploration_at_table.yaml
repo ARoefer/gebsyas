@@ -1,0 +1,170 @@
+camera_config: {body: fetch, camera_link: head_camera_link, d_gain: 0.6, far: 6.0,
+  fov: 0.942478, h_gain: 0.6, near: 0.3}
+gravity: [0, 0, -9.81]
+plugins:
+- {body: fetch, plugin_type: <class 'gebsyas.simulator_plugins.LocalizationPublisher'>,
+  topic_prefix: fetch}
+- {plugin_type: <class 'gebsyas.simulator_plugins.GMMObjectPublisher'>, topic_prefix: ''}
+- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
+- {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JointVelocityController'>,
+  topic_prefix: fetch, watchdog_timeout: 0.2}
+- {plugin_type: <class 'gebsyas.simulator_plugins.FullPerceptionPublisher'>, topic_prefix: ''}
+- {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>, topic_prefix: fetch}
+tick_rate: 50
+world:
+  constraints: []
+  objects:
+  - color: [0.28500000000000003, 0.95, 0.4460657701193916, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id001
+        position: [0.4173119366168976, 1.2499423027038574, 0.4192589819431305]
+        rotation: [-8.125878442344359e-13, 1.6986168331276086e-12, 0.417600154876709,
+          0.908630907535553]
+      weight: 1.0
+    height: 0.84
+    initial_pose: *id001
+    mass: 100.0
+    name: table3
+    radius: 1.0
+    type: rigid_body
+  - color: [0.8326430019869472, 0.95, 0.28500000000000003, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id002
+        position: [2.2868404388427734, 2.9997646808624268, 0.3992587924003601]
+        rotation: [-9.790829125222444e-08, -1.729824461449425e-08, 0.4221267104148865,
+          0.9065368175506592]
+      weight: 1.0
+    height: 0.8
+    initial_pose: *id002
+    mass: 100.0
+    name: table1
+    radius: 1.0
+    type: rigid_body
+  - color: [0.05797700034355387, 0.28500000000000003, 0.95, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id003
+        position: [2.3417470455169678, 0.00014753926370758563, 0.42035770416259766]
+        rotation: [1.878327715587602e-09, -1.493205670222153e-09, -0.009523745626211166,
+          0.9999546408653259]
+      weight: 1.0
+    height: 0.84
+    initial_pose: *id003
+    mass: 100.0
+    name: table4
+    radius: 1.0
+    type: rigid_body
+  - color: [0.1, 0.1, 0.1, 1.0]
+    extents: [20.0, 20.0, 1.0]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id004
+        position: [-0.0004722932353615761, -0.0004401514306664467, -0.5007415413856506]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+      weight: 1.0
+    height: 1.0
+    initial_pose: *id004
+    mass: 0.0
+    name: floor
+    radius: 1.0
+    type: rigid_body
+  - color: [0.28500000000000003, 0.8888069465339584, 0.95, 1.0]
+    extents: [0.03, 0.03, 0.24]
+    geom_type: cylinder
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id005
+        position: [2.4412357807159424, 2.7149648666381836, 0.9375261068344116]
+        rotation: [6.0971829952904955e-05, 2.6190664357272908e-05, -0.011733188293874264,
+          0.9999311566352844]
+      weight: 0.45
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: [2.4412381649017334, -0.15140342712402344, 0.9592546820640564]
+        rotation: [-2.008887349802535e-05, 4.4737338612321764e-05, -0.011782431043684483,
+          0.9999306797981262]
+      weight: 0.45
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: [0.5040296316146851, 1.2818493843078613, 0.9592282176017761]
+        rotation: [-2.008887349802535e-05, 4.4737338612321764e-05, -0.011782431975007057,
+          0.9999306797981262]
+      weight: 0.1
+    height: 0.24
+    initial_pose: *id005
+    mass: 0.5
+    name: pringle
+    radius: 0.03
+    type: rigid_body
+  - color: [0, 0.1, 0.8, 1.0]
+    extents: [0.03, 0.03, 0.12]
+    geom_type: sphere
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id006
+        position: [2.27156400680542, 2.756291151046753, 0.8592312335968018]
+        rotation: [1.0017895419878187e-06, -2.7337405299476814e-06, 0.9144997000694275,
+          -0.4045865833759308]
+      weight: 1.0
+    height: 0.12
+    initial_pose: *id006
+    mass: 0.5
+    name: ball
+    radius: 0.04
+    type: rigid_body
+  - color: [0.95, 0.28500000000000003, 1.0266873868748658, 1.0]
+    extents: [0.54, 1.15, 0.84]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id007
+        position: [2.4867160320281982, -2.049234390258789, 0.39924830198287964]
+        rotation: [-3.787797441152929e-13, 3.87104194185528e-13, -0.23429036140441895,
+          0.9721666574478149]
+      weight: 1.0
+    height: 0.8
+    initial_pose: *id007
+    mass: 100.0
+    name: table
+    radius: 1.0
+    type: rigid_body
+  - fixed_base: true
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose: &id008
+        position: [1.7815967798233032, 2.098428726196289, -0.016191519796848297]
+        rotation: [-0.00069941341644153, 0.0011770004639402032, 0.509753406047821, 0.8603194952011108]
+      weight: 1.0
+    initial_joint_state: {bellows_joint: 0.0, elbow_flex_joint: -2.155466379029744,
+      forearm_roll_joint: -1.106404147046963, gripper_joint: 0, head_pan_joint: 0.2538912136166552,
+      head_tilt_joint: 0.8, l_gripper_finger_joint: 0.0, l_wheel_joint: -1.0, r_gripper_finger_joint: 0.0,
+      r_wheel_joint: -1.0, shoulder_lift_joint: 0.6234586818886207, shoulder_pan_joint: -1.198809265503651,
+      torso_lift_joint: 0.3860999999999983, upperarm_roll_joint: -1.413329615908279,
+      wrist_flex_joint: -1.509688682874709, wrist_roll_joint: 3.636479350249048e-16}
+    initial_pose: *id008
+    joint_driver: {driver_type: <class 'gebsyas.simulator_plugins.FetchDriver'>, max_ang_vel: 0.2,
+      max_lin_vel: 0.5, x_lin_joint: base_linear_joint, y_lin_joint: base_perp_joint,
+      z_ang_joint: base_angular_joint}
+    name: fetch
+    sensors: []
+    type: multibody
+    urdf_path: package://fetch_giskard/robots/fetch.urdf
