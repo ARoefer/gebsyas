@@ -77,7 +77,9 @@ class IntrospectiveFunctions(object):
 	@classmethod
 	def perceived_clearly(cls, context, p_object):
 		if DLPhysicalGMMThing.is_a(p_object):
-			cov = sorted(p_object.gmm)[0].cov
+			sorted_gmm = sorted(p_object.gmm)
+			cov = sorted_gmm[-1].cov
+			print('Sorted gc weights: {}'.format(', '.join([str(gc.weight) for gc in sorted_gmm])))
 
 		if DLProbabilisticThing.is_a(p_object):
 			cov = p_object.pose_cov

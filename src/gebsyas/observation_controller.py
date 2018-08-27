@@ -6,13 +6,13 @@ from giskardpy.symengine_wrappers import *
 from giskardpy.input_system import FrameInput, Vector3Input
 from giskardpy.qp_problem_builder import SoftConstraint as SC
 from gebsyas.actions import PActionInterface, Action
-from gebsyas.basic_controllers import run_ineq_controller
-from gebsyas.data_structures import SymbolicData
+from gebsyas.basic_controllers import run_ineq_controller, InEqController
+from gebsyas.data_structures import SymbolicData, StampedData
 from gebsyas.bc_controller_wrapper import BCControllerWrapper
 from gebsyas.bullet_based_controller import InEqBulletController
 from gebsyas.dl_reasoning import DLRigidGMMObject, DLRigidObject, DLDisjunction
 from gebsyas.predicates import ClearlyPerceived, PInstance
-from gebsyas.utils   import symbol_formatter
+from gebsyas.utils   import symbol_formatter, real_quat_from_matrix
 
 from blessed import Terminal
 
@@ -22,6 +22,9 @@ class ObservationController(InEqBulletController):
     def init(self, context, proximity_frame, camera, object_id):
         self.context = context
         self.object_id = object_id
+        self.proximity_frame = proximity_frame
+        self.current_cov = eye(6)
+        self.current_weight = 0.0
         obj = context.agent.data_state[object_id].data
         if obj is None:
             raise Exception('Data with Id "{}" does not exist.'.format(object_id))
@@ -54,17 +57,19 @@ class ObservationController(InEqBulletController):
         opt_obs_range   = 1.2 # Figure this out by semantic type and observations. 
         opt_obs_falloff = 0.2
 
+        self.goal_index = -1
+
         self.frame_input = FrameInput.prefix_constructor('position', 'orientation', symbol_formatter)
         self.current_subs[self.frame_input.x] = obj.gmm[0].pose[0, 3]
         self.current_subs[self.frame_input.y] = obj.gmm[0].pose[1, 3]
         self.current_subs[self.frame_input.z] = obj.gmm[0].pose[2, 3]
-        quat = quaternion_from_matrix(obj.gmm[0].pose)
+        quat = real_quat_from_matrix(obj.gmm[0].pose)
         self.current_subs[self.frame_input.qx] = quat[0]
         self.current_subs[self.frame_input.qy] = quat[1]
         self.current_subs[self.frame_input.qz] = quat[2]
         self.current_subs[self.frame_input.qw] = quat[3]
 
-        pose = obj.gmm[0].pose
+        pose = self.frame_input.get_frame()
 
         view_dir = x_of(camera.pose)
         c2o      = pos_of(pose) - pos_of(camera.pose)
@@ -98,30 +103,54 @@ class ObservationController(InEqBulletController):
         for link, (m, b) in context.agent.robot.collision_avoidance_links.items():
             link_pos = pos_of(context.agent.robot.get_fk_expression('map', link))
             c2l = link_pos - pos_of(camera.pose)
-            ang = acos(dot(view_dir, c2l) / norm(c2l))
-            soft_constraints['{}_non-obstruction'.format(link)] = SC(camera.hfov * 0.5 -ang, 3.14, 1, ang)
+            ray_dist = norm(cross(view_dir, c2l))
+            d_dist   = dot(view_dir, c2l)
+            soft_constraints['{}_non-obstruction'.format(link)] = SC(sin(camera.hfov * 0.5) * d_dist - ray_dist, 100, 1, ray_dist)
 
         context.agent.add_data_cb(object_id, self.update_object)
         super(ObservationController, self).init(soft_constraints)
 
+    def get_cmd(self, nWSR=None):
+        if self.goal_index > -1:
+            return super(ObservationController, self).get_cmd(nWSR)
+        self.print_fn('Waiting for updated object information')
+        return {}
+
     def update_object(self, gmm_object):
-        pose = gmm_object.gmm[0].pose
-        cov  = np.array(gmm_object.gmm[0].cov.tolist(), dtype=float)
+        new_index = -1
+        best_rating = 100000.0
+        robot_pos = pos_of(self.proximity_frame).subs(self.current_subs)
+
+        for x in range(len(gmm_object.gmm)):
+            if gmm_object.gmm[x].weight > 0.0:
+                rating = norm(diag(1,1,0,1) * (robot_pos - pos_of(gmm_object.gmm[x].pose))) / gmm_object.gmm[x].weight
+                #print('Rating {}: {}'.format(x, rating))
+                if rating < best_rating:
+                    new_index = x
+                    best_rating = rating
+
+        if new_index == -1:
+            return
+
+        self.goal_index = new_index
+        pose = gmm_object.gmm[new_index].pose
+        print('New best gmm: {}\nAt location:\n{}\nWeight: {}'.format(new_index, str(pos_of(pose)), gmm_object.gmm[new_index].weight))
+        self.current_cov    = np.array(gmm_object.gmm[new_index].cov.tolist(), dtype=float)
+        self.current_weight = gmm_object.gmm[new_index].weight
         self.current_subs[self.frame_input.x] = pose[0, 3]
         self.current_subs[self.frame_input.y] = pose[1, 3]
         self.current_subs[self.frame_input.z] = pose[2, 3]
-        quat = quaternion_from_matrix(pose)
+        quat = real_quat_from_matrix(pose)
         self.current_subs[self.frame_input.qx] = quat[0]
         self.current_subs[self.frame_input.qy] = quat[1]
         self.current_subs[self.frame_input.qz] = quat[2]
         self.current_subs[self.frame_input.qw] = quat[3]
-        w, v = np.linalg.eig(cov[:3, :3])
+        w, v = np.linalg.eig(self.current_cov[:3, :3])
         pos_eig = w * v
         for x in range(len(self.evecs)):
             self.current_subs[self.evecs[x].x] = pos_eig[0, x] # if np.isreal(pos_eig[0, x]) else 0
             self.current_subs[self.evecs[x].y] = pos_eig[1, x] # if np.isreal(pos_eig[1, x]) else 0
             self.current_subs[self.evecs[x].z] = pos_eig[2, x] # if np.isreal(pos_eig[2, x]) else 0
-
 
     def stop(self):
         self.context.agent.remove_data_cb(self.object_id, self.update_object)
@@ -172,12 +201,14 @@ class ActivePerceptionAction(Action):
                                                 set(),
                                                 3,
                                                 self.clear_and_print) #context.log
+            # motion_ctrl = ObservationController(context.agent.robot,
+            #                                     self.clear_and_print) #context.log
             motion_ctrl.init(context, 
                              context.agent.robot.get_fk_expression('map', 'base_link') * translation3(0.1, 0, 0),
                              context.agent.robot.camera, 
                              self.object_id)
 
-            motion_success, m_lf, t_log = run_ineq_controller(context.agent.robot, motion_ctrl, 45.0, 3.5, context.agent, task_constraints=None)
+            motion_success, m_lf, t_log = run_observation_controller(context.agent.robot, motion_ctrl, context.agent, 0.02, 0.9)
 
             context.display.draw_robot_trajectory('motion_action', context.agent.robot, t_log)
 
@@ -195,3 +226,83 @@ class ActivePerceptionAction(Action):
 
 
 ACTIONS = [ActivePerceptionInterface()]
+
+
+class ObservationRunner(object):
+    """This class runs an observation controller. It processes joint state updates and new commands.
+       It also terminates controller execution when the searched object is clearly perceived. 
+       It is assumed, that the object can always be found.
+    """
+    def __init__(self, robot, controller, f_send_command,
+                 f_add_cb, variance=0.02, weight=0.9):
+        """
+        Constructor.
+        Needs a robot,
+        the controller to run,
+        a total timeout,
+        a timeout for the low activity commands,
+        a function to send commands,
+        a function to add itself as listener for joint states,
+        the threshold for low activity,
+        the names of the constraints to monitor for satisfaction
+        """
+        self.robot = robot
+        if not isinstance(controller, ObservationController):
+            raise Exception('Controller must be subclassed from ObservationController. Controller type: {}'.format(str(type(controller))))
+
+        self.controller = controller
+        self.f_send_command = f_send_command
+        self.f_add_cb = f_add_cb
+        self.last_feedback = 0
+        self.last_update   = None
+        self.t_variance = variance
+        self.t_weight   = weight
+        self.trajectory_log = []
+        self.execution_start = None
+
+    def run(self):
+        """Starts the run of the controller."""
+        now = rospy.Time.now()
+        self.terminate = False
+        self.execution_start = now
+
+        self.f_add_cb(self.js_callback)
+
+        while not rospy.is_shutdown() and not self.terminate:
+            pass
+
+        print('Runner terminating...')
+        self.controller.stop()
+        return self.terminate, self.controller.current_weight
+
+    def js_callback(self, joint_state):
+        """Callback processing joint state updates, checking constraints and generating new commands."""
+        if self.terminate: # Just in case
+            return
+
+        self.trajectory_log.append(StampedData(rospy.Time.from_sec((rospy.Time.now() - self.execution_start).to_sec()), joint_state.copy()))
+
+        now = rospy.Time.now()
+        self.controller.set_robot_js(joint_state)
+        try:
+            command = self.controller.get_cmd()
+        except Exception as e:
+            self.terminate = True
+            traceback.print_exc()
+            print(e)
+            return
+        #print('\n'.join(['{:>20}: {}'.format(name, vel) for name, vel in command.items()]))
+        #self.controller.qp_problem_builder.print_jacobian()
+        self.f_send_command(command)
+        if self.controller.goal_index > -1:
+            cov = self.controller.current_cov
+            self.terminate = self.controller.current_weight >= self.t_weight and \
+                             abs(cov[0,0]) <= self.t_variance and \
+                             abs(cov[1,1]) <= self.t_variance and \
+                             abs(cov[2,2]) <= self.t_variance
+
+def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):
+    """Comfort function for easily instantiating and running an inequality runner."""
+    runner = ObservationRunner(robot, controller, agent.act, agent.add_js_callback, variance, weight)
+    constraints_met, lf = runner.run()
+    return constraints_met, lf, runner.trajectory_log
