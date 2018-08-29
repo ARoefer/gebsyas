@@ -19,19 +19,12 @@ from blessed import Terminal
 
 class ObservationController(InEqBulletController):
 
-    def init(self, context, proximity_frame, camera, object_id):
+    def init(self, context, proximity_frame, camera, data_id='searched_objects'):
         self.context = context
-        self.object_id = object_id
+        self.data_id = data_id
         self.proximity_frame = proximity_frame
         self.current_cov = eye(6)
         self.current_weight = 0.0
-        obj = context.agent.data_state[object_id].data
-        if obj is None:
-            raise Exception('Data with Id "{}" does not exist.'.format(object_id))
-
-        if not DLRigidGMMObject.is_a(obj):
-            raise Exception('Object "{}" is not probabilistic.'.format(object_id))
-
 
         for x in range(3):
             for y in 'xyz'[x:]:
@@ -57,17 +50,11 @@ class ObservationController(InEqBulletController):
         opt_obs_range   = 1.2 # Figure this out by semantic type and observations. 
         opt_obs_falloff = 0.2
 
-        self.goal_index = -1
+        self.goal_obj_index = -1
+        self.goal_gmm_index = -1
+        self.search_objects = None
 
         self.frame_input = FrameInput.prefix_constructor('position', 'orientation', symbol_formatter)
-        self.current_subs[self.frame_input.x] = obj.gmm[0].pose[0, 3]
-        self.current_subs[self.frame_input.y] = obj.gmm[0].pose[1, 3]
-        self.current_subs[self.frame_input.z] = obj.gmm[0].pose[2, 3]
-        quat = real_quat_from_matrix(obj.gmm[0].pose)
-        self.current_subs[self.frame_input.qx] = quat[0]
-        self.current_subs[self.frame_input.qy] = quat[1]
-        self.current_subs[self.frame_input.qz] = quat[2]
-        self.current_subs[self.frame_input.qw] = quat[3]
 
         pose = self.frame_input.get_frame()
 
@@ -100,43 +87,61 @@ class ObservationController(InEqBulletController):
                              'in_view' : s_in_view,  
                              'obs_dist': s_in_v_dist}
 
-        for link, (m, b) in context.agent.robot.collision_avoidance_links.items():
+        for link, (m, b, n) in context.agent.robot.collision_avoidance_links.items():
             link_pos = pos_of(context.agent.robot.get_fk_expression('map', link))
             c2l = link_pos - pos_of(camera.pose)
             ray_dist = norm(cross(view_dir, c2l))
             d_dist   = dot(view_dir, c2l)
-            soft_constraints['{}_non-obstruction'.format(link)] = SC(sin(camera.hfov * 0.5) * d_dist - ray_dist, 100, 1, ray_dist)
+            #soft_constraints['{}_non-obstruction'.format(link)] = SC(sin(camera.hfov * 0.5) * (d_dist / cos(camera.hfov* 0.5)) - ray_dist, 100, 1, ray_dist)
 
-        context.agent.add_data_cb(object_id, self.update_object)
+        context.agent.add_data_cb(self.data_id, self.update_objects)
         super(ObservationController, self).init(soft_constraints)
 
     def get_cmd(self, nWSR=None):
-        if self.goal_index > -1:
+        if self.search_objects is not None:
+            self.re_eval_focused_object()
+        if self.goal_obj_index > -1:
             return super(ObservationController, self).get_cmd(nWSR)
         self.print_fn('Waiting for updated object information')
         return {}
 
-    def update_object(self, gmm_object):
-        new_index = -1
+    def update_objects(self, gmm_objects):
+        self.search_objects = gmm_objects
+        self.update_object_terms()
+
+    def re_eval_focused_object(self):
+        new_obj_index = -1
+        new_gmm_index = -1
         best_rating = 100000.0
         robot_pos = pos_of(self.proximity_frame).subs(self.current_subs)
 
-        for x in range(len(gmm_object.gmm)):
-            if gmm_object.gmm[x].weight > 0.0:
-                rating = norm(diag(1,1,0,1) * (robot_pos - pos_of(gmm_object.gmm[x].pose))) / gmm_object.gmm[x].weight
-                #print('Rating {}: {}'.format(x, rating))
-                if rating < best_rating:
-                    new_index = x
-                    best_rating = rating
+        for n in range(len(self.search_objects.search_object_list)):
+            gmm_object = self.search_objects.search_object_list[n]
+            object_weight = self.search_objects.weights[n]
+            for x in range(len(gmm_object.gmm)):
+                if gmm_object.gmm[x].weight > 0.0:
+                    rating = (norm(diag(1,1,0,1) * (robot_pos - pos_of(gmm_object.gmm[x].pose))) / gmm_object.gmm[x].weight) / object_weight
+                    if rating < best_rating:
+                        new_obj_index = n
+                        new_gmm_index = x
+                        best_rating = rating
 
-        if new_index == -1:
+        if new_obj_index == -1:
+            return
+        elif new_obj_index != self.goal_obj_index or new_gmm_index != self.goal_gmm_index:
+            self.goal_obj_index = new_obj_index
+            self.goal_gmm_index = new_gmm_index
+            self.update_object_terms()
+
+    def update_object_terms(self):
+        if self.goal_obj_index == -1:
             return
 
-        self.goal_index = new_index
-        pose = gmm_object.gmm[new_index].pose
-        print('New best gmm: {}\nAt location:\n{}\nWeight: {}'.format(new_index, str(pos_of(pose)), gmm_object.gmm[new_index].weight))
-        self.current_cov    = np.array(gmm_object.gmm[new_index].cov.tolist(), dtype=float)
-        self.current_weight = gmm_object.gmm[new_index].weight
+        gmm_object = self.search_objects.search_object_list[self.goal_obj_index]
+        pose = gmm_object.gmm[self.goal_gmm_index].pose
+        #print('New best gmm: {}\nAt location:\n{}\nWeight: {}'.format(self.goal_gmm_index, str(pos_of(pose)), gmm_object.gmm[self.goal_gmm_index].weight))
+        self.current_cov    = np.array(gmm_object.gmm[self.goal_gmm_index].cov.tolist(), dtype=float)
+        self.current_weight = gmm_object.gmm[self.goal_gmm_index].weight
         self.current_subs[self.frame_input.x] = pose[0, 3]
         self.current_subs[self.frame_input.y] = pose[1, 3]
         self.current_subs[self.frame_input.z] = pose[2, 3]
@@ -152,8 +157,13 @@ class ObservationController(InEqBulletController):
             self.current_subs[self.evecs[x].y] = pos_eig[1, x] # if np.isreal(pos_eig[1, x]) else 0
             self.current_subs[self.evecs[x].z] = pos_eig[2, x] # if np.isreal(pos_eig[2, x]) else 0
 
+    def get_current_object(self):
+        if self.goal_obj_index != -1:
+            return self.search_objects.search_object_list[self.goal_obj_index]
+        return None
+
     def stop(self):
-        self.context.agent.remove_data_cb(self.object_id, self.update_object)
+        self.context.agent.remove_data_cb(self.data_id, self.update_objects)
         super(ObservationController, self).stop()
 
 
@@ -200,7 +210,7 @@ class ActivePerceptionAction(Action):
                                                 context.agent.get_data_state().dl_data_iterator(DLDisjunction(DLRigidObject, DLRigidGMMObject)),
                                                 set(),
                                                 3,
-                                                self.clear_and_print) #context.log
+                                                context.log) #context.log
             # motion_ctrl = ObservationController(context.agent.robot,
             #                                     self.clear_and_print) #context.log
             motion_ctrl.init(context, 
@@ -272,7 +282,7 @@ class ObservationRunner(object):
             pass
 
         print('Runner terminating...')
-        self.controller.stop()
+        #self.controller.stop()
         return self.terminate, self.controller.current_weight
 
     def js_callback(self, joint_state):
@@ -294,7 +304,7 @@ class ObservationRunner(object):
         #print('\n'.join(['{:>20}: {}'.format(name, vel) for name, vel in command.items()]))
         #self.controller.qp_problem_builder.print_jacobian()
         self.f_send_command(command)
-        if self.controller.goal_index > -1:
+        if self.controller.goal_obj_index > -1:
             cov = self.controller.current_cov
             self.terminate = self.controller.current_weight >= self.t_weight and \
                              abs(cov[0,0]) <= self.t_variance and \

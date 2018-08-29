@@ -14,7 +14,7 @@ from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded
 from gebsyas.data_structures import SymbolicData, StampedData
 from gop_gebsyas_msgs.msg import ProbObject as PObject
 from gop_gebsyas_msgs.msg import ProbObjectList as PObjectList
-from gop_gebsyas_msgs.msg import SearchObject   as SearchObjectMsg
+from gop_gebsyas_msgs.msg import SearchObjectList as SearchObjectListMsg
 from gebsyas.numeric_scene_state import DataSceneState, DataDrivenPredicateState
 from gebsyas.ros_visualizer import ROSVisualizer
 from gebsyas.sensors import TopicSensor
@@ -55,6 +55,10 @@ class Agent(object):
 
 	def add_sensor(self, name, sensor):
 		"""Adds a sensor to the agent and its reasoner."""
+		if name in self.sensors:
+			self.sensors[name].disable()
+			del self.sensors[name]
+
 		self.sensors[name] = sensor
 		self.reasoner.add_to_abox((str(sensor), self.reasoner.get_expanded_concept('Sensor')))
 
@@ -90,7 +94,7 @@ class BasicAgent(Agent):
 	"""
 	def __init__(self, name, reasoner, predicates, robot, capabilities=[], memory_path=None, logger=None, visualizer=None):
 		super(BasicAgent, self).__init__(name, reasoner, predicates, capabilities, logger, visualizer, DataSceneState())
-		self.add_sensor('object sensor', TopicSensor(self.on_objects_sensed, '/perceived_prob_objects', SearchObjectMsg, 12))
+		self.add_sensor('object sensor', TopicSensor(self.on_objects_sensed, '/perceived_prob_objects', SearchObjectListMsg, 1))
 		self.add_sensor('joint sensor', TopicSensor(self.on_joint_state_sensed, '/{}/joint_states'.format(robot._urdf_robot.name), sensor_msgs.msg.JointState))
 		self.add_tracker(JointStateTracker('joint_state', self.data_state))
 		self.add_tracker(LocalizationTracker('localization', self.data_state))
@@ -122,12 +126,13 @@ class BasicAgent(Agent):
 	def remove_data_cb(self, Id, cb):
 		self.data_state.deregister_on_change_cb(Id, cb)
 
-	def on_objects_sensed(self, stamped_object):
+	def on_objects_sensed(self, stamped_objects):
 		"""Callback for a sensed object."""
-		if stamped_object.data.id not in self.trackers:
-			self.trackers[stamped_object.data.id] = GaussianObjectTracker(stamped_object.data.id, self.data_state)
+		for stamped_object in stamped_objects.data.search_object_list:
+			if stamped_object.id not in self.trackers:
+				self.trackers[stamped_object.id] = GaussianObjectTracker(stamped_object.id, self.data_state)
 
-		self.trackers[stamped_object.data.id].process_data(stamped_object)
+			self.trackers[stamped_object.id].process_data(StampedData(stamped_objects.stamp, stamped_object))
 
 	def on_joint_state_sensed(self, joint_state):
 		"""Callback for a sensed joint state"""

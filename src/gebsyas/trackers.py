@@ -98,6 +98,11 @@ class LocalizationTracker(Tracker):
 		self.data_state.insert_data(StampedData(data_set.stamp, LocalizationPose(data_set.data.pose.x, data_set.data.pose.y, 0, data_set.data.pose.theta)), self.data_id)
 
 
+class SearchObjectTracker(Tracker):
+	def process_data(self, data_set):
+		self.data_state.insert_data(data_set, self.data_id)
+
+
 class DLTracker(DLAtom):
 	def __init__(self):
 		super(DLTracker, self).__init__('Tracker')

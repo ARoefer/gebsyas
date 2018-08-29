@@ -15,6 +15,7 @@ from giskardpy.symengine_wrappers import *
 from gop_gebsyas_msgs.msg import ProbObject as POMsg
 from gop_gebsyas_msgs.msg import ProbObjectList as POLMsg
 from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
+from gop_gebsyas_msgs.msg import SearchObjectList as SearchObjectListMsg
 from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGCMsg
 
 from symengine import ones
@@ -327,7 +328,7 @@ class LocalizationPublisher(SimulatorPlugin):
 class GMMObjectPublisher(SimulatorPlugin):
     def __init__(self, topic_prefix=''):
         super(GMMObjectPublisher, self).__init__('GMMObjectPublisher')
-        self.publisher = rospy.Publisher('{}/perceived_prob_objects'.format(topic_prefix), SearchObjectMsg, queue_size=1, tcp_nodelay=True)
+        self.publisher = rospy.Publisher('{}/perceived_prob_objects'.format(topic_prefix), SearchObjectListMsg, queue_size=1, tcp_nodelay=True)
         self.visualizer = ROSVisualizer('gmm_vis', 'map')
         self.message_templates = {}
         self.topic_prefix = topic_prefix
@@ -337,6 +338,7 @@ class GMMObjectPublisher(SimulatorPlugin):
         if not self._enabled:
             return
 
+        msg_total = SearchObjectListMsg()
         self.visualizer.begin_draw_cycle()
         for name, gmm in simulator.gpcs.items():
             if not name in self.message_templates:
@@ -379,7 +381,9 @@ class GMMObjectPublisher(SimulatorPlugin):
                 msg.object_pose_gmm[x].cov_pose.covariance = list(gc_cov)
                 msg.object_pose_gmm[x].weight = gc.weight
             msg.header.stamp = rospy.Time.now()
-            self.publisher.publish(msg)
+            msg_total.search_object_list.append(msg)
+        msg_total.weights.extend([1.0 / len(msg_total.search_object_list)] * len(msg_total.search_object_list))
+        self.publisher.publish(msg_total)
         self.visualizer.render()
 
     def disable(self, simulator):
@@ -409,6 +413,63 @@ class GMMObjectPublisher(SimulatorPlugin):
     @classmethod
     def factory(cls, simulator, init_dict):
         return cls(init_dict['topic_prefix'])
+
+
+class InstantiateSearchObjects(SimulatorPlugin):
+    def __init__(self, simulator, topic=''):
+        super(InstantiateSearchObjects, self).__init__('InstantiateSearchObjects')
+        self.simulator  = simulator
+        self.topic      = topic
+        self._enabled   = True
+        self.subscriber = rospy.Subscriber(self.topic, SearchObjectListMsg, self.add_objects, queue_size=1)
+
+    def add_objects(self, msg):
+        for obj_msg in msg.search_object_list:
+            dl_object = ros_msg_to_expr(obj_msg)
+            sorted_gmm = list(reversed(sorted(dl_object.gmm)))
+            pose = sorted_gmm[0].pose
+            if DLCube.is_a(dl_object):
+                bullet_obj = self.simulator.create_box([dl_object.length, dl_object.width, dl_object.height],
+                                       vec3_to_list(pos_of(pose)),
+                                       list(quaternion_from_matrix(pose)),
+                                       dl_object.mass, name_override=Id)
+            elif DLCylinder.is_a(dl_object):
+                bullet_obj = self.simulator.create_cylinder(dl_object.radius, dl_object.height,
+                                       vec3_to_list(pos_of(pose)),
+                                       list(quaternion_from_matrix(pose)),
+                                       dl_object.mass, name_override=Id)
+            elif DLSphere.is_a(dl_object):
+                bullet_obj = self.simulator.create_sphere(dl_object.radius,
+                                       vec3_to_list(pos_of(pose)),
+                                       list(quaternion_from_matrix(pose)),
+                                       dl_object.mass, name_override=Id)
+            else:
+                Exception('Cannot generate Bullet-body for object which is not a sphere, box, or cylinder.\nObject: {}'.format(str(dl_object)))  
+
+            self.simulator.gpcs[dl_object.id] = sorted_gmm
+            self.simulator.initial_weights[dl_object.id] = [gc.weight for gc in sorted_gmm]
+        self.disable(self.simulator)
+
+
+    def disable(self, simulator):
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
+        self._enabled = False
+        self.subscriber.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+        return {'topic': self.topic}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        return cls(simulator, init_dict['topic'])    
 
 
 def create_search_object_message(body, name):
