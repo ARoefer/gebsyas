@@ -81,10 +81,10 @@ class BasicGraspAffordances(object):
                    0.01-pos_alignment_expr * rot_alignment_expr, 
                    1, 
                    pos_alignment_expr)
-        ra_sc = SC(1 - rot_alignment_expr, 
-                   1 - rot_alignment_expr, 
+        ra_sc = SC(- asin(rot_expr), 
+                   - asin(rot_expr), 
                    1, 
-                   rot_alignment_expr)
+                   rot_expr)
         out = cls.__gen_reachability(gripper, [reach_dist], {'axis_position_alignment': pa_sc})
         out['axis_rotation_alignment'] = ra_sc
         return out
@@ -310,11 +310,11 @@ class BasicGraspAffordances(object):
     def object_grasp(cls, context, gripper, obj):
         """Generates a set of constraints to grasp a generic object."""
         if DLRigidGMMObject.is_a(obj):
-            mlgc = sorted(obj.gmm)[0]
-            if abs(mlgc.cov[0,0]) > 0.02 and abs(mlgc.cov[1,1]) > 0.02 and abs(mlgc.cov[2,2]) > 0.02:
-                return {'clearly_perceived': SC(1, 0, 1, 0)}
-            else:
-                pose = mlgc.pose
+            mlgc = sorted(obj.gmm)[-1]
+            # if abs(mlgc.cov[0,0]) > 0.02 and abs(mlgc.cov[1,1]) > 0.02 and abs(mlgc.cov[2,2]) > 0.02:
+            #     return {'clearly_perceived': SC(1, 0, 1, 0)}
+            # else:
+            pose = mlgc.pose
 
         if DLRigidObject.is_a(obj):
             pose = obj.pose

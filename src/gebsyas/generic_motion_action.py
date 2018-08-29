@@ -4,7 +4,7 @@ from gebsyas.constants import *
 from gebsyas.basic_controllers import InEqController, run_ineq_controller
 from gebsyas.bullet_based_controller import InEqBulletController
 from gebsyas.actions import Action, PActionInterface, PWrapperInstance
-from gebsyas.dl_reasoning import DLRigidObject
+from gebsyas.dl_reasoning import DLRigidObject, DLRigidGMMObject, DLDisjunction
 from gebsyas.predicates import *
 from gebsyas.utils import saturate, tip_at_one
 from gebsyas.trackers import SymbolicObjectPoseTracker
@@ -37,13 +37,13 @@ class GenericMotionAction(Action):
 		try:
 			original_constraints = set(self.ineq_constraints.keys())
 			motion_ctrl = InEqBulletController(context,
-											   context.agent.get_data_state().dl_data_iterator(DLRigidObject),
+											   context.agent.get_data_state().dl_data_iterator(DLDisjunction(DLRigidObject, DLRigidGMMObject)),
 											   self.allowed_collision_ids,
 											   3,
-											   self.clear_and_print) #context.log
+											   context.log) #context.log
 			motion_ctrl.init(self.ineq_constraints)
 
-			motion_success, m_lf, t_log = run_ineq_controller(context.agent.robot, motion_ctrl, 45.0, 3.5, context.agent, task_constraints=original_constraints)
+			motion_success, m_lf, t_log = run_ineq_controller(context.agent.robot, motion_ctrl, 45.0, 5.5, context.agent, task_constraints=original_constraints)
 
 			context.display.draw_robot_trajectory('motion_action', context.agent.robot, t_log)
 

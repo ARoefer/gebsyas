@@ -79,7 +79,7 @@ class IntrospectiveFunctions(object):
 		if DLPhysicalGMMThing.is_a(p_object):
 			sorted_gmm = sorted(p_object.gmm)
 			cov = sorted_gmm[-1].cov
-			print('Sorted gc weights: {}'.format(', '.join([str(gc.weight) for gc in sorted_gmm])))
+			#print('Sorted gc weights: {}'.format(', '.join([str(gc.weight) for gc in sorted_gmm])))
 
 		if DLProbabilisticThing.is_a(p_object):
 			cov = p_object.pose_cov
@@ -163,8 +163,10 @@ Graspable = Predicate('Graspable',     BGA.object_grasp, (DLManipulator, DLDisju
 																					   DLPhysicalGMMThing, 
 																					   DLProbabilisticThing)))
 
-IsGrasped    = Predicate('IsGrasped', IntrospectiveFunctions.is_grasped, (DLManipulator, DLRigidObject))
-IsControlled = Predicate('IsControlled', IntrospectiveFunctions.is_controlled, (DLDisjunction(DLRigidObject, DLManipulator, DLCamera()),))
+IsGrasped    = Predicate('IsGrasped', IntrospectiveFunctions.is_grasped, (DLManipulator, DLDisjunction(DLRigidObject,
+																					   DLPhysicalGMMThing, 
+																					   DLProbabilisticThing)))
+IsControlled = Predicate('IsControlled', IntrospectiveFunctions.is_controlled, (DLDisjunction(DLRigidObject, DLManipulator, DLCamera(), DLPhysicalGMMThing, DLProbabilisticThing),))
 
 InPosture = Predicate('InPosture', IntrospectiveFunctions.is_in_posture, (DLBodyPosture(), DLBodyPosture()))
 Exists    = Predicate('Exists',    IntrospectiveFunctions.exists, (DLTop(), ))
