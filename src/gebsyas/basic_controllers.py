@@ -5,6 +5,7 @@ from time import time
 from giskardpy import print_wrapper
 from gebsyas.bc_controller_wrapper import BCControllerWrapper
 from gebsyas.utils import StampedData
+from gebsyas.constants import LBA_BOUND, UBA_BOUND
 
 
 class InEqController(BCControllerWrapper):
@@ -94,7 +95,7 @@ class InEqRunner(object):
                 self.convergence_timeout = now + self.tlimit_convergence
 
         self.last_feedback = new_feedback
-        self.constraints_met = self.controller.qp_problem_builder.constraints_met(names=self.task_constraints, lbThreshold=0.02, ubThreshold=-0.02)
+        self.constraints_met = self.controller.qp_problem_builder.constraints_met(names=self.task_constraints, lbThreshold=LBA_BOUND, ubThreshold=UBA_BOUND)
         self.last_update   = now
 
         self.terminate = now >= self.total_timeout or now >= self.convergence_timeout or self.constraints_met
@@ -172,7 +173,7 @@ class InEqFFBRunner(object):
                 self.convergence_timeout = now + self.tlimit_convergence
 
         self.last_feedback = new_feedback
-        self.constraints_met = self.controller.qp_problem_builder.constraints_met(lbThreshold=0.02, ubThreshold=-0.02)
+        self.constraints_met = self.controller.qp_problem_builder.constraints_met(lbThreshold=LBA_BOUND, ubThreshold=UBA_BOUND)
         self.forces_met =  min([abs(joint_state[j].effort) >= t for j, t in self.force_threshold_dict.items()])
 
         self.last_update = now
