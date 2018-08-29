@@ -15,7 +15,7 @@ from gebsyas.actions import Context
 from gebsyas.generic_motion_action import ACTIONS as MACTIONS
 from gebsyas.observation_controller import ACTIONS as OACTIONS
 from gebsyas.grasp_action import ACTIONS as GACTIONS
-from gebsyas.search_behavior import SingleObjectSearchAction
+from gebsyas.search_behavior import MultiObjectSearchAndDeliveryAction
 
 from iai_bullet_sim.srv import Empty as EmptySrv
 
@@ -31,8 +31,8 @@ if __name__ == '__main__':
     box = bb(width=0.2, height=0.2, length=0.2, mass=1.0, pose=sp.eye(4))
     print('Is rigid body:\n  sphere = {}\n  cylinder = {}\n  box = {}'.format(DLRigidObject.is_a(sphere), DLRigidObject.is_a(cylinder), DLRigidObject.is_a(box)))
 
-    if len(sys.argv) < 3:
-        print('Usage: <FETCH URDF PATH> <SEARCHED CLASS> [<MEMORY FILE>]')
+    if len(sys.argv) < 4:
+        print('Usage: <FETCH URDF PATH> <MEMORY FILE> <SEARCHED CLASSES>')
         exit(0)
 
     rospy.init_node('agent_node')
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     PREDICATES = {p.P: Predicate(p.P, p.fp, tuple([reasoner[dlc] if dlc in reasoner else dlc for dlc in p.dl_args])) for p in PREDICATES.values()}
     capabilities = MACTIONS + GACTIONS + OACTIONS
 
-    print('{}'.format('\n'.join([str(action) for action in capabilities])))
+    #print('{}'.format('\n'.join([str(action) for action in capabilities])))
 
     if len(sys.argv) == 3:
         agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities)
@@ -65,4 +65,4 @@ if __name__ == '__main__':
 
 
 
-    agent.awake(SingleObjectSearchAction(DLAtom(sys.argv[2])))
+    agent.awake(MultiObjectSearchAndDeliveryAction(sys.argv[3:], sp.eye(4), True))
