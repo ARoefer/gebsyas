@@ -136,6 +136,9 @@ class PBasedActionSequence(Action):
 		"""Generates a string representation for this sequence."""
 		return ' -> '.join([pbainst_str(a) for a in self.sequence])
 
+	def full_str(self):
+		return '\n  |\n  V\n'.join([str(s) for s in self.sequence])
+
 
 class ActionManager(object):
 	"""Container structure for actions. The actions are associated with their pre- and postconditions."""
@@ -248,7 +251,30 @@ class PActionInterface(object):
 
 
 # Connects a variable assignment with an action wrapper and their resulting pre- and postconditions.
-PWrapperInstance = namedtuple('PWrapperInstance', ['assignments', 'precons', 'postcons', 'action_wrapper'])
+class PWrapperInstance(object):
+	def __init__(self, assignments, precons, postcons, action_wrapper):
+		self.assignments = assignments
+		self.precons     = precons
+		self.postcons    = postcons
+		self.action_wrapper = action_wrapper
+
+	def __str__(self):
+		flat_pre_con = []
+		for p, args in self.precons.items():
+			for a, v in args.items():
+				flat_pre_con.append('{}({}) : {}'.format(p.P, ', '.join(a), v))
+		flat_post_con = []
+		for p, args in self.postcons.items():
+			for a, v in args.items():
+				flat_post_con.append('{}({}) : {}'.format(p.P, ', '.join(a), v))
+		l_pre  = len(flat_pre_con)
+		l_post = len(flat_post_con)
+		if l_pre < l_post:
+			flat_pre_con.extend([''] * (l_post - l_pre))
+		elif l_pre > l_post:
+			flat_post_con.extend([''] * (l_pre - l_post))
+		return '{}-Instance\n{}'.format(self.action_wrapper.action_name, '\n  '.join(['{:>40}  {:>40}'.format(flat_pre_con[x], flat_post_con[x]) for x in range(len(flat_pre_con))]))
+
 
 class PermutationIterator(object):
 	"""
