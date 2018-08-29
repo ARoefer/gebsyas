@@ -354,7 +354,7 @@ class Reasoner(object):
 				k = c[0]
 				c = c[1].to_NNF()
 				new_atom = DLAtom(k)
-				print('Adding {} >= {}'.format(k, str(c)))
+				#print('Adding {} >= {}'.format(k, str(c)))
 				self.__add_concept(new_atom)
 				self.__add_concept(c)
 

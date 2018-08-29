@@ -30,7 +30,7 @@ class BCControllerWrapper(SymEngineController):
             for f in hc:
                 if hasattr(f, 'free_symbols'):
                     free_symbols = free_symbols.union(f.free_symbols)
-        print(free_symbols)
+        #print(free_symbols)
         super(BCControllerWrapper, self).init(soft_constraints, free_symbols, self.print_fn)
 
     def set_robot_js(self, js):
