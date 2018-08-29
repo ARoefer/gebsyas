@@ -73,10 +73,10 @@ class InEqBulletController(InEqController):
         f.close()
         self.bullet_bot = self.simulator.load_urdf('{}_temp.urdf'.format(robot_name))
 
-        self.filter_set = {self.bullet_bot}.union(self.allowed_objects.values())
+        self.filter_set = {self.bullet_bot}#.union(self.allowed_objects.values())
         self.avoidance_constraints = {}
-        for link, (margin, blowup) in self.robot.collision_avoidance_links.items():
-            cpq = ClosestPointQuery_AnyN(self.bullet_bot, link, self.robot.get_fk_expression('map', link), margin, filter=self.filter_set, n=2, aabb_border=blowup)
+        for link, (margin, blowup, n) in self.robot.collision_avoidance_links.items():
+            cpq = ClosestPointQuery_AnyN(self.bullet_bot, link, self.robot.get_fk_expression('map', link), margin, filter=self.filter_set, n=n, aabb_border=blowup)
             self.closest_point_queries.append(cpq)
             self.avoidance_constraints.update(cpq.generate_constraints())
 
@@ -109,7 +109,7 @@ class InEqBulletController(InEqController):
         if self.visualizer:
             self.visualizer.begin_draw_cycle()
 
-        self.bullet_bot.set_joint_positions({j: self.current_subs[self.robot.joint_states_input.joint_map[j]] for j in self.robot.get_joint_names()})
+        self.bullet_bot.set_joint_positions({j: self.current_subs[s] for j, s in self.robot.joint_states_input.joint_map.items()})
 
         localization = self.data_state['localization'].data
         quat = pb.getQuaternionFromEuler((0,0,localization.az))

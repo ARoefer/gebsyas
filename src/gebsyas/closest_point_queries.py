@@ -61,7 +61,8 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 	def generate_constraints(self):
 		out = {}
 		for x in range(self.n):
-			dist = dot((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression(), self.normal[x].get_expression())
+			#dist = dot((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression(), self.normal[x].get_expression())
+			dist = norm((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression())
 			out['closest_any_{}_{}_{}'.format(self.body.bId(), self.link_name, x)] = SC(
 					self.margin - dist, 
 					1000,
