@@ -53,8 +53,8 @@ class PlanningProblem:
 		self.current_action = self.actionIt.next()
 		self.instanceIt     = None
 
-	def __lt__(self, other):
-		return self.lhs.cost + self.rhs.cost + self.current_action.cost < other.lhs.cost + other.rhs.cost + other.current_action.cost
+	def __cmp__(self, other):
+		return cmp(self.lhs.cost + self.rhs.cost + self.current_action.cost, other.lhs.cost + other.rhs.cost + other.current_action.cost)
 
 	def plan(self, context, problem_heap):
 		while True:
@@ -62,7 +62,9 @@ class PlanningProblem:
 				self.instanceIt = self.current_action.parameterize_by_postcon(context, self.state_diff)
 			try:
 				instance = self.instanceIt.next()
-				#raise Exception('TODO: Reconsider this construction. Postcons would actually needed to be removed, or matched with their value in the initial state.')
+				#raise Exception('TODO: Reconsider this construction. Postcons would actually need to be removed, or matched with their value in the initial state.')
+
+				# Overlay the goal state with the new action's precondition state
 				new_goal_state = AssertionDrivenPredicateState(instance.precons.copy(), self.goal).erase(instance.postcons)
 
 
