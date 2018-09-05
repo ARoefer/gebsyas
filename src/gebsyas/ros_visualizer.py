@@ -34,27 +34,38 @@ class ROSVisualizer():
 		self.publisher = rospy.Publisher(vis_topic, MarkerArray, queue_size=1)
 		self.plot_publisher = rospy.Publisher(plot_topic, FloatTable, queue_size=1)
 		self.base_frame = base_frame
-		self.current_msg = None
+		self.current_msg = {}
 
-	def begin_draw_cycle(self):
-		self.lastIds = self.ids
-		self.ids = {ns: 0 for ns in self.ids.keys()}
-		self.current_msg = MarkerArray()
+	def begin_draw_cycle(self, *layers):
+		if len(layers) == 0:
+			layers = self.ids.keys()
+
+		for layer in layers:
+			if layer not in self.ids:
+				self.ids[layer] = 0
+			self.lastIds[layer] = self.ids[layer]
+			self.ids[layer] = 0
+			self.current_msg[layer] = MarkerArray()
 
 	def consume_id(self, namespace):
 		if not namespace in self.ids:
 			self.ids[namespace] = 0
 			self.lastIds[namespace] = 0
+			self.current_msg[namespace] = MarkerArray()
 
 		self.ids[namespace] += 1
 		return self.ids[namespace] - 1
 
 
-	def render(self):
-		for namespace, Id in self.ids.items():
-			self.current_msg.markers.extend([del_marker(x, namespace) for x in range(Id, self.lastIds[namespace])])
+	def render(self, *layers):
+		if len(layers) == 0:
+			layers = self.ids.keys()
 
-		self.publisher.publish(self.current_msg)
+		for namespace in layers:
+			Id = self.ids[namespace]
+			self.current_msg[namespace].markers.extend([del_marker(x, namespace) for x in range(Id, self.lastIds[namespace])])
+
+			self.publisher.publish(self.current_msg[namespace])
 
 	def __resframe(self, frame):
 		if frame == None:
@@ -66,10 +77,19 @@ class ROSVisualizer():
 		marker.type = Marker.SPHERE
 		marker.pose.position = expr_to_rosmsg(position)
 		marker.scale = expr_to_rosmsg([radius * 2] * 3)
-		self.current_msg.markers.append(marker)
+		self.current_msg[namespace].markers.append(marker)
 
 	def draw_cube(self, namespace, pose, scale, r=0, g=0, b=1, a=1, frame=None):
 		self.draw_shape(namespace, pose, scale, Marker.CUBE, r, g, b, a, frame)
+
+	def draw_cube_batch(self, namespace, pose, size, positions, r=1, g=0, b=0, a=1, frame=None):
+		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
+		marker.type = Marker.CUBE_LIST
+		marker.points = [expr_to_rosmsg(p) for p in positions]
+		marker.scale.x = size
+		marker.scale.y = size
+		marker.scale.z = size
+		self.current_msg[namespace].markers.append(marker)
 
 	def draw_cylinder(self, namespace, pose, length, radius, r=0, g=0, b=1, a=1, frame=None):
 		self.draw_shape(namespace, pose, (radius * 2, radius * 2, length), Marker.CYLINDER, r, g, b, a, frame)
@@ -80,7 +100,7 @@ class ROSVisualizer():
 		marker.scale.x = width
 		marker.scale.y = 2 * width
 		marker.points.extend([expr_to_rosmsg(start), expr_to_rosmsg(end)])
-		self.current_msg.markers.append(marker)
+		self.current_msg[namespace].markers.append(marker)
 
 	def draw_vector(self, namespace, position, vector, r=1, g=1, b=1, a=1, width=0.01, frame=None):
 		self.draw_arrow(namespace, position, position + vector, r, g, b, a, width, frame)
@@ -91,14 +111,14 @@ class ROSVisualizer():
 		marker.pose.position = expr_to_rosmsg(position)
 		marker.scale.z = height
 		marker.text = text
-		self.current_msg.markers.append(marker)
+		self.current_msg[namespace].markers.append(marker)
 
 	def draw_shape(self, namespace, pose, scale, shape, r=1, g=1, b=1, a=1, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = shape
 		marker.pose = expr_to_rosmsg(pose)
 		marker.scale = expr_to_rosmsg(scale)
-		self.current_msg.markers.append(marker)
+		self.current_msg[namespace].markers.append(marker)
 
 	def draw_mesh(self, namespace, pose, scale, resource, frame=None, r=0, g=0, b=0, a=0, use_mat=True):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
@@ -107,7 +127,7 @@ class ROSVisualizer():
 		marker.scale = expr_to_rosmsg(scale)
 		marker.mesh_resource = resource
 		marker.mesh_use_embedded_materials = use_mat
-		self.current_msg.markers.append(marker)
+		self.current_msg[namespace].markers.append(marker)
 
 	def draw_robot_pose(self, namespace, robot, joint_pos_dict, frame=None, tint=(1,1,1,1)):
 		if robot._urdf_robot == None:

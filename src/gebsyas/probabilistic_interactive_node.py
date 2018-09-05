@@ -1,7 +1,8 @@
 import rospy
+import pybullet as pb
 
 from math import cos
-from iai_bullet_sim.basic_simulator import BasicSimulator
+from iai_bullet_sim.basic_simulator import BasicSimulator, vec3_to_list
 from iai_bullet_sim.multibody import JointDriver
 from iai_bullet_sim.full_state_interactive_node import FullStateInteractiveNode, pose_msg_to_frame
 from iai_bullet_sim.utils import Frame
@@ -17,6 +18,7 @@ class ProbabilisticSimulator(BasicSimulator):
         super(ProbabilisticSimulator, self).__init__(tick_rate, gravity)
 
         self.gpcs = {}
+        self.gmm_objects = set()
         self.initial_gpc_weights = {}
         self.std_variance = 1
         self.observing_body = None
@@ -29,10 +31,12 @@ class ProbabilisticSimulator(BasicSimulator):
 
     def post_update(self):
         if self.observing_body is not None:
+            client_id = self.client_id()
             deltaT = self.time_step
             cf_tuple = self.observing_body.get_link_state(self.camera_link).worldFrame
             camera_frame = frame3_quaternion(cf_tuple.position.x, cf_tuple.position.y, cf_tuple.position.z, *cf_tuple.quaternion)
             cov_proj = rot_of(camera_frame)[:3, :3]
+            ray_cast_camera = vec3_to_list(camera_frame * point3(self.near, 0, 0))
             inv_cov_proj = cov_proj.T
 
             for name, gmm in self.gpcs.items():
@@ -46,7 +50,11 @@ class ProbabilisticSimulator(BasicSimulator):
                     dist = norm(c2o) 
                     if dist < self.far and dist > self.near and dot(c2o, x_of(camera_frame)) > cos(self.fov * 0.5) * dist:
                         
-                        if x == 0:
+                        hit_obj = pb.rayTest(ray_cast_camera, vec3_to_list(gc_pos), physicsClientId=client_id)[0][0]
+
+                        #print('Object {} gmm {} hit result {}'.format(name, x, hit_obj))
+
+                        if x == 0 and (hit_obj == body.bId() or hit_obj == -1):
                             s_h = min(1, max(0.01, 1 - self.h_gain / dist * deltaT))
                             s_d = min(1, max(0.01, 1 - self.d_gain / dist * deltaT))
                             S_pos = diag(s_d, s_h, s_h)
@@ -66,7 +74,7 @@ class ProbabilisticSimulator(BasicSimulator):
                                 gmm[y].weight -= gmm[y].weight * weight_diff
 
                             gc.cov = gc_cov
-                        else:
+                        elif hit_obj == -1:
                             # Decrease weight of empty covariance
                             weight_diff = gc.weight - gc.weight * (max(1 - 0.2 * deltaT, 0))
                             gc.weight  -= weight_diff
@@ -87,8 +95,9 @@ class ProbabilisticSimulator(BasicSimulator):
         body = super(ProbabilisticSimulator, self).create_object(geom_type, extents, radius, height, pos, rot, mass, color, name_override)
         bodyId = self.get_body_id(body.bId())
 
-        self.gpcs[bodyId] = [GaussianPoseComponent(1.0, body.pose(), eye(6) * self.std_variance)]
-        self.initial_gpc_weights[bodyId] = [1.0]
+        if bodyId in self.gmm_objects:
+            self.gpcs[bodyId] = [GaussianPoseComponent(1.0, body.pose(), eye(6) * self.std_variance)]
+            self.initial_gpc_weights[bodyId] = [1.0]
 
         return body
 
@@ -97,8 +106,9 @@ class ProbabilisticSimulator(BasicSimulator):
         body = super(ProbabilisticSimulator, self).load_urdf(urdf_path, pos, rot, joint_driver, useFixedBase, name_override)
         bodyId = self.get_body_id(body.bId())
 
-        self.gpcs[bodyId] = [GaussianPoseComponent(1.0, body.pose(), eye(6) * self.std_variance)]
-        self.initial_gpc_weights[bodyId] = [1.0]
+        if bodyId in self.gmm_objects:
+            self.gpcs[bodyId] = [GaussianPoseComponent(1.0, body.pose(), eye(6) * self.std_variance)]
+            self.initial_gpc_weights[bodyId] = [1.0]
 
         return body
 
@@ -108,34 +118,36 @@ class ProbabilisticSimulator(BasicSimulator):
 
 
     def add_gmmc(self, body, new_gc):
-        bodyId = self.get_body_id(body.bId())
-        for x in range(len(self.gpcs[bodyId])):
-            gc = self.gpcs[bodyId][x]
-            gc.weight *= 1.0 - new_gc.weight
-            self.initial_gpc_weights[bodyId][x] *= 1.0 - new_gc.weight
-        self.gpcs[bodyId].append(new_gc)
-        self.initial_gpc_weights[bodyId].append(new_gc.weight)
+        if bodyId in self.gmm_objects:
+            bodyId = self.get_body_id(body.bId())
+            for x in range(len(self.gpcs[bodyId])):
+                gc = self.gpcs[bodyId][x]
+                gc.weight *= 1.0 - new_gc.weight
+                self.initial_gpc_weights[bodyId][x] *= 1.0 - new_gc.weight
+            self.gpcs[bodyId].append(new_gc)
+            self.initial_gpc_weights[bodyId].append(new_gc.weight)
 
     def update_gmmc(self, body, idx, weight):
-        bodyId = self.get_body_id(body.bId())
-        weights = self.initial_gpc_weights[body]
-        if idx >= len(weights):
-            raise Exception('Can not update gaussian component {} of {}. There are only {} components.'.format(idx, body, len(weights)))
-        else:
-            weight = max(0.0, min(req.weight, 1.0))
-            for x in range(len(weights)):
-                weights[x] += (1.0 - weight) * weights[x]
-            weights[idx] = weight
-            gmm = self.gpcs[body]
-            for x in range(len(gmm)):
-                gmm[x].weight = weights[x]
+        if bodyId in self.gmm_objects:
+            bodyId = self.get_body_id(body.bId())
+            weights = self.initial_gpc_weights[body]
+            if idx >= len(weights):
+                raise Exception('Can not update gaussian component {} of {}. There are only {} components.'.format(idx, body, len(weights)))
+            else:
+                weight = max(0.0, min(req.weight, 1.0))
+                for x in range(len(weights)):
+                    weights[x] += (1.0 - weight) * weights[x]
+                weights[idx] = weight
+                gmm = self.gpcs[body]
+                for x in range(len(gmm)):
+                    gmm[x].weight = weights[x]
 
 
     def load_world(self, world_dict):
         super(ProbabilisticSimulator, self).load_world(world_dict)
         if 'objects' in world_dict:
             for od in world_dict['objects']:
-                if 'gmm' in od:
+                if 'gmm' in od and od['name'] in self.gmm_objects:
                     name = od['name']
                     if not type(od['gmm']) == list:
                         raise Exception('Field "gmm" in object dictionary needs to be a list.')
@@ -151,28 +163,34 @@ class ProbabilisticSimulator(BasicSimulator):
                 else:
                     i_pos = od['initial_pose']['position']
                     i_rot = od['initial_pose']['rotation']
-                    self.gpcs[od['name']] = [GaussianPoseComponent(1, Frame(i_pos, i_rot), eye(6) * self.std_variance)]
-                    self.initial_gpc_weights[od['name']] = [1.0]
+                    if od['name'] in self.gmm_objects:
+                        self.gpcs[od['name']] = [GaussianPoseComponent(1, Frame(i_pos, i_rot), eye(6) * self.std_variance)]
+                        self.initial_gpc_weights[od['name']] = [1.0]
 
     def save_world(self, use_current_state_as_init=False):
         out = super(ProbabilisticSimulator, self).save_world(use_current_state_as_init)
         for od in out['objects']:
             gmm = []
-            gpcs = self.gpcs[od['name']]
-            in_w = self.initial_gpc_weights[od['name']]
-            
-            for x in range(len(gpcs)):
-                pose   = {'position': list(gpcs[x].pose.position),
-                          'rotation': list(gpcs[x].pose.quaternion)} if x > 0 else od['initial_pose'].copy()
-                weight = gpcs[x].weight if use_current_state_as_init else in_w[x]
-                cov    = gpcs[x].cov.tolist() if use_current_state_as_init else ([self.std_variance, 0, 0, 0, 0, 0, 0]*6)[:36]
-                gmm.append({'pose':   pose,
-                            'cov':    cov,
-                            'weight': weight})
-            od['gmm'] = gmm
+
+            if od['name'] in self.gmm_objects:
+                gpcs = self.gpcs[od['name']]
+                in_w = self.initial_gpc_weights[od['name']]
+                
+                for x in range(len(gpcs)):
+                    pose   = {'position': list(gpcs[x].pose.position),
+                              'rotation': list(gpcs[x].pose.quaternion)} if x > 0 else od['initial_pose'].copy()
+                    weight = gpcs[x].weight if use_current_state_as_init else in_w[x]
+                    cov    = gpcs[x].cov.tolist() if use_current_state_as_init else ([self.std_variance, 0, 0, 0, 0, 0, 0]*6)[:36]
+                    gmm.append({'pose':   pose,
+                                'cov':    cov,
+                                'weight': weight})
+                od['gmm'] = gmm
         return out
     
     def load_simulator(self, config_dict):
+        if 'gmm_objects' in config_dict:
+            self.gmm_objects = set(config_dict['gmm_objects'])
+
         super(ProbabilisticSimulator, self).load_simulator(config_dict)
         if 'camera_config' in config_dict:
             d_cf = config_dict['camera_config']
@@ -186,13 +204,15 @@ class ProbabilisticSimulator(BasicSimulator):
 
     def save_simulator(self, use_current_state_as_init):
         out = super(ProbabilisticSimulator, self).save_simulator(use_current_state_as_init)
-        out['camera_config'] = {'body': self.get_body_id(self.observing_body.bId()),
-                                'camera_link': self.camera_link,
-                                'fov':    self.fov,
-                                'near':   self.near,
-                                'far':    self.far,
-                                'd_gain': self.d_gain,
-                                'h_gain': self.h_gain}
+        out['gmm_objects'] = list(self.gmm_objects)
+        if self.observing_body != None:
+            out['camera_config'] = {'body': self.get_body_id(self.observing_body.bId()),
+                                    'camera_link': self.camera_link,
+                                    'fov':    self.fov,
+                                    'near':   self.near,
+                                    'far':    self.far,
+                                    'd_gain': self.d_gain,
+                                    'h_gain': self.h_gain}
         return out
 
 
@@ -224,7 +244,7 @@ class ProbabilisticInteractiveNode(FullStateInteractiveNode):
         def srv_add_gmmc(self, req):
             with self.lock:
                 res = AddGMMCResponse()
-                if req.object_id in self.sim.bodies:
+                if req.object_id in self.sim.bodies and req.object_id in self.sim.gmm_objects:
                     body = self.sim.bodies[req.object_id]
                     weight = max(0.0, min(req.weight, 1.0))
                     self.sim.add_gmmc(body, GaussianPoseComponent(weight, body.pose(), eye(6) * self.sim.std_variance))
@@ -235,7 +255,7 @@ class ProbabilisticInteractiveNode(FullStateInteractiveNode):
                     res.success = True
                     return res
                 else:
-                    res.error_msg = '{} is not a known object.'.format(req.object_id)
+                    res.error_msg = '{} is not a known gmm object.'.format(req.object_id)
                 res.success = False
                 return res
 
@@ -244,14 +264,14 @@ class ProbabilisticInteractiveNode(FullStateInteractiveNode):
             with self.lock:
                 res = UpdateGMMCResponse()
                 res.success = False
-                if req.object_id in self.sim.bodies:
+                if req.object_id in self.sim.bodies and req.object_id in self.sim.gmm_objects:
                     try:
                         self.sim.update_gmmc(self.sim.bodies[req.object_id], req.index, req.weight)
                         res.success = True
                     except e:
                         res.error_msg = str(e)
                 else:
-                    res.error_msg = '{} is not a known object.'.format(req.object_id)
+                    res.error_msg = '{} is not a known gmm object.'.format(req.object_id)
                 return res
 
 

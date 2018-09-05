@@ -27,11 +27,11 @@ class InEqBulletController(InEqController):
     """
     @brief      This controller is a specialization of the inequality controller, but also provides a simple collision avoidance system.
     """
-    def __init__(self, context, avoid_collisions, allow_collisions, ppl=3, logging=print_wrapper):
+    def __init__(self, context, avoid_collisions, allow_collisions, ppl=3, logging=print_wrapper, control_localization=False):
         """
         Constructor. Uses a context and a map of stamped objects to create collision avoidance scene.
         """
-        super(InEqBulletController, self).__init__(context.agent.robot, logging)
+        super(InEqBulletController, self).__init__(context.agent.robot, logging, control_localization)
         self.simulator = GebsyasSimulator(50)
         self.simulator.init()
         self.controlled_objects = {}
@@ -41,14 +41,14 @@ class InEqBulletController(InEqController):
 
         temp_urdf = URDF.from_xml(context.agent.robot._urdf_robot.to_xml())
 
-        self.included_objects = []
+        self.included_objects = {}
         self.allowed_objects = {}
 
         for Id, stamped in avoid_collisions:
             # Static objects
             if type(stamped.data) != SymbolicData and 'floor' not in Id:
                 bullet_obj = self.simulator.add_object(stamped.data)
-                self.included_objects.append(stamped.data)
+                self.included_objects[Id] = stamped
                 if Id in allow_collisions:
                     self.allowed_objects[Id] = bullet_obj
             # Attached objects
@@ -64,7 +64,7 @@ class InEqBulletController(InEqController):
 
                         add_dl_object_to_urdf(temp_urdf, manipulator.link_name, num_object, obj_in_manipulator)
 
-                        logging(stamped.data.pose)
+                        #logging(stamped.data.pose)
                         self.controlled_objects[Id] = num_object
                         break
 
@@ -93,21 +93,31 @@ class InEqBulletController(InEqController):
         self.dist_exprs = {}
         self.data_state = context.agent.get_data_state()
         self.obstacle_color = (0,1,0,1)
+        self.main_draw_layers = {'controlled_objects', 'cpq', 'aabb', 'robot'}
+
+        self.visualizer.begin_draw_cycle('obstacles')
+        for stamped in self.included_objects.values():
+            if DLRigidObject.is_a(stamped.data):
+                pose = stamped.data.pose
+            elif DLRigidGMMObject.is_a(stamped.data):
+                pose = sorted(stamped.data.gmm)[0].pose
+            visualize_obj(stamped.data, self.visualizer, pose, 'obstacles', self.obstacle_color)
+        self.visualizer.render('obstacles')
 
         # start_position = pos_of(start_pose)
 
 
-    def init(self, soft_constraints):
+    def init(self, soft_constraints, dynamic_base_weight=False):
         soft_constraints = soft_constraints.copy()
         soft_constraints.update(self.avoidance_constraints)
         #self.hard_constraints.update(self.avoidance_constraints)
-        super(InEqBulletController, self).init(soft_constraints)
+        super(InEqBulletController, self).init(soft_constraints, dynamic_base_weight)
 
     # @profile
     def get_cmd(self, nWSR=None):
         """Processes new joint state, updates the simulation and then generates the new command."""
         if self.visualizer:
-            self.visualizer.begin_draw_cycle()
+            self.visualizer.begin_draw_cycle(*self.main_draw_layers)
 
         self.bullet_bot.set_joint_positions({j: self.current_subs[s] for j, s in self.robot.joint_states_input.joint_map.items()})
 
@@ -131,15 +141,11 @@ class InEqBulletController(InEqController):
                 #     self.visualizer.draw_sphere('ccp', cpp.point_1_expression(x).subs(self.get_state()), 0.01, r=1)
                 #     self.visualizer.draw_sphere('ccp', cpp.point_2_expression(x).subs(self.get_state()), 0.01, g=1)
 
-            for obj in self.included_objects:
-                if DLRigidObject.is_a(obj):
-                    pose = obj.pose
-                elif DLRigidGMMObject.is_a(obj):
-                    pose = sorted(obj.gmm)[0].pose
-                visualize_obj(obj, self.visualizer, pose, 'obstacles', self.obstacle_color)
             
+
+            #self.visualizer.draw_robot_pose('robot', self.robot, preview, tint=(0.2,1.0,0.2,1))
             self.draw_tie_in()
-            self.visualizer.render()
+            self.visualizer.render(*self.main_draw_layers)
 
         #self.print_fn('\n'.join(['{}: {} -> {}'.format(n, c.lower.subs(self.current_subs), c.expression.subs(self.current_subs)) for n, c in self.avoidance_constraints.items()]))
 

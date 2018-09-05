@@ -11,11 +11,13 @@ from iai_bullet_sim.basic_simulator import BasicSimulator, AABB, vec_add, vec_su
 
 
 def frame_tuple_to_sym_frame(frame_tuple):
-    return frame3_quaternion(frame_tuple.quaterion.x,
-                             frame_tuple.quaterion.y,
-                             frame_tuple.quaterion.z,
-                             frame_tuple.quaterion.w,
-                             point3(*frame_tuple.position))
+    return frame3_quaternion(frame_tuple.position.x,
+                             frame_tuple.position.y,
+                             frame_tuple.position.z,
+                             frame_tuple.quaternion.x,
+                             frame_tuple.quaternion.y,
+                             frame_tuple.quaternion.z,
+                             frame_tuple.quaternion.w)
 
 
 class GebsyasSimulator(BasicSimulator):

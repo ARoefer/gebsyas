@@ -1,6 +1,10 @@
 <launch>
     <arg name="mode" default="direct"/>
 
-    <rosparam command="load" file="$(find gebsyas)/config/fetch_gmm_exploration.yaml" ns="/sim_config"/>
-    <node name="gebsyas_sim" pkg="gebsyas" type="simulator_node.py" args="$(arg mode)" output="screen"/>
+    <rosparam command="load" file="$(find gebsyas)/config/fetch_gmm_exploration_at_table.yaml" ns="/sim_config"/>
+    <node name="gebsyas_sim" pkg="gebsyas" type="simulator_node.py" args="$(arg mode)" output="screen">
+        <remap from="/fetch/sensors/laser_link/laser_scan" to="/base_scan"/>
+        <remap from="/fetch/odometry" to="/odom_combined"/>
+    </node>
+    <node name="base_cmd_converter" pkg="gebsyas" type="base_command_republisher.py" output="screen"/>
 </launch>

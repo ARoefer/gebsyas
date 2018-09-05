@@ -12,6 +12,7 @@ from gop_gebsyas_msgs.msg import ProbObject as PObject
 from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGMsg
 from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
 from iai_bullet_sim.utils import Frame, Vector3, Point3
+from visualization_msgs.msg import Marker as MarkerMsg
 from copy import deepcopy
 
 pi = 3.14159265359
@@ -448,4 +449,25 @@ def gmm_obj_to_expr(msg):
 	
 	out.concepts = {msg.name}
 
+	return out
+
+
+def vis_obj_to_expr(msg):
+	out = Blank()
+
+	out.id = msg.ns
+	out.concepts = {''.join([i for i in msg.ns if not i.isdigit()])}	
+	out.pose = ros_msg_to_expr(msg.pose)
+	out.mass = 0.0
+	if msg.type == MarkerMsg.CUBE:
+		out.length = msg.scale.x
+		out.width  = msg.scale.y
+		out.height = msg.scale.z
+	elif msg.type == MarkerMsg.SPHERE:
+		out.radius = msg.scale.x
+	elif msg.type == MarkerMsg.CYLINDER:
+		out.radius = msg.scale.x
+		out.height = msg.scale.z
+	else:
+		raise Exception('Can not convert visual marker of type {}'.format(msg.type))
 	return out

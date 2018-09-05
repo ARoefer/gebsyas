@@ -1,0 +1,68 @@
+gravity: [0, 0, -9.81]
+plugins:
+- {body: ur5_table_description, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>,
+  topic_prefix: ''}
+- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
+- {body: ur5_table_description, plugin_type: <class 'iai_bullet_sim.ros_plugins.ResetTrajectoryPositionController'>,
+  topic_prefix: ''}
+- {body: ur5_table_description, plugin_type: <class 'iai_bullet_sim.ros_plugins.SensorPublisher'>,
+  topic_prefix: ''}
+tick_rate: 50
+world:
+  constraints: []
+  objects:
+  - color: [-0.0036071261976531543, 0.28500000000000003, 0.95, 1.0]
+    extents: [0.1, 0.1, 0.05]
+    geom_type: box
+    height: 1
+    initial_pose:
+      position: [-0.3, -0.3, 0.65]
+      rotation: [0, 0, 0, 1]
+    mass: 0.5
+    name: box
+    radius: 0.5
+    type: rigid_body
+  - color: [1, 1, 1, 1.0]
+    extents: [0.6, 0.6, 0.01]
+    geom_type: box
+    height: 1
+    initial_pose:
+      position: [-0.3, -0.3, 0.603]
+      rotation: [0, 0, 0, 1]
+    mass: 0.0
+    name: table
+    radius: 0.5
+    type: rigid_body
+  - fixed_base: true
+    initial_joint_state: {elbow_joint: 0.0, gripper_base_gripper_left_joint: -0.0027,
+      gripper_joint: 0.0065, shoulder_lift_joint: 0.0, shoulder_pan_joint: 0.0, wrist_1_joint: 0.0,
+      wrist_2_joint: 0.0, wrist_3_joint: 0.0}
+    initial_pose:
+      position: [0, 0, 0]
+      rotation: [0, 0, 0, 1]
+    name: ur5_table_description
+    sensors: [wrist_3_joint]
+    type: multibody
+    urdf_path: package://iai_table_robot_description/robots/ur5_table.urdf
+  - color: [0.28500000000000003, 0.95, 0.03848101413632047, 1.0]
+    extents: [1.0, 1.0, 0.2]
+    geom_type: cylinder
+    height: 0.2
+    initial_pose:
+      position: [0.0, 0.0, 2.0]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 1.0
+    name: pringles
+    radius: 0.03
+    type: rigid_body
+  - color: [0.95, 0.28500000000000003, 0.7255633707515987, 1.0]
+    extents: [10.0, 10.0, 0.1]
+    geom_type: box
+    height: 0.1
+    initial_pose:
+      position: [0.0, 0.0, -0.05]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 0.0
+    name: floor
+    radius: 0.03
+    type: rigid_body

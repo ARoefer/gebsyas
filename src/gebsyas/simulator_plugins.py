@@ -1,6 +1,7 @@
 import rospy
 import math
 import numpy as np
+import pybullet as pb
 
 from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform, hsva_to_rgba
 from iai_bullet_sim.rigid_body import RigidBody
@@ -17,6 +18,8 @@ from gop_gebsyas_msgs.msg import ProbObjectList as POLMsg
 from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
 from gop_gebsyas_msgs.msg import SearchObjectList as SearchObjectListMsg
 from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGCMsg
+
+from sensor_msgs.msg import LaserScan as LaserScanMsg
 
 from symengine import ones
 import symengine as sp
@@ -382,7 +385,8 @@ class GMMObjectPublisher(SimulatorPlugin):
                 msg.object_pose_gmm[x].weight = gc.weight
             msg.header.stamp = rospy.Time.now()
             msg_total.search_object_list.append(msg)
-        msg_total.weights.extend([1.0 / len(msg_total.search_object_list)] * len(msg_total.search_object_list))
+        if len(msg_total.search_object_list) > 0:
+            msg_total.weights.extend([1.0 / len(msg_total.search_object_list)] * len(msg_total.search_object_list))
         self.publisher.publish(msg_total)
         self.visualizer.render()
 
@@ -413,6 +417,73 @@ class GMMObjectPublisher(SimulatorPlugin):
     @classmethod
     def factory(cls, simulator, init_dict):
         return cls(init_dict['topic_prefix'])
+
+class FakeGMMObjectPublisher(SimulatorPlugin):
+    def __init__(self, topic_prefix=''):
+        super(FakeGMMObjectPublisher, self).__init__('FakeGMMObjectPublisher')
+        self.publisher = rospy.Publisher('{}/perceived_prob_objects'.format(topic_prefix), SearchObjectListMsg, queue_size=1, tcp_nodelay=True)
+        self.message_templates = {}
+        self.topic_prefix = topic_prefix
+        self._enabled = True
+
+    def post_physics_update(self, simulator, deltaT):
+        if not self._enabled:
+            return
+
+        msg_total = SearchObjectListMsg()
+        for name, gmm in simulator.gpcs.items():
+            if not name in self.message_templates:
+                body = simulator.bodies[name]
+                msg = SearchObjectMsg()
+                msg.id = body.bId()
+                msg.name = name.split('.')[0]
+                msg.object_pose_gmm.append(OPGCMsg())
+                msg.object_pose_gmm[0].cov_pose.covariance = [0.0]*36
+                msg.object_pose_gmm[0].weight = 1.0
+                self.message_templates[name] = msg
+            else:
+                msg = self.message_templates[name]
+
+            gc = gmm[0]
+            msg.object_pose_gmm[0].cov_pose.pose.position  = expr_to_rosmsg(gc.pose.position)
+            msg.object_pose_gmm[0].cov_pose.pose.orientation.x = gc.pose.quaternion[0]
+            msg.object_pose_gmm[0].cov_pose.pose.orientation.y = gc.pose.quaternion[1]
+            msg.object_pose_gmm[0].cov_pose.pose.orientation.z = gc.pose.quaternion[2]
+            msg.object_pose_gmm[0].cov_pose.pose.orientation.w = gc.pose.quaternion[3]
+            msg.header.stamp = rospy.Time.now()
+            msg_total.search_object_list.append(msg)
+        if len(msg_total.search_object_list) > 0:
+            msg_total.weights.extend([1.0 / len(msg_total.search_object_list)] * len(msg_total.search_object_list))
+        self.publisher.publish(msg_total)
+
+    def disable(self, simulator):
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
+        self._enabled = False
+        self.publisher.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+        return {'topic_prefix': self.topic_prefix}
+
+    def reset(self, simulator):
+        """Implements reset behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        self.message_templates = {}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        return cls(init_dict['topic_prefix'])
+
 
 
 class InstantiateSearchObjects(SimulatorPlugin):
@@ -480,3 +551,124 @@ def create_search_object_message(body, name):
     opgc.weight = 1.0
     msg.object_pose_gmm.append(opgc)
     return msg
+
+
+class LaserScanner(SimulatorPlugin):
+    def __init__(self, simulator, body, link, 
+                       ang_min, ang_max, resolution, 
+                       range_min, range_max, axis=(0,0,1),
+                       sensor_name='laser_scan'):
+        #self.visualizer = ROSVisualizer('lalala_points', 'map')
+        self.body = body
+        self.link = link
+        self.sensor_name = sensor_name
+        body_name = simulator.get_body_id(body.bId())
+        if link == None or link == '':
+            self.publisher = rospy.Publisher('{}/sensors/{}'.format(body_name, sensor_name), LaserScanMsg, queue_size=1)
+        else:
+            self.publisher = rospy.Publisher('{}/sensors/{}/{}'.format(body_name, link, sensor_name), LaserScanMsg, queue_size=1)
+        self.resolution = resolution
+        ang_step = (ang_max - ang_min) / resolution
+        
+        self.msg_template = LaserScanMsg()
+        self.msg_template.header.frame_id = '{}/{}'.format(body_name, link) if link is not None else body_name
+        self.msg_template.angle_min = ang_min
+        self.msg_template.angle_max = ang_max
+        self.msg_template.angle_increment = ang_step
+        self.msg_template.range_min = range_min
+        self.msg_template.range_max = range_max
+
+        self.conversion_factor = range_max - range_min
+        
+        self.axis = vector3(*axis)
+        #print(self.axis)
+
+        self.raw_start_points = np.hstack([
+                                        (rotation3_axis_angle(self.axis, ang_min + ang_step * x) * point3(range_min,0,0)).tolist() 
+                                        for x in range(resolution)]).astype(float)
+        self.raw_end_points = np.hstack([
+                                        (rotation3_axis_angle(self.axis, ang_min + ang_step * x) * point3(range_max,0,0)).tolist() 
+                                        for x in range(resolution)]).astype(float)
+        #print('\n'.join([str(l) for l in self.raw_end_points[:,:10].tolist()])) # 
+        self._enabled = True
+
+    def post_physics_update(self, simulator, deltaT):
+        """Implements post physics step behavior.
+
+        :type simulator: BasicSimulator
+        :type deltaT: float
+        """
+        if self._enabled:
+            self.msg_template.header.stamp = rospy.Time.now()
+
+            if self.link != None:
+                ft_pose = self.body.get_link_state(self.link).worldFrame
+            else:
+                ft_pose = self.body.pose()
+
+            transform = np.array(frame3_quaternion(ft_pose.position.x, 
+                                                   ft_pose.position.y, 
+                                                   ft_pose.position.z, 
+                                                   ft_pose.quaternion.x, 
+                                                   ft_pose.quaternion.y, 
+                                                   ft_pose.quaternion.z, 
+                                                   ft_pose.quaternion.w).tolist(), dtype=float).reshape((4,4))
+
+            #print(transform)
+            start_points = np.dot(transform, self.raw_start_points).T[:,:3].tolist()
+            end_points   = np.dot(transform, self.raw_end_points).T[:,:3].tolist()
+
+            #print('End point 0:\n raw: {}\n tf: {}'.format(self.raw_end_points[:,:1].tolist(), end_points[0]))
+
+            #self.visualizer.begin_draw_cycle()
+            #self.visualizer.draw_cube_batch('points', sp.eye(4), 0.05, self.raw_start_points.T.tolist(), r=0, g=1)
+            #self.visualizer.draw_cube_batch('points', sp.eye(4), 0.05, self.raw_end_points.T.tolist())
+            #self.visualizer.draw_cube_batch('tf_points', sp.eye(4), 0.05, start_points, r=1, g=1)
+            #self.visualizer.draw_cube_batch('tf_points', sp.eye(4), 0.05, end_points, b=1)
+            #self.visualizer.render()
+
+            #print('\n '.join(['{}: {}'.format(str(p), type(p)) for p in self.raw_end_points]))
+            #print('\n '.join(['{}: {}'.format(str(p), type(p)) for p in end_points]))
+
+            self.msg_template.ranges = [self.msg_template.range_min + r[2] * self.conversion_factor for r in pb.rayTestBatch(start_points, end_points, physicsClientId=simulator.client_id())]
+            self.publisher.publish(self.msg_template)
+
+    def disable(self, simulator):
+        """Stops the execution of this plugin.
+
+        :type simulator: BasicSimulator
+        """
+        self._enabled = False
+        self.publisher.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+
+        :type simulator: BasicSimulator
+        :rtype: dict
+        """
+        return {'body': simulator.get_body_id(self.body.bId()),
+                'link': self.link if self.link != None else '',
+                'angle_min': self.msg_template.angle_min,
+                'angle_max': self.msg_template.angle_max,
+                'range_min': self.msg_template.range_min,
+                'range_max': self.msg_template.range_max,
+                'resolution': self.resolution,
+                'axis': list(self.axis)[:3],
+                'sensor_name': self.sensor_name}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return cls(simulator, body, 
+                              init_dict['link'], 
+                              init_dict['angle_min'],
+                              init_dict['angle_max'],
+                              init_dict['resolution'],
+                              init_dict['range_min'],
+                              init_dict['range_max'],
+                              init_dict['axis'],
+                              init_dict['sensor_name']) 
+

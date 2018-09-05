@@ -1,43 +1,48 @@
+gmm_objects: [pringle, brown_table0]
 gravity: [0, 0, -9.81]
 plugins:
-- {plugin_type: <class 'gebsyas.simulator_plugins.FullPerceptionPublisher'>, topic_prefix: ''}
-- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
+- map_frame: map
+  objects: [pringle]
+  plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>
+- {plugin_type: <class 'gebsyas.simulator_plugins.FakeGMMObjectPublisher'>, topic_prefix: ''}
 tick_rate: 50
 world:
   constraints: []
   objects:
-  - color: [0.8326430019869472, 0.95, 0.28500000000000003, 1.0]
-    extents: [1.0, 2.0, 0.8]
-    geom_type: box
-    height: 0.8
-    initial_pose:
-      position: [1.2933908700942993, -0.08380842953920364, 0.4659527540206909]
-      rotation: [-5.877538011844763e-09, -2.9444496618680205e-08, -0.0657142698764801,
-        0.9978384971618652]
-    mass: 100.0
-    name: table1
-    radius: 1.0
-    type: rigid_body
   - color: [0.28500000000000003, 0.8888069465339584, 0.95, 1.0]
     extents: [0.03, 0.03, 0.24]
     geom_type: cylinder
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id001 [0.8119763135910034, -0.055259451270103455, 0.8634161353111267]
+        rotation: &id002 [0, 0, 0, 1]
+      weight: 1.0
     height: 0.24
     initial_pose:
-      position: [0.9418724179267883, 0.09721219539642334, 0.9746465682983398]
-      rotation: [-0.00020762394706252962, 6.946908251848072e-05, -0.012785302475094795,
-        0.9999182224273682]
+      position: *id001
+      rotation: *id002
     mass: 0.5
-    name: pringles
+    name: pringle
     radius: 0.03
     type: rigid_body
-  - color: [0.28500000000000003, 0.9441811328392679, 0.95, 1.0]
-    extents: [20.0, 20.0, 1.0]
+  - color: [1.2784999907016754, 1, 0, 1]
+    extents: [1.53000009059906, 0.7600000500679016, 0.7400000095367432]
     geom_type: box
-    height: 1.0
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id003 [0.9978859424591064, -0.09883946180343628, 0.37878793478012085]
+        rotation: &id004 [1.0870603972534809e-08, 6.459689227966692e-09, -0.8205280900001526,
+          0.5716062784194946]
+      weight: 1.0
+    height: 0.7400000095367432
     initial_pose:
-      position: [0.46713775396347046, 3.8649682998657227, -0.48653644323349]
-      rotation: [0.0, 0.0, 0.0, 1.0]
-    mass: 0.0
-    name: floor
-    radius: 1.0
+      position: *id003
+      rotation: *id004
+    mass: 0
+    name: brown_table0
+    radius: 0.76500004529953
     type: rigid_body

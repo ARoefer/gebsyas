@@ -1,15 +1,26 @@
 camera_config: {body: fetch, camera_link: head_camera_link, d_gain: 0.6, far: 6.0,
   fov: 0.942478, h_gain: 0.6, near: 0.3}
 gravity: [0, 0, -9.81]
+gmm_objects: [pringle, ball, table3, table1, table]
 plugins:
 - {body: fetch, plugin_type: <class 'gebsyas.simulator_plugins.LocalizationPublisher'>,
   topic_prefix: fetch}
 - {plugin_type: <class 'gebsyas.simulator_plugins.GMMObjectPublisher'>, topic_prefix: ''}
-- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>}
+- {map_frame: map, plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>, objects: []}
 - {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JointVelocityController'>,
   topic_prefix: fetch, watchdog_timeout: 0.2}
 - {plugin_type: <class 'gebsyas.simulator_plugins.FullPerceptionPublisher'>, topic_prefix: ''}
 - {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>, topic_prefix: fetch}
+- plugin_type: <class 'gebsyas.simulator_plugins.LaserScanner'>
+  body: fetch
+  link: laser_link
+  angle_min: -1.91990637779
+  angle_max:  1.91990637779
+  range_min: 0.05
+  range_max: 25.0
+  resolution: 300
+  axis: [0,0,1]
+  sensor_name: laser_scan
 tick_rate: 50
 world:
   constraints: []
@@ -167,4 +178,4 @@ world:
     name: fetch
     sensors: []
     type: multibody
-    urdf_path: package://fetch_giskard/robots/fetch.urdf
+    urdf_path: package://fetch_giskard/robots/fetch_with_box.urdf
