@@ -200,13 +200,16 @@ class DataDrivenPredicateState(PredicateState):
 				if reeval:
 					context.log('Re-eval triggered for {}{}'.format(predicate.P, args_tuple), 'Predicate State')
 					new_val = self.__eval_ineq_constraints(context, predicate, fargs, args_tuple)
+					self.predicate_cache[predicate][args_tuple] = StampedData(rospy.Time.now(), new_val)
+					return new_val
 				else:
 					context.log('Returning cached value for {}{}'.format(predicate.P, args_tuple), 'Predicate State')
 					return cached.data
 		else:
-			context.log('Predicate {} has never been evaluated before'.format(predicate.P), 'Predicate State')
+			#context.log('Predicate {} has never been evaluated before'.format(predicate.P), 'Predicate State')
 			self.predicate_cache[predicate] = {}
-			new_val = self.__eval_ineq_constraints(context, predicate, [self.map_to_numeric(s).data for s in args_tuple], args_tuple)
+
+		new_val = self.__eval_ineq_constraints(context, predicate, [self.map_to_numeric(s).data for s in args_tuple], args_tuple)
 
 		self.predicate_cache[predicate][args_tuple] = StampedData(rospy.Time.now(), new_val)
 		return new_val
