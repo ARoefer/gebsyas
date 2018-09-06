@@ -9,6 +9,6 @@ PLACE_DT_THRESHOLD = 0.1
 # Placement decision threshold
 PLACE_THRESHOLD    = 0.9
 # Lower bound satisfaction threshold
-LBA_BOUND = 0.01
+LBA_BOUND = 0.02
 # Upper bound satisfaction threshold
-UBA_BOUND = -0.01
+UBA_BOUND = -0.02

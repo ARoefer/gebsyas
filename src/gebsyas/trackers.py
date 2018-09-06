@@ -1,7 +1,7 @@
 import rospy
 
 from gebsyas.data_structures import StampedData, JointState, LocalizationPose
-from gebsyas.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject, DLRigidGMMObject
+from gebsyas.dl_reasoning import DLIded, DLAtom, SymbolicData, DLCompoundObject, DLPhysicalThing, DLRigidObject, DLRigidGMMObject, DLPhysicalGMMThing
 from copy import copy
 
 class Tracker(object):
@@ -64,16 +64,26 @@ class SymbolicObjectPoseTracker(Tracker):
 		super(SymbolicObjectPoseTracker, self).__init__(data_id, pred_state.data_state)
 		self.pred_state = pred_state
 		self.anchor_id = anchor_id
+
 		obj_data  = self.pred_state.map_to_numeric(data_id).data
+		if DLPhysicalThing.is_a(obj_data):
+			obj_pose = obj_data.pose
+		elif DLPhysicalGMMThing.is_a(obj_data):
+			obj_pose = sorted(obj_data.gmm)[-1].pose
+			del obj_data.gmm
+
 		anchor = self.pred_state.map_to_data(anchor_id).data
+		
 		if type(anchor) != SymbolicData:
 			raise Exception('Id "{}" does not refer to a symbolic data structure.'.format(anchor_id))
+		
 		sym_anchor = anchor.data
+		
 		if not DLPhysicalThing.is_a(sym_anchor):
 			raise Exception('Id "{}" does not refer to a physical thing.'.format(anchor_id))
 		num_anchor = self.pred_state.map_to_numeric(anchor_id).data
 		w2a = num_anchor.pose.inv()
-		self.o2a = w2a * obj_data.pose
+		self.o2a = w2a * obj_pose
 		obj_data.pose = sym_anchor.pose * self.o2a
 		self.data_state.insert_data(StampedData(rospy.Time.now(), SymbolicData(data=obj_data, f_convert=self.convert_to_numeric, args=[anchor_id])), data_id)
 

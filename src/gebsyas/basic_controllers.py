@@ -1,22 +1,24 @@
 import rospy
 import traceback
+import numpy as np
 
+from itertools import chain
 from time import time
 from giskardpy import print_wrapper
 from gebsyas.bc_controller_wrapper import BCControllerWrapper
 from gebsyas.utils import StampedData
 from gebsyas.constants import LBA_BOUND, UBA_BOUND
-
+from sensor_msgs.msg import JointState as JointStateMsg
 
 class InEqController(BCControllerWrapper):
     """
     @brief      This controller connects a robot to a set of inequality constraints.
     """
-    def __init__(self, robot, logging=print_wrapper):
+    def __init__(self, robot, logging=print_wrapper, control_localization=False):
         """Constructor. Receives a robot to use and soft constraints to abide by.
            Additionally a backend, a weight for the constraints and a custom logger can be supplied.
         """
-        super(InEqController, self).__init__(robot, logging)
+        super(InEqController, self).__init__(robot, logging, control_localization)
 
 
 class InEqRunner(object):
@@ -51,6 +53,8 @@ class InEqRunner(object):
         self.execution_start = None
         self.constraints_met = False
         self.task_constraints = task_constraints
+        self.pub_bounds = rospy.Publisher('/runner_bounds', JointStateMsg, queue_size=1)
+        self.msg_template = JointStateMsg()
 
     def run(self):
         """Starts the run of the controller."""
@@ -59,7 +63,14 @@ class InEqRunner(object):
         self.total_timeout       = now + self.tlimit_total
         self.convergence_timeout = now + self.tlimit_convergence
         self.execution_start = now
-
+        self.names_in_order = sorted(self.controller.qp_problem_builder.soft_constraint_indices, 
+                                        key=self.controller.qp_problem_builder.soft_constraint_indices.get)
+        self.msg_template.name = list(sum([('{}_lbA'.format(n), '{}_ubA'.format(n)) for n in self.names_in_order], ()))
+        self.msg_template.position = [0.0] * len(self.msg_template.name)
+        # self.msg_template.velocity = [0.0] * len(self.msg_template.name)
+        # self.msg_template.effort   = [0.0] * len(self.msg_template.name)
+        #raw_input('WAITING CAUSE PLOTJUGGLER IS RETARDED')
+        #print('\n'.join(['{}: {}'.format(self.controller.qp_problem_builder.soft_constraint_indices[n[:-4]], n) for n in self.msg_template.name]))
         self.f_add_cb(self.js_callback)
 
         while not rospy.is_shutdown() and not self.terminate:
@@ -77,13 +88,29 @@ class InEqRunner(object):
 
         now = rospy.Time.now()
         self.controller.set_robot_js(joint_state)
-        try:
-            command = self.controller.get_cmd()
-        except Exception as e:
-            self.terminate = True
-            traceback.print_exc()
-            print(e)
-            return
+        command = self.controller.get_cmd()
+        #self.msg_template.header.stamp = now
+        # lbA = self.controller.qp_problem_builder.np_lbA
+        # ubA = self.controller.qp_problem_builder.np_ubA
+        # lhc = len(self.controller.qp_problem_builder.hard_constraints_dict)
+
+        #print(lbA)
+        #print(ubA)
+        # self.msg_template.position = np.hstack((lbA[lhc:], ubA[lhc:])).reshape((len(self.msg_template.name),)).tolist()
+
+        # for x in range(len(self.names_in_order)):
+        #     lbA, ubA = self.controller.qp_problem_builder.get_a_bounds(self.names_in_order[x])
+        #     self.msg_template.position[x * 2] = lbA
+        #     self.msg_template.position[x * 2 + 1] = ubA
+
+        #self.pub_bounds.publish(self.msg_template)
+        # try:
+        #     pass
+        # except Exception as e:
+        #     self.terminate = True
+        #     traceback.print_exc()
+        #     print(e)
+        #     return
         #print('\n'.join(['{:>20}: {}'.format(name, vel) for name, vel in command.items()]))
         #self.controller.qp_problem_builder.print_jacobian()
         new_feedback = 0
@@ -160,7 +187,7 @@ class InEqFFBRunner(object):
         self.trajectory_log.append(StampedData(rospy.Time.from_sec((rospy.Time.now() - self.execution_start).to_sec()), joint_state.copy()))
 
         now = rospy.Time.now()
-        self.set_robot_js(joint_state)
+        self.controller.set_robot_js(joint_state)
         command = self.controller.get_cmd()
         #print('\n'.join(['{:>20}: {}'.format(name, vel) for name, vel in command.items()]))
         #self.controller.qp_problem_builder.print_jacobian()

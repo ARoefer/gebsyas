@@ -32,7 +32,7 @@ class GripperAction(Action):
 	def execute(self, context):
 		ineq_c = {'gripper': SC(self.goal - self.gripper.opening, self.goal - self.gripper.opening, 1, self.gripper.opening)}
 		motion_ctrl = InEqController(context.agent.robot, context.log)
-		motion_ctrl.init(self.ineq_c)
+		motion_ctrl.init(ineq_c)
 		runner = InEqFFBRunner(context.agent.robot,
 							   motion_ctrl,
 							   10.0, 1.5,

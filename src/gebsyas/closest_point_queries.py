@@ -25,8 +25,10 @@ class ClosestPointQuery(object):
 		"""Normal from world- to body-point."""
 		raise (NotImplementedError)
 
-	def get_update_dict(self, simulator, visualizer=None):
-		"""Returns dict with new values."""
+	def update_subs_dict(self, simulator, subs, visualizer=None):
+		raise (NotImplementedError)
+
+	def reset_subs_dict(self, subs):
 		raise (NotImplementedError)
 
 
@@ -50,7 +52,7 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 		self.point1 = []
 		self.point2 = []
 		self.normal = []
-		self.filter = filter.union({self.body.bId()})
+		self.filter = filter.union({self.body})
 		self.margin = margin
 
 		for x in range(self.n):
@@ -61,8 +63,8 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 	def generate_constraints(self):
 		out = {}
 		for x in range(self.n):
-			#dist = dot((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression(), self.normal[x].get_expression())
-			dist = norm((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression())
+			dist = dot((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression(), self.normal[x].get_expression())
+			#dist = norm((self.active_frame * self.point1[x].get_expression()) - self.point2[x].get_expression())
 			out['closest_any_{}_{}_{}'.format(self.body.bId(), self.link_name, x)] = SC(
 					self.margin - dist, 
 					1000,
@@ -117,6 +119,18 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 				subs[self.point1[x].z] = 0
 				subs[self.point2[x].z] = -10000
 				subs[self.normal[x].z] = 1
+
+	def reset_subs_dict(self, subs):
+		for x in range(self.n):
+			subs[self.point1[x].x] = 0
+			subs[self.point2[x].x] = 0
+			subs[self.normal[x].x] = 0
+			subs[self.point1[x].y] = 0
+			subs[self.point2[x].y] = 0
+			subs[self.normal[x].y] = 0
+			subs[self.point1[x].z] = 0
+			subs[self.point2[x].z] = -10000
+			subs[self.normal[x].z] = 1		
 
 
 class ClosestPointQuery_Any(ClosestPointQuery_AnyN):
@@ -180,6 +194,16 @@ class ClosestPointQuery_Specific_SA(ClosestPointQuery_Specific):
 		# else:
 		#     obs.update(self.normal.get_update_dict(*vec3_to_list()))
 
+	def reset_subs_dict(self, subs):
+		subs[self.point1.x] = 0
+		subs[self.point2.x] = 0
+		#subs[self.normal.x] = closest.normalOnB[0]
+		subs[self.point1.y] = 0
+		subs[self.point2.y] = 0
+		#subs[self.normal.y] = closest.normalOnB[1]
+		subs[self.point1.z] = 0
+		subs[self.point2.z] = 0
+
 
 class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 	"""
@@ -218,3 +242,13 @@ class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 			subs[self.point1.z] = onA[2]
 			subs[self.point2.z] = onB[2]
 			#subs[self.normal.z] = closest.normalOnB[2]
+
+	def reset_subs_dict(self, subs):
+		subs[self.point1.x] = 0
+		subs[self.point2.x] = 0
+		#subs[self.normal.x] = closest.normalOnB[0]
+		subs[self.point1.y] = 0
+		subs[self.point2.y] = 0
+		#subs[self.normal.y] = closest.normalOnB[1]
+		subs[self.point1.z] = 0
+		subs[self.point2.z] = 0
