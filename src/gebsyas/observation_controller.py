@@ -25,7 +25,9 @@ from giskardpy.symengine_wrappers import *
 from geometry_msgs.msg import PoseStamped
 
 from navigation_msgs.msg import NavToPoseActionGoal as ATPGoalMsg
+from navigation_msgs.msg import NavToPoseActionResult as ATPResultMsg
 from actionlib_msgs.msg import GoalID as GoalIDMsg
+from actionlib_msgs.msg import GoalStatus as GoalStatusMsg
 
 from std_msgs.msg import Float64 as Float64Msg
 
@@ -53,6 +55,7 @@ class ObservationController(InEqBulletController):
         self.pub_obs_uba = rospy.Publisher('observation_controller/uba', Float64Msg, queue_size=1, tcp_nodelay=True)
         self.pub_jitter = rospy.Publisher('observation_controller/base_jitter', Float64Msg, queue_size=1, tcp_nodelay=True)
         self.global_nav_mode  = False
+        self.sub_nav_result   = rospy.Subscriber('/nav_to_pose/result', ATPResultMsg, self.handle_nav_result, queue_size=1)
 
         for x in range(3):
             for y in 'xyz'[x:]:
@@ -161,7 +164,6 @@ class ObservationController(InEqBulletController):
         super(ObservationController, self).init(soft_constraints, True)
         self.current_subs[self.s_base_weight] = 1.0
 
-
     def local_nav(self):
         self.pub_cancel.publish(GoalIDMsg())
         self.global_nav_mode = False
@@ -177,6 +179,13 @@ class ObservationController(InEqBulletController):
         self.global_nav_mode = True
         self.current_subs[self.s_base_weight] = 10000
         print('Giving base control to global navigation')
+
+    def handle_nav_result(self, msg):
+        if self.global_nav_mode:
+            if msg.status.status == GoalStatusMsg.SUCCEEDED or msg.status.status == GoalStatusMsg.PREEMPTED:
+                self.local_nav()
+            elif msg.status.status == GoalStatusMsg.ABORTED:
+                self.find_global_pose()
 
     def get_cmd(self, nWSR=None):
         if self.search_objects is not None:
@@ -202,13 +211,15 @@ class ObservationController(InEqBulletController):
         return {}
 
     def is_stuck(self, last_cmd):
-        return False
         now = rospy.Time.now()
         self.base_ang_vels[self.log_cursor] = last_cmd['base_angular_joint']
         self.base_lin_vels[self.log_cursor] = last_cmd['base_linear_joint']
 
         obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
-        if self.last_update != None:
+        if self.last_update is None:
+            self.last_update = now
+            self.last_obs_ub = obs_ub
+        elif (now - self.last_update).to_sec() >= 0.1:
             #print('Is stuck delta t: {}'.format((now - self.last_update).to_sec()))
             delta_t = (now - self.last_update).to_sec()
             v_obs = (obs_ub - self.last_obs_ub) / delta_t
@@ -229,6 +240,10 @@ class ObservationController(InEqBulletController):
             msg.data = jitter_factor
             self.pub_jitter.publish(msg)
 
+            self.last_update = now
+            self.last_obs_ub = obs_ub
+            self.log_cursor = (self.log_cursor + 1) % self.log_length
+            
             if obs_ub < UBA_BOUND and \
                abs(obs_ub) - opt_obs_falloff > 0 and \
                avg_obs_vel < abs(obs_ub) - opt_obs_falloff and \
@@ -238,9 +253,6 @@ class ObservationController(InEqBulletController):
                       avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                 return True
         
-        self.last_obs_ub = obs_ub
-        self.log_cursor = (self.log_cursor + 1) % self.log_length
-        self.last_update = now
 
 
     def update_objects(self, gmm_objects):
@@ -351,7 +363,7 @@ class ObservationController(InEqBulletController):
 
         self.global_nav((goal_x, goal_y, goal_theta))
         self.visualizer.begin_draw_cycle('nav_goal')
-        self.visualizer.draw_mesh('nav_goal', frame3_rpy(0,0,0, [goal_x, goal_y, 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', r=1.0)
+        self.visualizer.draw_mesh('nav_goal', frame3_rpy(0,0,goal_theta, [goal_x, goal_y, 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', r=1.0, a=1.0)
         self.visualizer.render('nav_goal')
 
 

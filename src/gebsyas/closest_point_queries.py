@@ -68,7 +68,7 @@ class ClosestPointQuery_AnyN(ClosestPointQuery):
 			out['closest_any_{}_{}_{}'.format(self.body.bId(), self.link_name, x)] = SC(
 					self.margin - dist, 
 					1000,
-					100,
+					1000,
 					dist)
 
 		return out
@@ -169,7 +169,7 @@ class ClosestPointQuery_Specific_SA(ClosestPointQuery_Specific):
 	def generate_constraints(self):
 		dist = (self.active_frame * self.point1.get_expression()) - self.point2.get_expression()
 		return {'closest_between_{}_{}_and_{}_{}'.format(self.body.bId(), self.link_name, self.other_body.bId(), self.other_link):
-				SC(self.margin - dist, 1000, 100, dist)}
+				SC(self.margin - dist, 1000, 1000, dist)}
 
 	# Returns dict with new values
 	def update_subs_dict(self, simulator, subs, visualizer=None):
@@ -218,7 +218,7 @@ class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 	def generate_constraints(self):
 		dist = norm((self.active_frame * self.point1.get_expression()) - (self.other_active_frame * self.point2.get_expression()))
 		return {'closest_between_{}_{}_and_{}_{}'.format(self.body.bId(), self.link_name, self.other_body.bId(), self.other_link):
-				SC(self.margin - dist, 1000, 100, dist)}
+				SC(self.margin - dist, 1000, 1000, dist)}
 
 	# Returns dict with new values
 	def update_subs_dict(self, simulator, subs, visualizer=None):

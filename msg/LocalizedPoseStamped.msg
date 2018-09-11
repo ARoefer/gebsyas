@@ -1,0 +1,3 @@
+std_msgs/Header header
+geometry_msgs/Twist pose
+geometry_msgs/Twist local_velocity

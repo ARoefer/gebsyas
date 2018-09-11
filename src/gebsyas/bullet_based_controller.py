@@ -93,8 +93,8 @@ class InEqBulletController(InEqController):
                                                 self.robot.get_fk_expression('map', link_a),
                                                 self.robot.get_fk_expression('map', link_b),
                                                 margin)
-            #self.closest_point_queries.append(cpq)
-            #self.avoidance_constraints.update(cpq.generate_constraints())
+            self.closest_point_queries.append(cpq)
+            self.avoidance_constraints.update(cpq.generate_constraints())
 
         self.ppl = ppl
         self.link_cd_inputs = {}
@@ -112,7 +112,8 @@ class InEqBulletController(InEqController):
             elif DLRigidGMMObject.is_a(stamped.data):
                 pose = sorted(stamped.data.gmm)[0].pose
             visualize_obj(stamped.data, self.visualizer, pose, 'obstacles', self.obstacle_color)
-            print('added 1 object to render queue')
+            #print('added 1 object to render queue')
+        #for x in range(1000):
         self.visualizer.render('obstacles')
 
         # start_position = pos_of(start_pose)

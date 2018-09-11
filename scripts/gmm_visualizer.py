@@ -44,9 +44,11 @@ if __name__ == '__main__':
 
     rospy.init_node('gmm_visualizer')
 
-    sub_topic = '/object_metric_states' if len(sys.argv) < 2 else sys.argv[1]
-    pub_topic = '/gmm_vis'              if len(sys.argv) < 3 else sys.argv[2]
-    frame     = 'map'                   if len(sys.argv) < 4 else sys.argv[3]
+    filtered_args = [s for s in sys.argv if ':=' not in s]
+
+    sub_topic = '/object_metric_states' if len(filtered_args) < 2 else filtered_args[1]
+    pub_topic = '/gmm_vis'              if len(filtered_args) < 3 else filtered_args[2]
+    frame     = 'map'                   if len(filtered_args) < 4 else filtered_args[3]
 
     print('Subscribing to: {}\nPublishing at:{}\nIn frame:{}'.format(sub_topic, pub_topic, frame))
 

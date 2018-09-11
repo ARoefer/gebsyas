@@ -141,7 +141,7 @@ class BasicAgent(Agent):
 
     def awake(self, initial_action):
         """Activates the sensors and starts the IO behavior."""
-        rospy.sleep(0.3)
+        #rospy.sleep(10.0)
         try:
             srv_static_geom = rospy.ServiceProxy('/get_static_geometry', GetStaticGeometry)
             res = srv_static_geom()
@@ -197,11 +197,15 @@ class BasicAgent(Agent):
             self.gripper_command_publisher.publish(gripper_command)
 
         base_msg = TwistMsg()
+        publish_base_msg = False
         if 'base_linear_joint' in js_command:
             base_msg.linear.x = js_command['base_linear_joint']
+            publish_base_msg = True
         if 'base_angular_joint' in js_command:
             base_msg.angular.z = js_command['base_angular_joint']
-        self.base_command_publisher.publish(base_msg)
+            publish_base_msg = True
+        if publish_base_msg:
+            self.base_command_publisher.publish(base_msg)
 
     def convert_to_numeric(self, joint_state):
         """Creates a fully numeric version of this agent."""

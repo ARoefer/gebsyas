@@ -1,0 +1,9 @@
+<launch>
+    <arg name="mode" default="direct"/>
+
+    <rosparam command="load" file="$(find gebsyas)/config/fetch_perception_mock.yaml" ns="/sim_config"/>
+    <node name="gebsyas_sim" pkg="gebsyas" type="prob_simulator_node.py" args="$(arg mode)" output="screen">
+        <remap from="/perceived_objects" to="/object_metric_states"/>
+    </node>
+    <!-- <node name="fake_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map odom 10"/> -->
+</launch>

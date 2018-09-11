@@ -58,6 +58,7 @@ add_message_files(
    StringArray.msg
    FloatTable.msg
    Pose2DStamped.msg
+   LocalizedPoseStamped.msg
  )
 
 ## Generate services in the 'srv' folder

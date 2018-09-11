@@ -23,6 +23,7 @@ def blank_marker(Id, namespace, r, g, b, a, frame):
 	out.color.g = g
 	out.color.b = b
 	out.color.a = a
+	out.frame_locked = True
 	return out
 
 
@@ -31,8 +32,8 @@ class ROSVisualizer():
 	def __init__(self, vis_topic, base_frame='base_link', plot_topic='plot'):
 		self.ids     = {}
 		self.lastIds = {}
-		self.publisher = rospy.Publisher(vis_topic, MarkerArray, queue_size=1, tcp_nodelay=1)
-		self.plot_publisher = rospy.Publisher(plot_topic, FloatTable, queue_size=1, tcp_nodelay=1)
+		self.publisher = rospy.Publisher(vis_topic, MarkerArray, queue_size=1, tcp_nodelay=1, latch=True)
+		self.plot_publisher = rospy.Publisher(plot_topic, FloatTable, queue_size=1, tcp_nodelay=1, latch=True)
 		self.base_frame = base_frame
 		self.current_msg = {}
 
@@ -43,7 +44,7 @@ class ROSVisualizer():
 		for layer in layers:
 			if layer not in self.ids:
 				self.ids[layer] = 0
-				print('Added new layer {}'.format(layer))
+				#print('Added new layer {}'.format(layer))
 			self.lastIds[layer] = self.ids[layer]
 			self.ids[layer] = 0
 			self.current_msg[layer] = MarkerArray()
