@@ -1,0 +1,1 @@
+/fetch/joint_states:=/joint_states /fetch/commands/joint_velocities:=/velocity_controller/joint_velocity_controller/joint_velocity_commands /base_command:=/cmd_vel /perceived_objects:=/object_metric_states_temp /searched_objects:=/object_metric_states_temp
