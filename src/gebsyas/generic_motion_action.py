@@ -41,7 +41,7 @@ class GenericMotionAction(Action):
 											   self.allowed_collision_ids,
 											   3,
 											   context.log) #context.log
-			motion_ctrl.init(self.ineq_constraints)
+			motion_ctrl.init(self.ineq_constraints, dynamic_base_weight=True)
 
 			motion_success, m_lf, t_log = run_ineq_controller(context.agent.robot, motion_ctrl, 45.0, 5.5, context.agent, task_constraints=original_constraints)
 

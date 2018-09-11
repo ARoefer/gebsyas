@@ -8,7 +8,7 @@ SymbolicData = namedtuple('SymbolicData', ['data', 'f_convert', 'args'])
 
 JointState = namedtuple('JointState', ['position', 'velocity', 'effort'])
 
-LocalizationPose = namedtuple('LocalizationPose', ['x', 'y', 'z', 'az'])
+LocalizationPose = namedtuple('LocalizationPose', ['x', 'y', 'z', 'az', 'lvx', 'avz'])
 
 
 class GaussianPoseComponent(object):

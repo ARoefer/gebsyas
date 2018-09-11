@@ -1,0 +1,48 @@
+gmm_objects: [pringle, brown_table0]
+gravity: [0, 0, -9.81]
+plugins:
+- {plugin_type: <class 'gebsyas.simulator_plugins.FakeGMMObjectPublisher'>, topic_prefix: ''}
+- map_frame: map
+  objects: [pringle]
+  plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>
+tick_rate: 50
+world:
+  constraints: []
+  objects:
+  - color: [0.28500000000000003, 0.8888069465339584, 0.95, 1.0]
+    extents: [0.03, 0.03, 0.24]
+    geom_type: cylinder
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id001 [0.7619360089302063, -0.0083131343126297, 0.8608989119529724]
+        rotation: &id002 [0.0, 0.0, 0.0, 1.0]
+      weight: 1.0
+    height: 0.24
+    initial_pose:
+      position: *id001
+      rotation: *id002
+    mass: 0.5
+    name: pringle
+    radius: 0.03
+    type: rigid_body
+  - color: [1.2784999907016754, 1, 0, 1]
+    extents: [1.53000009059906, 0.7600000500679016, 0.7400000095367432]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id003 [0.8157106041908264, -0.02572256326675415, 0.3788298964500427]
+        rotation: &id004 [4.29631485943105e-09, 1.149732575811413e-08, -0.765466034412384,
+          0.6434766054153442]
+      weight: 1.0
+    height: 0.7400000095367432
+    initial_pose:
+      position: *id003
+      rotation: *id004
+    mass: 0
+    name: brown_table0
+    radius: 0.76500004529953
+    type: rigid_body

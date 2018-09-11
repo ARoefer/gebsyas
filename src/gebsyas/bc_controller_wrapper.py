@@ -1,8 +1,12 @@
+import rospy
+
 from giskardpy import print_wrapper
 from giskardpy.symengine_controller import SymEngineController
 from giskardpy.qp_problem_builder import JointConstraint
+from giskardpy.qp_problem_builder import SoftConstraint as SC
 from giskardpy.god_map import GodMap
 from giskardpy.symengine_wrappers import Symbol
+from gebsyas.universal_symbols import S_DELTA_T
 from gebsyas.utils import res_pkg_path
 
 class BCControllerWrapper(SymEngineController):
@@ -24,6 +28,14 @@ class BCControllerWrapper(SymEngineController):
                 if hasattr(f, 'free_symbols'):
                     free_symbols = free_symbols.union(f.free_symbols)
         self.set_controlled_joints(free_symbols, dynamic_base_weight)
+        if hasattr(self.robot, 'soft_dynamics_constraints'):
+            for k, c in self.robot.soft_dynamics_constraints.items():
+                if len(c.expression.free_symbols.intersection(free_symbols)) > 0:
+                    soft_constraints[k] = c
+                    for f in c:
+                        if hasattr(f, 'free_symbols'):
+                            free_symbols = free_symbols.union(f.free_symbols)
+
         for jc in self.joint_constraints.values():
             for f in jc:
                 if hasattr(f, 'free_symbols'):
@@ -33,7 +45,12 @@ class BCControllerWrapper(SymEngineController):
                 if hasattr(f, 'free_symbols'):
                     free_symbols = free_symbols.union(f.free_symbols)
         #print('  \n'.join([str(s) for s in free_symbols]))
+
+
         self.free_symbols = free_symbols
+        self.track_dt = S_DELTA_T in self.free_symbols
+        self.last_t   = None
+
         super(BCControllerWrapper, self).init(soft_constraints, free_symbols, self.print_fn)
 
     
@@ -76,6 +93,13 @@ class BCControllerWrapper(SymEngineController):
                 self.current_subs[self.robot.joint_states_input.joint_map[j]] = s.position
 
     def get_cmd(self, nWSR=None):
+        if self.track_dt:
+            now = rospy.Time.now()
+            deltaT = 0.0
+            if self.last_t is not None:
+                deltaT = (now - self.last_t).to_sec()
+            self.current_subs[S_DELTA_T] = 0.5 # deltaT
+            self.last_t = now
         return super(BCControllerWrapper, self).get_cmd({str(s): p for s, p in self.current_subs.items()}, nWSR)
 
     def stop(self):

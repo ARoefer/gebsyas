@@ -45,6 +45,8 @@ class JointStateTracker(Tracker):
 				data_set.data['localization_y'] = JointState(localization.data.y, 0, 0)
 				data_set.data['localization_z'] = JointState(localization.data.z, 0, 0)
 				data_set.data['localization_z_ang'] = JointState(localization.data.az, 0, 0)
+				data_set.data['linear_velocity_x']  = JointState(localization.data.lvx, 0, 0)
+				data_set.data['angular_velocity_z'] = JointState(localization.data.avz, 0, 0)
 				data_set.data['base_linear_joint']  = JointState(0, 0, 0)
 				data_set.data['base_angular_joint'] = JointState(0, 0, 0)
 				data_set.data['base_perp_joint'] = JointState(0, 0, 0)
@@ -105,7 +107,13 @@ class LocalizationTracker(Tracker):
 		super(LocalizationTracker, self).__init__(data_id, data_state)
 
 	def process_data(self, data_set):
-		self.data_state.insert_data(StampedData(data_set.stamp, LocalizationPose(data_set.data.pose.x, data_set.data.pose.y, 0, data_set.data.pose.theta)), self.data_id)
+		self.data_state.insert_data(StampedData(data_set.stamp, 
+			LocalizationPose(data_set.data.pose.linear[0], 
+							 data_set.data.pose.linear[1], 
+							 data_set.data.pose.linear[2], 
+							 data_set.data.pose.angular[2], 
+							 data_set.data.local_velocity.linear[0], 
+							 data_set.data.local_velocity.angular[2])), self.data_id)
 
 
 class SearchObjectTracker(Tracker):

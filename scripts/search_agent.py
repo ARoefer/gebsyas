@@ -57,12 +57,9 @@ if __name__ == '__main__':
 
     #print('{}'.format('\n'.join([str(action) for action in capabilities])))
 
-    if len(sys.argv) == 3:
-        agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities)
-    else:
-        agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities, sys.argv[3])
+    agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities, sys.argv[2])
 
 
 
 
-    agent.awake(MultiObjectSearchAndDeliveryAction(sys.argv[3:], sp.eye(4), True))
+    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=True))

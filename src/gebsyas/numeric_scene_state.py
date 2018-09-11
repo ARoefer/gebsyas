@@ -5,9 +5,11 @@ from gebsyas.data_structures import StampedData, SymbolicData
 from gebsyas.dl_reasoning import DLSphere, DLCube, DLCylinder, DLCompoundObject, DLRigidObject, DLShape, DLRigidGMMObject
 from gebsyas.utils import ros_msg_to_expr
 from gebsyas.predicates import Predicate
+from gebsyas.universal_symbols import S_DELTA_T
 from giskardpy.symengine_wrappers import pos_of
 from yaml import load, dump
 
+from multiprocessing import RLock
 
 def log(msg, prefix=''):
 	if prefix == '':
@@ -161,8 +163,12 @@ class DataDrivenPredicateState(PredicateState):
 
 	def __eval_ineq_constraints(self, context, predicate, fargs, args_tuple):
 		if not min([predicate.dl_args[x].is_a(fargs[x]) for x in range(len(predicate.dl_args))]):
-			raise Exception('Can not evaluate {}({}), because the type signature does not match ({}). Given types: \n  {}'.format(predicate.P, ', '.join(args_tuple), ', '.join([str(dla) for dla in predicate.dl_args]),
-			'\n  '.join('{}: {}'.format(args_tuple[x], ', '.join([str(dla) for dla in self.reasoner.classify(fargs[x])])) for x in range(len(args_tuple)))))
+			raise Exception('Can not evaluate {}({}), because the type signature does not match ({}). Given types: \n  {}'.format(
+								predicate.P, 
+								', '.join(args_tuple), 
+								', '.join([str(dla) for dla in predicate.dl_args]),
+								'\n  '.join('{}: {}'.format(
+										args_tuple[x], ', '.join([str(dla) for dla in self.reasoner.classify(fargs[x])])) for x in range(len(args_tuple)))))
 
 		ineq_constraints = predicate.fp(context, *fargs)
 		if len(ineq_constraints) == 0:
@@ -269,6 +275,7 @@ class DataSceneState(object):
 		self.searchable_objects = searchable_objects
 		self.parent = parent
 		self.data_change_callbacks = {}
+		self.lock = RLock()
 
 	def __getitem__(self, key):
 		return self.find_by_path(key)
@@ -279,20 +286,21 @@ class DataSceneState(object):
 		stream.close()
 
 	def find_by_path(self, path, transparent_symbolics=False):
-		path_stack = path.split('/')
-		if len(path_stack) > 0:
-			if path_stack[0] in self.id_map:
-				return self.__find_by_path(self.id_map[path_stack[0]].data, path_stack[1:], self.id_map[path_stack[0]].stamp, transparent_symbolics)
-			else:
-				for root in self.searchable_objects:
-					out = self.__find_by_path(root, path_stack, rospy.Time.now(), transparent_symbolics)
-					if out.data != None:
-						return out
+		with self.lock:
+			path_stack = path.split('/')
+			if len(path_stack) > 0:
+				if path_stack[0] in self.id_map:
+					return self.__find_by_path(self.id_map[path_stack[0]].data, path_stack[1:], self.id_map[path_stack[0]].stamp, transparent_symbolics)
+				else:
+					for root in self.searchable_objects:
+						out = self.__find_by_path(root, path_stack, rospy.Time.now(), transparent_symbolics)
+						if out.data != None:
+							return out
 
-		if self.parent != None:
-			return self.parent[path]
+			if self.parent != None:
+				return self.parent[path]
 
-		return StampedData(rospy.Time.now(), None)
+			return StampedData(rospy.Time.now(), None)
 
 
 	def __find_by_path(self, obj, path_stack, current_stamp, transparent_symbolics):
@@ -325,26 +333,27 @@ class DataSceneState(object):
 		return DLIterator(self, dl_concept, transparent_symbolics)
 
 	def insert_data(self, stamped_data, Id):
-		if '/' in Id:
-			path = Id[:Id.find('/')]
-			Id  = Id[len(path)+1:]
-			stamped_obj = self.find_by_path(path)
-			if stamped_obj.stamp > stamped_data.stamp:
-				return
-			obj = stamped_obj.data
-			if type(obj) == dict:
-				obj[Id] = stamped_data.data
+		with self.lock:
+			if '/' in Id:
+				path = Id[:Id.find('/')]
+				Id  = Id[len(path)+1:]
+				stamped_obj = self.find_by_path(path)
+				if stamped_obj.stamp > stamped_data.stamp:
+					return
+				obj = stamped_obj.data
+				if type(obj) == dict:
+					obj[Id] = stamped_data.data
+				else:
+					setattr(obj, Id, stamped_data.data)
+				if path[0] in self.id_map:
+					root_obj = self.find_by_path(path[0]).data
+					self.id_map[path[0]] = StampedData(stamped_data.stamp, root_obj)
 			else:
-				setattr(obj, Id, stamped_data.data)
-			if path[0] in self.id_map:
-				root_obj = self.find_by_path(path[0]).data
-				self.id_map[path[0]] = StampedData(stamped_data.stamp, root_obj)
-		else:
-			if Id not in self.id_map or self.id_map[Id].stamp < stamped_data.stamp:
-				self.id_map[Id] = stamped_data
-		if Id in self.data_change_callbacks:
-			for cb in self.data_change_callbacks[Id]:
-				cb(stamped_data.data)
+				if Id not in self.id_map or self.id_map[Id].stamp < stamped_data.stamp:
+					self.id_map[Id] = stamped_data
+			if Id in self.data_change_callbacks:
+				for cb in self.data_change_callbacks[Id]:
+					cb(stamped_data.data)
 
 	def get_data_map(self):
 		out = self.id_map.copy()
@@ -370,16 +379,18 @@ class DataIterator(object):
 		self.data_state = data_state
 		self.__state_iter = None
 		self.__state = 0
+		self.lock = data_state.lock
 
 	def __iter__(self):
 		return self
 
 	def next(self): # Python 3: def __next__(self)
 		if self.__state_iter == None:
-			self.__state_iter = self.data_state.id_map.iteritems()
+			self.__state_iter = iter(self.data_state.id_map.items())
 
 		try:
-			return self.__state_iter.next()
+			with self.lock:
+				return self.__state_iter.next()
 		except StopIteration as e:
 			self.__state += 1
 

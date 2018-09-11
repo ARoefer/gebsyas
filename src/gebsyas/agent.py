@@ -7,7 +7,7 @@ import yaml
 from control_msgs.msg import GripperCommandActionGoal
 from geometry_msgs.msg import Twist as TwistMsg
 
-from gebsyas.msg import Pose2DStamped as Pose2DStampedMsg
+from gebsyas.msg import LocalizedPoseStamped as LPSMsg
 
 from gebsyas.actions import Context, Logger, ActionManager
 from gebsyas.dl_reasoning import DLAtom, DLRigidObject, DLIded
@@ -99,7 +99,7 @@ class BasicAgent(Agent):
         self.add_sensor('joint sensor', TopicSensor(self.on_joint_state_sensed, '/{}/joint_states'.format(robot._urdf_robot.name), sensor_msgs.msg.JointState))
         self.add_tracker(JointStateTracker('joint_state', self.data_state))
         self.add_tracker(LocalizationTracker('localization', self.data_state))
-        self.add_sensor('localization', TopicSensor(self.trackers['localization'].process_data, '/{}/localization'.format(robot._urdf_robot.name), Pose2DStampedMsg, 1))
+        self.add_sensor('localization', TopicSensor(self.trackers['localization'].process_data, '/{}/localization'.format(robot._urdf_robot.name), LPSMsg, 1))
         self.reasoner.add_to_abox((self.name, DLAgent()))
         self.robot = robot
         self.frame_of_reference = self.robot.get_fk_expression('map', 'base_link')[:4, :3].row_join(pos_of(self.robot.camera.pose))
@@ -141,9 +141,7 @@ class BasicAgent(Agent):
 
     def awake(self, initial_action):
         """Activates the sensors and starts the IO behavior."""
-        super(BasicAgent, self).awake()
         rospy.sleep(0.3)
-        self.smwyg_pub.publish(std_msgs.msg.Empty())
         try:
             srv_static_geom = rospy.ServiceProxy('/get_static_geometry', GetStaticGeometry)
             res = srv_static_geom()
@@ -153,7 +151,10 @@ class BasicAgent(Agent):
                 self.data_state.insert_data(StampedData(rospy.Time.now(), obj), obj.id)
         except (rospy.ServiceException, rospy.ROSException), e:
             print('Service call to retrieve static geometry failed.')
+        super(BasicAgent, self).awake()
+        self.smwyg_pub.publish(std_msgs.msg.Empty())
         initial_action.execute(Context(self, self.logger, self.visualizer))
+        self.sleep()
         f = open(self.memory_path, 'w+')
         f.write(yaml.dump(self.memory))
         f.close()

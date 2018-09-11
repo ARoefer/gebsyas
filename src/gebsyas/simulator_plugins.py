@@ -7,7 +7,7 @@ from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform, hs
 from iai_bullet_sim.rigid_body import RigidBody
 from iai_bullet_sim.multibody import SimpleBaseDriver
 
-from gebsyas.msg import Pose2DStamped as Pose2DStampedMsg
+from gebsyas.msg import LocalizedPoseStamped as LPSMsg
 from gebsyas.utils import expr_to_rosmsg
 from gebsyas.simulator import frame_tuple_to_sym_frame
 from gebsyas.ros_visualizer import ROSVisualizer
@@ -277,7 +277,7 @@ class LocalizationPublisher(SimulatorPlugin):
         super(LocalizationPublisher, self).__init__('LocalizationPublisher')
         self.body = body
         self.topic_prefix = topic_prefix
-        self.publisher = rospy.Publisher('{}/localization'.format(topic_prefix), Pose2DStampedMsg, queue_size=1, tcp_nodelay=True)
+        self.publisher = rospy.Publisher('{}/localization'.format(topic_prefix), LPSMsg, queue_size=1, tcp_nodelay=True)
         self._enabled = True
 
 
@@ -291,15 +291,24 @@ class LocalizationPublisher(SimulatorPlugin):
             return
 
         pose = self.body.pose()
-        msg = Pose2DStampedMsg()
-        msg.header.stamp = rospy.Time.now()
-        msg.pose.x = pose.position[0]
-        msg.pose.y = pose.position[1]
+        msg = LPSMsg()
+        msg.header.stamp  = rospy.Time.now()
+        msg.pose.linear.x = pose.position[0]
+        msg.pose.linear.y = pose.position[1]
         x2 = pose.quaternion[0] * pose.quaternion[0]
         y2 = pose.quaternion[1] * pose.quaternion[1]
         z2 = pose.quaternion[2] * pose.quaternion[2]
         w2 = pose.quaternion[3] * pose.quaternion[3]
-        msg.pose.theta = z = math.atan2(2 * pose.quaternion[0] * pose.quaternion[1] + 2 * pose.quaternion[3] * pose.quaternion[2], w2 + x2 - y2 - z2)
+        msg.pose.angular.z = math.atan2(2 * pose.quaternion[0] * pose.quaternion[1] + 2 * pose.quaternion[3] * pose.quaternion[2], w2 + x2 - y2 - z2)
+        inv_pos, inv_rot = pb.invertTransform(pose.position, pose.quaternion)
+        lv, trash = pb.multiplyTransforms((0,0,0), inv_rot, self.body.linear_velocity(), (0,0,0,1))
+        av, trash = pb.multiplyTransforms((0,0,0), inv_rot, self.body.angular_velocity(), (0,0,0,1))
+        msg.local_velocity.linear.x = lv[0]
+        msg.local_velocity.linear.y = lv[1]
+        msg.local_velocity.linear.z = lv[2]
+        msg.local_velocity.angular.x = av[0]
+        msg.local_velocity.angular.y = av[1]
+        msg.local_velocity.angular.z = av[2]
         self.publisher.publish(msg)
 
     def disable(self, simulator):
@@ -580,14 +589,15 @@ class LaserScanner(SimulatorPlugin):
 
         self.conversion_factor = range_max - range_min
         
-        self.axis = vector3(*axis)
+        self.axis = axis
+        e_axis = vector3(*axis)
         #print(self.axis)
 
         self.raw_start_points = np.hstack([
-                                        (rotation3_axis_angle(self.axis, ang_min + ang_step * x) * point3(range_min,0,0)).tolist() 
+                                        (rotation3_axis_angle(e_axis, ang_min + ang_step * x) * point3(range_min,0,0)).tolist() 
                                         for x in range(resolution)]).astype(float)
         self.raw_end_points = np.hstack([
-                                        (rotation3_axis_angle(self.axis, ang_min + ang_step * x) * point3(range_max,0,0)).tolist() 
+                                        (rotation3_axis_angle(e_axis, ang_min + ang_step * x) * point3(range_max,0,0)).tolist() 
                                         for x in range(resolution)]).astype(float)
         #print('\n'.join([str(l) for l in self.raw_end_points[:,:10].tolist()])) # 
         self._enabled = True

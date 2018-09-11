@@ -68,7 +68,7 @@ class BasicGraspAffordances(object):
         """Generates a set of constraints to grasp an infinite axis."""
         gripper_frame = gripper.pose
         gripper_z = z_of(gripper_frame)
-        gripper_pos = pos_of(gripper_frame)
+        gripper_pos = gripper_frame * point3(-0.02, 0, 0) #pos_of(gripper_frame)
         p2g = gripper_pos - point
         #      Align z axis of gripper and axis; Align gripper position to axis
         pos_alignment_expr = norm(cross(dir, p2g))
@@ -78,11 +78,11 @@ class BasicGraspAffordances(object):
         reach_dist = norm(cross(dir, gripper.pivot_position - point))
 
         pa_sc = SC(-pos_alignment_expr * rot_alignment_expr, 
-                   0.01-pos_alignment_expr * rot_alignment_expr, 
+                   0.015-pos_alignment_expr * rot_alignment_expr, 
                    1, 
                    pos_alignment_expr)
         ra_sc = SC(- asin(rot_expr), 
-                   - asin(rot_expr), 
+                   0.1 - asin(rot_expr), 
                    1, 
                    rot_expr)
         out = cls.__gen_reachability(gripper, [reach_dist], {'axis_position_alignment': pa_sc})
@@ -181,57 +181,70 @@ class BasicGraspAffordances(object):
     def box_grasp(cls, gripper, frame, dx, dy, dz):
         """Generates a set of constraints to grasp a box."""
         gx = x_of(gripper.pose)
-        gz = z_of(gripper.pose)
+        gy = y_of(gripper.pose)
 
         bx = x_of(frame)
         by = y_of(frame)
         bz = z_of(frame)
 
-        raxx = 1 - norm(cross(gx, bx))
-        raxy = 1 - norm(cross(gx, by))
-        raxz = 1 - norm(cross(gx, bz))
-
-        razx = 1 - norm(cross(gz, bx))
-        razy = 1 - norm(cross(gz, by))
-        razz = 1 - norm(cross(gz, bz))
-
-        x_grasp_depth = Max(dx * 0.5 - 0.04, 0) # TODO: Add finger length
-        y_grasp_depth = Max(dy * 0.5 - 0.04, 0) # TODO: Add finger length
-        z_grasp_depth = Max(dz * 0.5 - 0.04, 0) # TODO: Add finger length
-
-        dx_sm = dx * 0.5 + 0.015 - gripper.height
-        dy_sm = dy * 0.5 + 0.015 - gripper.height
-        dz_sm = dz * 0.5 + 0.015 - gripper.height
-
-        x_grasp_feasibility = fake_heaviside(gripper.max_opening - dx_sm)
-        y_grasp_feasibility = fake_heaviside(gripper.max_opening - dy_sm)
-        z_grasp_feasibility = fake_heaviside(gripper.max_opening - dz_sm)
-
-        # Distances in box-coords
         b2g = pos_of(gripper.pose) - pos_of(frame)
-        distx  = fake_Abs(dot(b2g, bx))
-        disty  = fake_Abs(dot(b2g, by))
-        distz  = fake_Abs(dot(b2g, bz))
 
+        x_margin = Max(dx * 0.5 - 0.04, 0)
+        y_margin = Max(dy * 0.5 - 0.04, 0)
+        z_margin = Max(dz * 0.5 - 0.04, 0)
 
-        rot_goal_expr = fake_Max(raxx*razz*y_grasp_feasibility,
-                            raxx*razy*z_grasp_feasibility,
-                            raxy*razz*x_grasp_feasibility,
-                            raxy*razx*z_grasp_feasibility,
-                            raxz*razx*y_grasp_feasibility,
-                            raxz*razy*x_grasp_feasibility)
+        g_in_b = point3(dot(bx, b2g), dot(by, b2g), dot(bz, b2g))
+        abs_g_in_b = point3(fake_Abs(g_in_b[0]), fake_Abs(g_in_b[1]), fake_Abs(g_in_b[2]))
 
+        x_disk_weight = Symbol('x_disk_weight')
+        y_disk_weight = Symbol('y_disk_weight')
+        z_disk_weight = Symbol('z_disk_weight')
 
-        rot_goal_sc = SC(1 - rot_goal_expr, 1 - rot_goal_expr, 1, rot_goal_expr)
-        x_coord_sc  = SC(x_grasp_depth * raxx - distx, Max(raxy*razz, raxz*razy) * -distx + (dx_sm - distx) * razx, 1, distx)
-        y_coord_sc  = SC(y_grasp_depth * raxy - disty, Max(raxx*razz, raxz*razx) * -disty + (dy_sm - disty) * razy, 1, disty)
-        z_coord_sc  = SC(z_grasp_depth * raxz - distz, Max(raxy*razx, raxx*razy) * -distz + (dz_sm - distz) * razz, 1, distz)
+        out = {}
+        if dx <= gripper.max_opening - 0.02:
+            r_align_x_disk = 1 - norm(cross(gy, bx))
+            out['x_disk_plane_position'] = SC(-0.01 - g_in_b[0], 0.01 - g_in_b[0], x_disk_weight, g_in_b[0])
+            rot_term = asin(norm(cross(gy, bx)))
+            out['x_disk_rotation_align'] = SC(-rot_term, 0.1 - rot_term,      x_disk_weight, rot_term)
+            out['x_disk_in_y'] = SC(-y_margin - g_in_b[1], y_margin - g_in_b[1], x_disk_weight, g_in_b[1])
+            out['x_disk_in_z'] = SC(-z_margin - g_in_b[2], z_margin - g_in_b[2], x_disk_weight, g_in_b[2])
+        else:
+            r_align_x_disk = 0
 
-        return {'rot_goal': rot_goal_sc, 
-                'x_coord' : x_coord_sc, 
-                'y_coord' : y_coord_sc, 
-                'z_coord' : z_coord_sc, 
-                'open_gripper': cls.__gen_open_gripper(gripper, gripper.max_opening, safety_margin=0)}
+        if dy <= gripper.max_opening - 0.02:
+            r_align_y_disk = 1 - norm(cross(gy, by))
+            out['y_disk_plane_position'] = SC(-0.01 - g_in_b[1], 0.01 - g_in_b[1], y_disk_weight, g_in_b[1])
+            rot_term = asin(norm(cross(gy, by)))
+            out['y_disk_rotation_align'] = SC(-rot_term, 0.1 - rot_term,      y_disk_weight, rot_term)
+            out['y_disk_in_x'] = SC(-x_margin - g_in_b[0], x_margin - g_in_b[0], y_disk_weight, g_in_b[0])
+            out['y_disk_in_z'] = SC(-z_margin - g_in_b[2], z_margin - g_in_b[2], y_disk_weight, g_in_b[2])
+        else:
+            r_align_y_disk = 0
+
+        if dz <= gripper.max_opening - 0.02:
+            r_align_z_disk = 1 - norm(cross(gy, bz))
+            out['z_disk_plane_position'] = SC(-g_in_b[2], 0.01 - g_in_b[2], z_disk_weight, g_in_b[2])
+            rot_term = asin(norm(cross(gy, bz)))
+            out['z_disk_rotation_align'] = SC(-rot_term, 0.1 - rot_term,      z_disk_weight, rot_term)
+            out['z_disk_in_x'] = SC(-x_margin - g_in_b[0], x_margin - g_in_b[0], z_disk_weight, g_in_b[0])
+            out['z_disk_in_y'] = SC(-y_margin - g_in_b[1], y_margin - g_in_b[1], z_disk_weight, g_in_b[1])
+        else:
+            r_align_z_disk = 0
+
+        x_weight_subs = (1 - Max(r_align_y_disk, r_align_z_disk)) * cls.__gen_grasp_expr(gripper, dx)
+        y_weight_subs = (1 - Max(r_align_x_disk, r_align_z_disk)) * cls.__gen_grasp_expr(gripper, dy)
+        z_weight_subs = (1 - Max(r_align_y_disk, r_align_x_disk)) * cls.__gen_grasp_expr(gripper, dz)
+
+        s_dict = {x_disk_weight: x_weight_subs,
+                  y_disk_weight: y_weight_subs,
+                  z_disk_weight: z_weight_subs}
+
+        for n, sc in out.items():
+            out[n] = SC(sc.lower, sc.upper, sc.weight.subs(s_dict), sc.expression)
+
+        out['open_gripper'] = cls.__gen_open_gripper(gripper, min(gripper.max_opening, max(dx, dy, dz)))
+
+        return out
 
 
     @classmethod

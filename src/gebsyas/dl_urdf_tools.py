@@ -18,7 +18,7 @@ def add_dl_object_to_urdf(urdf_model, attachment_link, dl_object, transform):
 	elif DLSphere.is_a(dl_object):
 		geometry  = Sphere(dl_object.radius)
 	elif DLCube.is_a(dl_object):
-		geometry  = Box([dl_object.depth, dl_object.width, dl_object.height])
+		geometry  = Box([dl_object.depth, dl_object.length, dl_object.height])
 	else:
 		raise Exception('Unsupported object shape')
 

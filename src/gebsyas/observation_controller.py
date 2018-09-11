@@ -22,6 +22,7 @@ from gebsyas.utils   import symbol_formatter, real_quat_from_matrix
 from giskardpy.input_system import FrameInput, Vector3Input
 from giskardpy.qp_problem_builder import SoftConstraint as SC
 from giskardpy.symengine_wrappers import *
+from geometry_msgs.msg import PoseStamped
 
 from navigation_msgs.msg import NavToPoseActionGoal as ATPGoalMsg
 from actionlib_msgs.msg import GoalID as GoalIDMsg
@@ -178,36 +179,37 @@ class ObservationController(InEqBulletController):
         print('Giving base control to global navigation')
 
     def get_cmd(self, nWSR=None):
-        with self.lock:
-            if self.search_objects is not None:
-                self.re_eval_focused_object()
-            if self.goal_obj_index > -1:
-                cmd = super(ObservationController, self).get_cmd(nWSR)
-                obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
-                if VULCAN_FALLBACK:
-                    if not self.global_nav_mode:
-                        if self.is_stuck(cmd):
-                            self.find_global_pose()
-                else:
-                    if obs_ub < UBA_BOUND and not self.global_nav_mode:
+        if self.search_objects is not None:
+            self.re_eval_focused_object()
+        if self.goal_obj_index > -1:
+            cmd = super(ObservationController, self).get_cmd(nWSR)
+            obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
+            if VULCAN_FALLBACK:
+                if not self.global_nav_mode:
+                    if self.is_stuck(cmd):
                         self.find_global_pose()
+            else:
+                if obs_ub < UBA_BOUND and not self.global_nav_mode:
+                    self.find_global_pose()
 
-                if self.global_nav_mode:
-                    del cmd['base_angular_joint']
-                    del cmd['base_linear_joint']
-                    if obs_ub >= UBA_BOUND:
-                        self.local_nav()
-                return cmd
-            self.print_fn('Waiting for updated object information')
-            return {}
+            if self.global_nav_mode:
+                del cmd['base_angular_joint']
+                del cmd['base_linear_joint']
+                if obs_ub >= UBA_BOUND:
+                    self.local_nav()
+            return cmd
+            #self.print_fn('Waiting for updated object information')
+        return {}
 
     def is_stuck(self, last_cmd):
+        return False
         now = rospy.Time.now()
         self.base_ang_vels[self.log_cursor] = last_cmd['base_angular_joint']
         self.base_lin_vels[self.log_cursor] = last_cmd['base_linear_joint']
 
         obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
         if self.last_update != None:
+            #print('Is stuck delta t: {}'.format((now - self.last_update).to_sec()))
             delta_t = (now - self.last_update).to_sec()
             v_obs = (obs_ub - self.last_obs_ub) / delta_t
             self.obs_vels[self.log_cursor] = v_obs
@@ -227,7 +229,11 @@ class ObservationController(InEqBulletController):
             msg.data = jitter_factor
             self.pub_jitter.publish(msg)
 
-            if obs_ub < UBA_BOUND and abs(obs_ub) - opt_obs_falloff > 0 and avg_obs_vel < abs(obs_ub) - opt_obs_falloff and (avg_ang_vel < 0.1 or jitter_factor > 0.3) and avg_obs_vel < 0.1:
+            if obs_ub < UBA_BOUND and \
+               abs(obs_ub) - opt_obs_falloff > 0 and \
+               avg_obs_vel < abs(obs_ub) - opt_obs_falloff and \
+               (avg_ang_vel < 0.1 or jitter_factor > 0.3) and \
+               avg_obs_vel < 0.1:
                 print('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
                       avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                 return True
@@ -238,14 +244,14 @@ class ObservationController(InEqBulletController):
 
 
     def update_objects(self, gmm_objects):
-        with self.lock:
-            self.search_objects = gmm_objects
-            self.update_object_terms()
+        self.search_objects = gmm_objects
+        self.update_object_terms()
 
     def reset_search(self):
         self.search_objects = None
         self.goal_obj_index = -1
         self.goal_gmm_index = -1
+        self.last_t = None
 
     def re_eval_focused_object(self):
         new_obj_index = -1
@@ -339,10 +345,14 @@ class ObservationController(InEqBulletController):
                     break
             #self.visualizer.render()
 
-        self.global_nav((base_subs[self.base_integrator.symbol_map['localization_x']],
-                         base_subs[self.base_integrator.symbol_map['localization_y']],
-                         base_subs[self.base_integrator.symbol_map['localization_z_ang']]))
+        goal_x = base_subs[self.base_integrator.symbol_map['localization_x']]
+        goal_y = base_subs[self.base_integrator.symbol_map['localization_y']]
+        goal_theta = base_subs[self.base_integrator.symbol_map['localization_z_ang']]
 
+        self.global_nav((goal_x, goal_y, goal_theta))
+        self.visualizer.begin_draw_cycle('nav_goal')
+        self.visualizer.draw_mesh('nav_goal', frame3_rpy(0,0,0, [goal_x, goal_y, 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', r=1.0)
+        self.visualizer.render('nav_goal')
 
 
     def update_object_terms(self):
@@ -376,6 +386,7 @@ class ObservationController(InEqBulletController):
 
     def stop(self):
         self.context.agent.remove_data_cb(self.data_id, self.update_objects)
+        self.pub_cancel.publish(GoalIDMsg())
         super(ObservationController, self).stop()
 
 
@@ -553,10 +564,12 @@ class ObservationRunner(object):
         self.f_send_command(command)
         if self.controller.goal_obj_index > -1:
             cov = self.controller.current_cov
+            c_obj = self.controller.get_current_object()
+            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else [self.t_variance] * 3
             self.terminate = self.controller.current_weight >= self.t_weight and \
-                             abs(cov[0,0]) <= self.t_variance and \
-                             abs(cov[1,1]) <= self.t_variance and \
-                             abs(cov[2,2]) <= self.t_variance
+                             abs(cov[0,0]) <= t_var[0] and \
+                             abs(cov[1,1]) <= t_var[1] and \
+                             abs(cov[2,2]) <= t_var[2]
         self.last_update = now
 
 def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):

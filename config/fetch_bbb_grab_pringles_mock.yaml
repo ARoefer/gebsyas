@@ -1,10 +1,10 @@
-gmm_objects: [pringle, brown_table0]
+gmm_objects: [pringle, cereal, brown_table0]
 gravity: [0, 0, -9.81]
 plugins:
-- {plugin_type: <class 'gebsyas.simulator_plugins.FakeGMMObjectPublisher'>, topic_prefix: ''}
 - map_frame: map
-  objects: [pringle]
+  objects: [pringle, cereal]
   plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>
+- {plugin_type: <class 'gebsyas.simulator_plugins.FakeGMMObjectPublisher'>, topic_prefix: ''}
 tick_rate: 50
 world:
   constraints: []
@@ -12,21 +12,55 @@ world:
   - color: [0.28500000000000003, 0.8888069465339584, 0.95, 1.0]
     extents: [0.03, 0.03, 0.24]
     geom_type: cylinder
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id001 [7.117447376251221, -11.062507629394531, 0.8606793880462646]
+        rotation: &id002 [0.0, 0.0, 0.0, 1.0]
+      weight: 1.0
     height: 0.24
     initial_pose:
-      position: [0.8119763135910034, -0.055259451270103455, 0.8634161353111267]
-      rotation: [0, 0, 0, 1]
+      position: *id001
+      rotation: *id002
     mass: 0.5
     name: pringle
     radius: 0.03
     type: rigid_body
-  - color: [1.2784999907016754, 1, 0, 1]
-    extents: [1.53000009059906, 0.7600000500679016, 0.7400000095367432]
+  - color: [0.8, 0.8888069465339584, 0.7, 1.0]
+    extents: [0.055, 0.19, 0.245]
     geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id003 [7.145534038543701, -10.816664695739746, 0.8759176731109619]
+        rotation: &id004 [-3.815723914613045e-08, 3.658421343644136e-10, 0.6130452156066895,
+          0.790047824382782]
+      weight: 1.0
+    height: 0.24
+    initial_pose:
+      position: *id003
+      rotation: *id004
+    mass: 0.8
+    name: cereal
+    radius: 0.03
+    type: rigid_body
+  - color: [1.2784999907016754, 1, 0, 1]
+    extents: [0.7600000500679016, 1.53000009059906, 0.7500000095367432]
+    geom_type: box
+    gmm:
+    - cov: [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+      pose:
+        position: &id005 [7.176877498626709, -11.080035209655762, 0.37838882207870483]
+        rotation: &id006 [-3.1005441769593745e-08, -3.35504424242572e-08, -0.0216255821287632,
+          0.9997661709785461]
+      weight: 1.0
     height: 0.7400000095367432
     initial_pose:
-      position: [0.9979207515716553, -0.09882456064224243, 0.3788298964500427]
-      rotation: [0.0, -0.0, -0.7056991457939148, 0.7085115909576416]
+      position: *id005
+      rotation: *id006
     mass: 0
     name: brown_table0
     radius: 0.76500004529953

@@ -144,7 +144,7 @@ class DirectedSpatialRelations(object):
         b2a = pos_of(pose_a) - pos_of(pose_b)
         planar_dist = norm(diag(1,1,0,1) * b2a)
         z_dist = b2a[2]
-        out = {'planar_distance': SC(-planar_dist, 0.1 - planar_dist, 1, planar_dist),
+        out = {'planar_distance': SC(-planar_dist, 0.01 - planar_dist, 1, planar_dist),
                'hovering': SC(obj_b.height - z_dist, obj_b.height + 0.1 - z_dist, 1, z_dist)}
 
         return out

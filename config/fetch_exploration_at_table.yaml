@@ -87,3 +87,14 @@ world:
     name: ball
     radius: 0.04
     type: rigid_body
+  - color: [0.8, 0.8888069465339584, 0.7, 1.0]
+    extents: [0.055, 0.19, 0.245]
+    geom_type: box
+    height: 1.0
+    initial_pose:
+      position: [2.47156400680542, 2.556291151046753, 1.8592312335968018]
+      rotation: [0.0, 0.0, 0.0, 1.0]
+    mass: 1.0
+    name: cereal
+    radius: 1.0
+    type: rigid_body

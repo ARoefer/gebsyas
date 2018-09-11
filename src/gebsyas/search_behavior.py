@@ -2,7 +2,7 @@ import rospy
 from gebsyas.actions import Action
 from gebsyas.generic_motion_action import GenericMotionAction
 from gebsyas.grasp_action import GraspAction, LetGoAction
-from gebsyas.predicates import IsGrasped, Graspable, Above, PointingAt, ClearlyPerceived, IsControlled
+from gebsyas.predicates import IsGrasped, Graspable, Above, PointingAt, ClearlyPerceived, IsControlled,InPosture
 from gebsyas.data_structures import StampedData
 from gebsyas.dl_reasoning import DLTop, DLExistsRA, DLDisjunction, DLRigidObject, DLRigidGMMObject
 from gebsyas.observation_controller import ObservationController, run_observation_controller
@@ -55,8 +55,10 @@ class MultiObjectSearchAndDeliveryAction(Action):
         delivery_box = bb(width=0.33, height=0.14, length=0.31, mass=0.5, pose=robot.get_fk_expression('map', 'box_link'))
 
         stupid_thing = bb(radius=0.035, height=0.2, mass=1.0, pose=(robot.gripper.pose * translation3(0,0,0.1)))
+        print(context.agent.memory.keys())
+        posture = context.agent.memory['basic_stance']
 
-        self.execute_subaction(context, GenericMotionAction(Above.fp(context, stupid_thing, delivery_box, context.agent)))
+        #self.execute_subaction(context, GenericMotionAction(InPosture.fp(context, robot.state.data, posture)))
 
         observation_controller = ObservationController(context,
                                                 data_state.dl_data_iterator(DLDisjunction(DLRigidObject, DLRigidGMMObject)),
@@ -69,6 +71,7 @@ class MultiObjectSearchAndDeliveryAction(Action):
         self.set_search_request(self.searched_ids)
 
         while not rospy.is_shutdown() and not len(self.searched_ids) == 0:
+            context.log('New searched ids: {}'.format(', '.join(self.searched_ids)))
             observation_controller.reset_search()
             b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.02, 0.9)
             if b_found_object:
@@ -80,18 +83,18 @@ class MultiObjectSearchAndDeliveryAction(Action):
 
                 if len({i for i in self.searched_ids if i in found_id}) > 0:
                     found_obj = observation_controller.get_current_object()
-                    self.execute_subaction(context, GenericMotionAction(Graspable.fp(context, robot.gripper, found_obj), {found_id}))
-                    self.execute_subaction(context, GraspAction(robot, robot.gripper, found_obj))
+                    # self.execute_subaction(context, GenericMotionAction(Graspable.fp(context, robot.gripper, found_obj), {found_id}))
+                    # self.execute_subaction(context, GraspAction(robot, robot.gripper, found_obj))
 
-                    context.log('IsControlled({}) = {}'.format(found_id, predicate_state.evaluate(context, IsControlled, (found_id, ))))
-                    #TODO: Drop into box
-                    self.execute_subaction(context, GenericMotionAction(Above.fp(context, data_state[found_id].data.data, delivery_box, context.agent)))
-                    self.execute_subaction(context, LetGoAction(robot, robot.gripper, found_obj))
+                    # context.log('IsControlled({}) = {}'.format(found_id, predicate_state.evaluate(context, IsControlled, (found_id, ))))
+                    # #TODO: Drop into box
+                    # self.execute_subaction(context, GenericMotionAction(Above.fp(context, data_state[found_id].data.data, delivery_box, context.agent)))
+                    # self.execute_subaction(context, LetGoAction(robot, robot.gripper, found_obj))
 
-                    if self.sim_mode:
-                        self.searched_ids = {i for i in self.searched_ids if i not in found_id}
-                    else:
-                        self.searched_ids.remove(found_id)
+                    #if self.sim_mode:
+                    self.searched_ids = {i for i in self.searched_ids if i not in found_id}
+                    #else:
+                    #    self.searched_ids.remove(found_id)
 
                     if len(self.searched_ids) > 0:
                         self.set_search_request(self.searched_ids)
@@ -99,6 +102,7 @@ class MultiObjectSearchAndDeliveryAction(Action):
             else:
                 context.log('observation controller should never return unsuccessfully unless it was terminated from the outside.')
             #rospy.sleep(0.3)
+        observation_controller.stop()
         context.display.render()
 
     def set_search_request(self, objects):

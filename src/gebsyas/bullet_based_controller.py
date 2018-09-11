@@ -20,6 +20,8 @@ from iai_bullet_sim.utils import Frame
 from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 
+from multiprocessing import Lock
+
 LinkCDInput = namedtuple('LinkCDInput', ['in_on_link', 'in_in_world', 'in_normal', 'safety_margin'])
 
 
@@ -65,7 +67,7 @@ class InEqBulletController(InEqController):
                         add_dl_object_to_urdf(temp_urdf, manipulator.link_name, num_object, obj_in_manipulator)
 
                         #logging(stamped.data.pose)
-                        self.controlled_objects[Id] = num_object
+                        self.controlled_objects[Id] = stamped.data
                         break
 
         f = open('{}_temp.urdf'.format(robot_name), 'w+')
@@ -80,11 +82,19 @@ class InEqBulletController(InEqController):
             self.closest_point_queries.append(cpq)
             self.avoidance_constraints.update(cpq.generate_constraints())
 
+        for Id, sym_object in self.controlled_objects.items():
+            cpq = ClosestPointQuery_AnyN(self.bullet_bot, Id, sym_object.pose, 0.02, filter=self.filter_set, n=4, aabb_border=0.1)
+            self.closest_point_queries.append(cpq)
+            self.avoidance_constraints.update(cpq.generate_constraints())            
+
+
         for link_a, link_b, margin in self.robot.self_collision_avoidance_pairs:
             cpq = ClosestPointQuery_Specific_BA(self.bullet_bot, link_a, self.bullet_bot, link_b, 
                                                 self.robot.get_fk_expression('map', link_a),
                                                 self.robot.get_fk_expression('map', link_b),
                                                 margin)
+            #self.closest_point_queries.append(cpq)
+            #self.avoidance_constraints.update(cpq.generate_constraints())
 
         self.ppl = ppl
         self.link_cd_inputs = {}
@@ -102,6 +112,7 @@ class InEqBulletController(InEqController):
             elif DLRigidGMMObject.is_a(stamped.data):
                 pose = sorted(stamped.data.gmm)[0].pose
             visualize_obj(stamped.data, self.visualizer, pose, 'obstacles', self.obstacle_color)
+            print('added 1 object to render queue')
         self.visualizer.render('obstacles')
 
         # start_position = pos_of(start_pose)

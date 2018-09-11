@@ -216,7 +216,7 @@ class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 
 	# Returns dict with new values
 	def generate_constraints(self):
-		dist = (self.active_frame * self.point1.get_expression()) - (self.other_active_frame * self.point2.get_expression())
+		dist = norm((self.active_frame * self.point1.get_expression()) - (self.other_active_frame * self.point2.get_expression()))
 		return {'closest_between_{}_{}_and_{}_{}'.format(self.body.bId(), self.link_name, self.other_body.bId(), self.other_link):
 				SC(self.margin - dist, 1000, 100, dist)}
 
@@ -225,7 +225,7 @@ class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 		closest = self.body.get_closest_points(self.other_body, self.link_name, self.other_link, self.dist)
 		if len(closest) > 0:
 			link_frame_inv  = invert_transform(self.body.get_link_state(self.link_name).worldFrame)
-			other_frame_inv = invert_transform(self.other_body.get_link_state(self.other_link_name).worldFrame)
+			other_frame_inv = invert_transform(self.other_body.get_link_state(self.other_link).worldFrame)
 			closest = closest[0]
 			if visualizer != None:
 				visualizer.draw_arrow('cpq', closest.posOnB, closest.posOnA, r=0, b=0)
@@ -241,6 +241,8 @@ class ClosestPointQuery_Specific_BA(ClosestPointQuery_Specific):
 			#subs[self.normal.y] = closest.normalOnB[1]
 			subs[self.point1.z] = onA[2]
 			subs[self.point2.z] = onB[2]
+		else:
+			self.reset_subs_dict(subs)
 			#subs[self.normal.z] = closest.normalOnB[2]
 
 	def reset_subs_dict(self, subs):

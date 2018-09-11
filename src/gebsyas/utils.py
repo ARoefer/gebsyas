@@ -227,7 +227,7 @@ def ros_msg_to_expr(ros_msg):
 	elif t_msg == PointMsg:
 		return point3(ros_msg.x, ros_msg.y, ros_msg.z)
 	elif t_msg == Vector3Msg:
-		return vec3(ros_msg.x, ros_msg.y, ros_msg.z)
+		return vector3(ros_msg.x, ros_msg.y, ros_msg.z)
 	elif t_msg == QuaternionMsg:
 		return rotation3_quaternion(ros_msg.x, ros_msg.y, ros_msg.z, ros_msg.w)
 	elif t_msg == PoseStampedMsg:
@@ -369,13 +369,13 @@ def bb(**kwargs):
 	return out
 
 def decode_obj_shape(name, out):
-	if name == 'coke':
+	if name == 'coke' or name == 'sprite':
 		out.radius = 0.034
 		out.height = 0.126
 		out.presurized = True
 		out.mass   = 0.4
 	elif name == 'pringle':
-		out.radius = 0.039
+		out.radius = 0.037
 		out.height = 0.248
 		out.mass   = 0.3
 	elif name == 'blue_box':
@@ -415,6 +415,67 @@ def decode_obj_shape(name, out):
 	elif name == 'ball':
 		out.radius = 0.04
 		out.mass   = 0.5
+	elif name == 'flower_table':
+		out.radius = 0.915 * 0.5
+		out.height = 0.725
+		out.mass   = 30.0
+		out.good_variance = [0.04, 0.08, 0.02]
+	elif name == 'green_table':
+		out.length = 0.59
+		out.width  = 1.17
+		out.height = 0.79
+		out.mass   = 10.0
+		out.good_variance = [0.04, 0.08, 0.02]
+	elif name == 'brown_table':
+		out.length = 0.75
+		out.width  = 1.53
+		out.height = 0.75
+		out.mass   = 10.0
+		out.good_variance = [0.04, 0.08, 0.02]
+	elif name == 'grey_box':
+		out.length = 0.27
+		out.width  = 0.39
+		out.height = 0.265
+		out.mass   = 0.5
+		out.container = True
+	elif name == 'sugar':
+		out.radius = 0.076 * 0.5
+		out.height = 0.171
+		out.mass   = 1.0
+	elif name == 'green_tea':
+		out.length = 0.075
+		out.width  = 0.131
+		out.height = 0.065
+		out.mass   = 0.1
+	elif name == 'chai_tea':
+		out.length = 0.079
+		out.width  = 0.134
+		out.height = 0.069
+		out.mass   = 0.1
+	elif name == 'remote':
+		out.length = 0.21
+		out.width  = 0.054
+		out.height = 0.025
+		out.mass   = 0.3
+	elif name == 'popcorn':
+		out.length = 0.068
+		out.width  = 0.15
+		out.height = 0.153
+		out.mass   = 1.0
+	elif name == 'grey_cup' or name == 'blue_cup' or name == 'dark_cup':
+		out.radius = 0.089 * 0.5
+		out.height = 0.167
+		out.mass   = 0.1
+	elif name == 'the_post_dvd':
+		out.length = 0.19
+		out.width  = 0.136
+		out.height = 0.015
+		out.mass   = 0.2
+	elif name == 'cereal':
+		out.length = 0.055
+		out.width  = 0.19
+		out.height = 0.245
+		out.mass   = 0.8
 	else:
 		pass
 

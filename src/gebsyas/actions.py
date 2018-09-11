@@ -80,6 +80,9 @@ class Action(object):
 		"""Comfort wrapper. automatically logs the start of the new action and indents the log.
 		   Passes along the subaction's return.
 		"""
+		if rospy.is_shutdown():
+			return 0.0
+			
 		context.log(action.name, 'Starting sub action')
 		context.log.indent()
 		out = action.execute(context)

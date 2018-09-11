@@ -30,18 +30,21 @@ class ProbabilisticSimulator(BasicSimulator):
         self.h_gain = 0.4
 
     def post_update(self):
+        client_id = self.client_id()
+        deltaT = self.time_step
+
         if self.observing_body is not None:
-            client_id = self.client_id()
-            deltaT = self.time_step
             cf_tuple = self.observing_body.get_link_state(self.camera_link).worldFrame
             camera_frame = frame3_quaternion(cf_tuple.position.x, cf_tuple.position.y, cf_tuple.position.z, *cf_tuple.quaternion)
             cov_proj = rot_of(camera_frame)[:3, :3]
             ray_cast_camera = vec3_to_list(camera_frame * point3(self.near, 0, 0))
             inv_cov_proj = cov_proj.T
 
-            for name, gmm in self.gpcs.items():
-                body = self.bodies[name]
-                gmm[0].pose = body.pose()
+        for name, gmm in self.gpcs.items():
+            body = self.bodies[name]
+            gmm[0].pose = body.pose()
+            
+            if self.observing_body is not None:
                 for x in range(len(gmm)):
                     gc = gmm[x]
                     gc_pos = point3(*gc.pose.position)

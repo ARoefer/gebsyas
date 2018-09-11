@@ -55,6 +55,12 @@ class InEqRunner(object):
         self.task_constraints = task_constraints
         self.pub_bounds = rospy.Publisher('/runner_bounds', JointStateMsg, queue_size=1)
         self.msg_template = JointStateMsg()
+        self.command_filter = None
+        self.filter_steps = 1
+        self.discount_factor = 1.0
+        self.command_filter_idx = 0
+        self.lock_base = task_constraints != None and 'reachability' in task_constraints and hasattr(controller, 's_base_weight')
+
 
     def run(self):
         """Starts the run of the controller."""
@@ -89,6 +95,23 @@ class InEqRunner(object):
         now = rospy.Time.now()
         self.controller.set_robot_js(joint_state)
         command = self.controller.get_cmd()
+        if self.command_filter is None:
+            self.command_filter = np.zeros((self.filter_steps, len(command)))
+        
+        self.command_filter *= self.discount_factor
+        self.command_filter[self.command_filter_idx] = np.array(command.values(), dtype=float)
+        self.command_filter_idx = (self.command_filter_idx + 1) % self.filter_steps
+        smooth_cmd = np.average(self.command_filter, axis=0)
+        #print(self.command_filter)
+        #print(smooth_cmd)
+        joints = command.keys()
+        command = {joints[x]: smooth_cmd[x] for x in range(len(joints))}
+
+        if self.lock_base:
+            r_lb, r_ub = self.controller.qp_problem_builder.get_a_bounds('reachability')
+            if r_ub >= UBA_BOUND:
+                self.controller.current_subs[self.controller.s_base_weight] = 30.0
+
         #self.msg_template.header.stamp = now
         # lbA = self.controller.qp_problem_builder.np_lbA
         # ubA = self.controller.qp_problem_builder.np_ubA
