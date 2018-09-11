@@ -1,0 +1,8 @@
+<launch>
+    <arg name="mode" default="direct"/>
+
+    <include file="$(find gebsyas)/launch/bbb_3rd_cm.launch"/>
+    <node name="localization_republisher" pkg="gebsyas" type="localization_republisher.py" output="screen"/>
+    <node name="gmm_visualizer" pkg="gebsyas" type="gmm_visualizer.py" output="screen"/>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gebsyas)/rviz/gebsyas_fetch7.rviz"/>
+</launch>
