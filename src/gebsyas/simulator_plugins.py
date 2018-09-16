@@ -383,8 +383,14 @@ class GMMObjectPublisher(SimulatorPlugin):
                     #z_vec *= 1.0 / norm(z_vec)
                     M = x_vec.row_join(y_vec).row_join(cross(x_vec, y_vec)).row_join(point3(*gc.pose.position))
 
-                    self.visualizer.draw_shape('cov', M, w.astype(float), 2, *hsva_to_rgba((1.0 - gc.weight) * 0.65, 1, 1, 0.7))
+                    if not gc.occluded:
+                        color = hsva_to_rgba((1.0 - gc.weight) * 0.65, 1, 1, 0.7)
+                    else:
+                        color = (0.3, 0.3, 0.3, 0.5)
 
+                    self.visualizer.draw_shape('cov', M, w.astype(float), 2, *color)
+
+                msg.object_pose_gmm[x].id = gc.id
                 msg.object_pose_gmm[x].cov_pose.pose.position  = expr_to_rosmsg(gc.pose.position)
                 msg.object_pose_gmm[x].cov_pose.pose.orientation.x = gc.pose.quaternion[0]
                 msg.object_pose_gmm[x].cov_pose.pose.orientation.y = gc.pose.quaternion[1]
@@ -392,6 +398,7 @@ class GMMObjectPublisher(SimulatorPlugin):
                 msg.object_pose_gmm[x].cov_pose.pose.orientation.w = gc.pose.quaternion[3]
                 msg.object_pose_gmm[x].cov_pose.covariance = list(gc_cov)
                 msg.object_pose_gmm[x].weight = gc.weight
+                msg.object_pose_gmm[x].occluded = gc.occluded
             msg.header.stamp = rospy.Time.now()
             msg_total.search_object_list.append(msg)
         if len(msg_total.search_object_list) > 0:

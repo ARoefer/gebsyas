@@ -12,10 +12,12 @@ LocalizationPose = namedtuple('LocalizationPose', ['x', 'y', 'z', 'az', 'lvx', '
 
 
 class GaussianPoseComponent(object):
-    def __init__(self, weight, pose, cov):
+    def __init__(self, id, weight, pose, cov, occluded=False):
+        self.id     = id
         self.weight = weight
         self.pose   = pose
         self.cov    = cov
+        self.occluded = occluded
 
     def __le__(self, other):
         if type(other) != GaussianPoseComponent:

@@ -52,22 +52,25 @@ class MultiObjectSearchAndDeliveryAction(Action):
         data_state = context.agent.get_data_state()
         predicate_state = context.agent.get_predicate_state()
         robot = context.agent.robot
-        delivery_box = bb(width=0.33, height=0.14, length=0.31, mass=0.5, pose=robot.get_fk_expression('map', 'box_link'))
+        #delivery_box = bb(width=0.33, height=0.14, length=0.31, mass=0.5, pose=robot.get_fk_expression('map', 'box_link'))
 
-        stupid_thing = bb(radius=0.035, height=0.2, mass=1.0, pose=(robot.gripper.pose * translation3(0,0,0.1)))
+        #stupid_thing = bb(radius=0.035, height=0.2, mass=1.0, pose=(robot.gripper.pose * translation3(0,0,0.1)))
         print(context.agent.memory.keys())
-        posture = context.agent.memory['basic_stance']
+        #posture = context.agent.memory['basic_stance']
 
         #self.execute_subaction(context, GenericMotionAction(InPosture.fp(context, robot.state.data, posture)))
 
+        dl_rigid_objects = DLDisjunction(DLRigidObject, DLRigidGMMObject)
+
         observation_controller = ObservationController(context,
-                                                data_state.dl_data_iterator(DLDisjunction(DLRigidObject, DLRigidGMMObject)),
+                                                data_state.dl_data_iterator(dl_rigid_objects),
                                                 set(),
                                                 3,
                                                 context.log)
         observation_controller.init(context, 
                                     robot.get_fk_expression('map', 'base_link') * translation3(0.1, 0, 0),
                                     robot.camera)
+        data_state.register_new_data_cb(dl_rigid_objects, observation_controller.add_new_obstacle)
         self.set_search_request(self.searched_ids)
 
         while not rospy.is_shutdown() and not len(self.searched_ids) == 0:
@@ -75,14 +78,24 @@ class MultiObjectSearchAndDeliveryAction(Action):
             observation_controller.reset_search()
             b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.02, 0.9)
             if b_found_object:
-                found_id = observation_controller.get_current_object().id
+                found_obj = observation_controller.get_current_object()
+                found_id = found_obj.id
                 result_msg = SearchResultMsg()
                 result_msg.id = int(''.join([c for c in found_id if c.isdigit()]))
-                result_msg.grasp = found_id in self.searched_ids
+                result_msg.grasp = len({i for i in self.searched_ids if i in found_id}) > 0
                 self.pub_found_id.publish(result_msg)
+                
+                context.log('Found thing is called {}. Pose:\n{}'.format(found_id, str(sorted(found_obj.gmm)[-1].pose)))
 
-                if len({i for i in self.searched_ids if i in found_id}) > 0:
-                    found_obj = observation_controller.get_current_object()
+                if 'table' in found_id:
+                    print('found a table')
+                    found_obj.pose = sorted(found_obj.gmm)[-1].pose
+                    del found_obj.gmm
+                    found_obj.pose[2, 3] = found_obj.height * 0.5
+                
+                data_state.insert_data(StampedData(rospy.Time.now(), found_obj), found_id)
+
+                if result_msg.grasp:
                     # self.execute_subaction(context, GenericMotionAction(Graspable.fp(context, robot.gripper, found_obj), {found_id}))
                     # self.execute_subaction(context, GraspAction(robot, robot.gripper, found_obj))
 
@@ -102,6 +115,7 @@ class MultiObjectSearchAndDeliveryAction(Action):
             else:
                 context.log('observation controller should never return unsuccessfully unless it was terminated from the outside.')
             #rospy.sleep(0.3)
+        data_state.deregister_new_data_cb(dl_rigid_objects, observation_controller.add_new_obstacle)
         observation_controller.stop()
         context.display.render()
 

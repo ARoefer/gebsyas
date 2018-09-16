@@ -12,11 +12,12 @@ from gebsyas.predicates import IsControlled, IsGrasped
 from gebsyas.numeric_scene_state import visualize_obj
 from gebsyas.simulator import GebsyasSimulator, frame_tuple_to_sym_frame
 from gebsyas.ros_visualizer import ROSVisualizer
-from gebsyas.utils import StampedData, rot3_to_quat
+from gebsyas.utils import StampedData, real_quat_from_matrix
 from giskardpy import print_wrapper
 from giskardpy.qp_problem_builder import SoftConstraint as SC
 from giskardpy.symengine_wrappers import *
 from iai_bullet_sim.utils import Frame
+from iai_bullet_sim.basic_simulator import vec3_to_list
 from sensor_msgs.msg import JointState
 from urdf_parser_py.urdf import URDF
 
@@ -40,6 +41,7 @@ class InEqBulletController(InEqController):
         robot_name = context.agent.robot._urdf_robot.name
         self.closest_point_queries = []
         self.predicate_state = context.agent.get_predicate_state()
+        self.data_state = context.agent.data_state
 
         temp_urdf = URDF.from_xml(context.agent.robot._urdf_robot.to_xml())
 
@@ -167,8 +169,39 @@ class InEqBulletController(InEqController):
         #self.qp_problem_builder.log_lbA_ubA()
         return cmd
 
+    def add_new_obstacle(self, dl_object):
+        if dl_object.id not in self.included_objects:
+            self.simulator.add_object(dl_object)
+            self.data_state.register_on_change_cb(dl_object.id, self.add_new_obstacle)
+        else:
+            print('{} is already known'.format(dl_object.id))
+            body = self.simulator.bodies[dl_object.id]
+            if DLRigidObject.is_a(dl_object):
+                print('Updated pose for {}'.format(dl_object.id))
+                body.set_pose(Frame(vec3_to_list(pos_of(dl_object.pose)),
+                                    real_quat_from_matrix(dl_object.pose)))
+            elif DLRigidGMMObject.is_a(dl_object):
+                print('Updated pose for {}'.format(dl_object.id))
+                pose = sorted(dl_object.gmm)[-1].pose
+                body.set_pose(Frame(vec3_to_list(pos_of(pose)),
+                                    real_quat_from_matrix(pose)))
+        self.included_objects[dl_object.id] = StampedData(rospy.Time.now(), dl_object)
+
+        self.visualizer.begin_draw_cycle('obstacles')
+        for stamped in self.included_objects.values():
+            if DLRigidObject.is_a(stamped.data):
+                pose = stamped.data.pose
+            elif DLRigidGMMObject.is_a(stamped.data):
+                pose = sorted(stamped.data.gmm)[0].pose
+            visualize_obj(stamped.data, self.visualizer, pose, 'obstacles', self.obstacle_color)
+            #print('added 1 object to render queue')
+        #for x in range(1000):
+        self.visualizer.render('obstacles')
+
     def stop(self):
         self.simulator.kill()
+        for Id in self.included_objects.keys():
+            self.data_state.deregister_on_change_cb(Id, self.add_new_obstacle)
 
     def draw_tie_in(self):
         pass

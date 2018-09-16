@@ -43,6 +43,12 @@ if __name__ == '__main__':
     except (rospy.ServiceException, rospy.ROSException), e:
         print('Simulator does not seem to be running...')
 
+    try:
+        srv_reset = rospy.ServiceProxy('/restart_things', EmptySrv)
+        srv_reset()
+    except (rospy.ServiceException, rospy.ROSException), e:
+        print('Process runner does not seem to be running...')
+
 
     from gebsyas.agent import TBOX as ATBOX
     from gebsyas.sensors import TBOX as STBOX

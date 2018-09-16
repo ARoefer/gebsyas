@@ -275,6 +275,8 @@ class DataSceneState(object):
 		self.searchable_objects = searchable_objects
 		self.parent = parent
 		self.data_change_callbacks = {}
+		# Mapping of {DLConcept: set}
+		self.new_data_callbacks = {}
 		self.lock = RLock()
 
 	def __getitem__(self, key):
@@ -349,7 +351,13 @@ class DataSceneState(object):
 					root_obj = self.find_by_path(path[0]).data
 					self.id_map[path[0]] = StampedData(stamped_data.stamp, root_obj)
 			else:
-				if Id not in self.id_map or self.id_map[Id].stamp < stamped_data.stamp:
+				if Id not in self.id_map: 
+					self.id_map[Id] = stamped_data
+					for dl_type, cbs in self.new_data_callbacks.items():
+						if dl_type.is_a(stamped_data.data):
+							for cb in cbs:
+								cb(stamped_data.data)
+				elif self.id_map[Id].stamp < stamped_data.stamp:
 					self.id_map[Id] = stamped_data
 			if Id in self.data_change_callbacks:
 				for cb in self.data_change_callbacks[Id]:
@@ -372,6 +380,15 @@ class DataSceneState(object):
 	def deregister_on_change_cb(self, Id, cb):
 		if Id in self.data_change_callbacks:
 			self.data_change_callbacks[Id].remove(cb)
+
+	def register_new_data_cb(self, dl_type, cb):
+		if dl_type not in self.new_data_callbacks:
+			self.new_data_callbacks[dl_type] = set()
+		self.new_data_callbacks[dl_type].add(cb)
+
+	def deregister_new_data_cb(self, dl_type, cb):	
+		if dl_type in self.new_data_callbacks:
+			self.new_data_callbacks[dl_type].remove(cb)
 
 
 class DataIterator(object):

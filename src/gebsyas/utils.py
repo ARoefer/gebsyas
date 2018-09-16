@@ -239,9 +239,11 @@ def ros_msg_to_expr(ros_msg):
 	elif t_msg == JointStateMsg:
 		return {ros_msg.name[x]: JointState(ros_msg.position[x], ros_msg.velocity[x], ros_msg.effort[x]) for x in range(len(ros_msg.name))}
 	elif t_msg == OPGMsg:
-		return GaussianPoseComponent(ros_msg.weight, 
+		return GaussianPoseComponent(ros_msg.id,
+									 ros_msg.weight, 
 									 ros_msg_to_expr(ros_msg.cov_pose.pose), 
-									 ros_msg_to_expr(ros_msg.cov_pose.covariance))
+									 ros_msg_to_expr(ros_msg.cov_pose.covariance),
+									 ros_msg.occluded)
 	else:
 		for field in dir(ros_msg):
 			if field[0] == '_':
@@ -383,11 +385,6 @@ def decode_obj_shape(name, out):
 		out.width  = 0.079
 		out.height = 0.038
 		out.mass   = 0.3
-	elif name == 'blue_cup':
-		out.radius = 0.045
-		out.height = 0.146
-		out.subObject = bb(name='rim', radius = 0.049, rotation_axis = vec3(0,0,1), pose = frame3_rpy(0,0,0, point3(0,0, -0.073)))
-		out.mass   = 0.1
 	elif name == 'blueberry_box':
 		out.length = 0.133
 		out.width  = 0.133
@@ -419,19 +416,19 @@ def decode_obj_shape(name, out):
 		out.radius = 0.915 * 0.5
 		out.height = 0.725
 		out.mass   = 30.0
-		out.good_variance = [0.04, 0.08, 0.02]
+		out.good_variance = [0.1, 0.1, 0.1, 10]
 	elif name == 'green_table':
 		out.length = 0.59
 		out.width  = 1.17
 		out.height = 0.79
 		out.mass   = 10.0
-		out.good_variance = [0.04, 0.08, 0.02]
+		out.good_variance = [0.15, 0.15, 0.15, 10]
 	elif name == 'brown_table':
-		out.length = 0.75
-		out.width  = 1.53
-		out.height = 0.75
+		out.length = 0.61
+		out.width  = 1.22
+		out.height = 0.585
 		out.mass   = 10.0
-		out.good_variance = [0.04, 0.08, 0.02]
+		out.good_variance = [0.1, 0.1, 0.1, 10]
 	elif name == 'grey_box':
 		out.length = 0.27
 		out.width  = 0.39
@@ -507,7 +504,7 @@ def gmm_obj_to_expr(msg):
 
 	out.id = '{}{}'.format(msg.name, msg.id)
 	out.gmm = ros_msg_to_expr(msg.object_pose_gmm)
-	
+
 	out.concepts = {msg.name}
 
 	return out
@@ -527,7 +524,7 @@ def vis_obj_to_expr(msg):
 	elif msg.type == MarkerMsg.SPHERE:
 		out.radius = msg.scale.x
 	elif msg.type == MarkerMsg.CYLINDER:
-		out.radius = msg.scale.x
+		out.radius = msg.scale.x * 0.5
 		out.height = msg.scale.z
 	else:
 		raise Exception('Can not convert visual marker of type {}'.format(msg.type))

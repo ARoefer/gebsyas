@@ -72,7 +72,7 @@ class Floaty(Robot):
 
         # 'torso_lift_link', 'wrist_roll_link'
         # Link names mapped to safety margin and AABB blow up
-        self.collision_avoidance_links = {'camera_link': (0.02, 0.1)}
+        self.collision_avoidance_links = {'camera_link': (0.2, 0.1, 4)}
 
         self.self_collision_avoidance_pairs = {}
 

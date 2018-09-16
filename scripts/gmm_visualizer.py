@@ -35,7 +35,13 @@ class SearchObjectVisualizer(object):
                     #z_vec *= 1.0 / norm(z_vec)
                     M = x_vec.row_join(y_vec).row_join(cross(x_vec, y_vec)).row_join(position)
 
-                    self.visualizer.draw_shape('cov', M, w.astype(float), 2, *hsva_to_rgba((1.0 - gc.weight) * 0.65, 1, 1, 0.7))
+                    if not gc.occluded:
+                        color = hsva_to_rgba((1.0 - gc.weight) * 0.65, 1, 1, 0.7)
+                    else:
+                        color = (0.3, 0.3, 0.3, 0.5)
+
+                    self.visualizer.draw_shape('cov', M, np.sqrt(w).astype(float), 2, *color)
+                    
         self.visualizer.render()
 
 
@@ -50,7 +56,7 @@ if __name__ == '__main__':
     pub_topic = '/gmm_vis'              if len(filtered_args) < 3 else filtered_args[2]
     frame     = 'map'                   if len(filtered_args) < 4 else filtered_args[3]
 
-    print('Subscribing to: {}\nPublishing at:{}\nIn frame:{}'.format(sub_topic, pub_topic, frame))
+    print('Subscribing to: {}\nPublishing at: {}\nIn frame: {}'.format(sub_topic, pub_topic, frame))
 
     node = SearchObjectVisualizer(sub_topic, pub_topic, frame)
 

@@ -84,7 +84,7 @@ class IntrospectiveFunctions(object):
 		if DLProbabilisticThing.is_a(p_object):
 			cov = p_object.pose_cov
 
-		if abs(cov[0,0]) <= 0.02 and abs(cov[1,1]) <= 0.02 and abs(cov[2,2]) <= 0.02:
+		if sqrt(abs(cov[0,0])) <= 0.02 and sqrt(abs(cov[1,1])) <= 0.02 and sqrt(abs(cov[2,2])) <= 0.02:
 			return {'clearly_perceived': SC(0, 0, 1, 0)}
 		return {'clearly_perceived': SC(1, 0, 1, 0)}
 
