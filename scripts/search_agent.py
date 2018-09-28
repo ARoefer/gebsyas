@@ -18,6 +18,7 @@ from gebsyas.grasp_action import ACTIONS as GACTIONS
 from gebsyas.search_behavior import MultiObjectSearchAndDeliveryAction
 
 from iai_bullet_sim.srv import Empty as EmptySrv
+from std_srvs.srv import SetBool as SetBoolSrv
 
 from fetch_giskard.fetch_robot import Fetch as Robot
 #from gebsyas.floaty_robot import Floaty as Robot
@@ -43,12 +44,15 @@ if __name__ == '__main__':
     except (rospy.ServiceException, rospy.ROSException), e:
         print('Simulator does not seem to be running...')
 
-    try:
-        srv_reset = rospy.ServiceProxy('/restart_things', EmptySrv)
-        srv_reset()
-    except (rospy.ServiceException, rospy.ROSException), e:
-        print('Process runner does not seem to be running...')
 
+    stop_bag = False
+    try:
+        srv_record = rospy.ServiceProxy('/record', SetBoolSrv)
+        if srv_record(True).success:
+            stop_bag = True
+            print('ROSBag is being recorded.')
+    except (rospy.ServiceException, rospy.ROSException), e:
+        print('Simulator does not seem to be running...')
 
     from gebsyas.agent import TBOX as ATBOX
     from gebsyas.sensors import TBOX as STBOX
@@ -71,3 +75,6 @@ if __name__ == '__main__':
     agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=False))
 
     os.system('rostopic pub /nav_to_pose/cancel actionlib_msgs/GoalID "{stamp: {secs: 0, nsecs: 0}, id: ''}" -1')
+
+    if stop_bag:
+        os.system('rosservice call /record "data: false"')        
