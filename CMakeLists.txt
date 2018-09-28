@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   giskardpy
   iai_bullet_sim
   rospy
+  std_srvs
 )
 
 ## System dependencies are found with CMake's conventions
