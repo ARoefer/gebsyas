@@ -37,7 +37,7 @@ class ProbabilisticSimulator(BasicSimulator):
             cf_tuple = self.observing_body.get_link_state(self.camera_link).worldFrame
             camera_frame = frame3_quaternion(cf_tuple.position.x, cf_tuple.position.y, cf_tuple.position.z, *cf_tuple.quaternion)
             cov_proj = rot_of(camera_frame)[:3, :3]
-            ray_cast_camera = vec3_to_list(camera_frame * point3(self.near, 0, 0))
+            ray_cast_camera = vec3_to_list(camera_frame * point3(0.05, 0, 0))
             inv_cov_proj = cov_proj.T
 
         for name, gmm in self.gpcs.items():
@@ -57,7 +57,8 @@ class ProbabilisticSimulator(BasicSimulator):
 
                         #print('Object {} gmm {} hit result {}'.format(name, x, hit_obj))
 
-                        if x == 0 and (hit_obj == body.bId() or hit_obj == -1):
+                        gc.occluded = False
+                        if x == 0 and hit_obj == body.bId():
                             s_h = min(1, max(0.01, 1 - self.h_gain / dist * deltaT))
                             s_d = min(1, max(0.01, 1 - self.d_gain / dist * deltaT))
                             S_pos = diag(s_d, s_h, s_h)
@@ -83,6 +84,10 @@ class ProbabilisticSimulator(BasicSimulator):
                             gc.weight  -= weight_diff
                             for y in [z for z in range(len(gmm)) if z != x]:
                                 gmm[y].weight += gmm[y].weight * weight_diff
+                        elif hit_obj != body.bId():
+                            gc.occluded = True
+                    else:
+                        gc.occluded = False
 
         super(ProbabilisticSimulator, self).post_update()
 
@@ -99,7 +104,7 @@ class ProbabilisticSimulator(BasicSimulator):
         bodyId = self.get_body_id(body.bId())
 
         if bodyId in self.gmm_objects:
-            self.gpcs[bodyId] = [GaussianPoseComponent(1.0, body.pose(), eye(6) * self.std_variance)]
+            self.gpcs[bodyId] = [GaussianPoseComponent(body.bId() << 16, 1.0, body.pose(), eye(6) * self.std_variance)]
             self.initial_gpc_weights[bodyId] = [1.0]
 
         return body
@@ -110,7 +115,7 @@ class ProbabilisticSimulator(BasicSimulator):
         bodyId = self.get_body_id(body.bId())
 
         if bodyId in self.gmm_objects:
-            self.gpcs[bodyId] = [GaussianPoseComponent(1.0, body.pose(), eye(6) * self.std_variance)]
+            self.gpcs[bodyId] = [GaussianPoseComponent(body.bId() << 16, 1.0, body.pose(), eye(6) * self.std_variance)]
             self.initial_gpc_weights[bodyId] = [1.0]
 
         return body
@@ -123,6 +128,7 @@ class ProbabilisticSimulator(BasicSimulator):
     def add_gmmc(self, body, new_gc):
         if bodyId in self.gmm_objects:
             bodyId = self.get_body_id(body.bId())
+            new_gc.id = body.bId() << 16 + len(self.gpcs[bodyId])
             for x in range(len(self.gpcs[bodyId])):
                 gc = self.gpcs[bodyId][x]
                 gc.weight *= 1.0 - new_gc.weight
@@ -150,6 +156,7 @@ class ProbabilisticSimulator(BasicSimulator):
         super(ProbabilisticSimulator, self).load_world(world_dict)
         if 'objects' in world_dict:
             for od in world_dict['objects']:
+                bodyId = self.bodies[od['name']].bId()
                 if 'gmm' in od and od['name'] in self.gmm_objects:
                     name = od['name']
                     if not type(od['gmm']) == list:
@@ -159,7 +166,8 @@ class ProbabilisticSimulator(BasicSimulator):
                     for gc in od['gmm']:
                         i_pos = gc['pose']['position']
                         i_rot = gc['pose']['rotation']
-                        self.gpcs[name].append(GaussianPoseComponent(gc['weight'], 
+                        self.gpcs[name].append(GaussianPoseComponent(bodyId << 16 + len(self.gpcs[name]), 
+                                               gc['weight'], 
                                                Frame(i_pos, i_rot), 
                                                Matrix([gc['cov'][x * 6: x * 6 + 6] for x in range(6)])))
                         self.initial_gpc_weights[name].append(gc['weight'])
@@ -167,7 +175,7 @@ class ProbabilisticSimulator(BasicSimulator):
                     i_pos = od['initial_pose']['position']
                     i_rot = od['initial_pose']['rotation']
                     if od['name'] in self.gmm_objects:
-                        self.gpcs[od['name']] = [GaussianPoseComponent(1, Frame(i_pos, i_rot), eye(6) * self.std_variance)]
+                        self.gpcs[od['name']] = [GaussianPoseComponent(bodyId << 16, 1, Frame(i_pos, i_rot), eye(6) * self.std_variance)]
                         self.initial_gpc_weights[od['name']] = [1.0]
 
     def save_world(self, use_current_state_as_init=False):
@@ -250,7 +258,7 @@ class ProbabilisticInteractiveNode(FullStateInteractiveNode):
                 if req.object_id in self.sim.bodies and req.object_id in self.sim.gmm_objects:
                     body = self.sim.bodies[req.object_id]
                     weight = max(0.0, min(req.weight, 1.0))
-                    self.sim.add_gmmc(body, GaussianPoseComponent(weight, body.pose(), eye(6) * self.sim.std_variance))
+                    self.sim.add_gmmc(body, GaussianPoseComponent(0, weight, body.pose(), eye(6) * self.sim.std_variance, False))
 
                     self.add_new_marker('{}_gc[{}]'.format(req.object_id, len(self.sim.gpcs[req.object_id]) -1),
                                         body,
