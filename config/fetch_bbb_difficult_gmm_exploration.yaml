@@ -21,7 +21,7 @@ plugins:
   - 1
   body: fetch
   link: laser_link
-  plugin_type: <class 'gebsyas.simulator_plugins.LaserScanner'>
+  plugin_type: <class 'iai_bullet_sim.ros_plugins.LaserScanner'>
   range_max: 25.0
   range_min: 0.05
   resolution: 300

@@ -12,7 +12,7 @@ plugins:
 - {body: fetch, plugin_type: <class 'gebsyas.simulator_plugins.LocalizationPublisher'>,
   topic_prefix: fetch}
 - {body: fetch, plugin_type: <class 'iai_bullet_sim.ros_plugins.JSPublisher'>, topic_prefix: fetch}
-- plugin_type: <class 'gebsyas.simulator_plugins.LaserScanner'>
+- plugin_type: <class 'iai_bullet_sim.ros_plugins.LaserScanner'>
   body: fetch
   link: laser_link
   angle_min: -1.91990637779
