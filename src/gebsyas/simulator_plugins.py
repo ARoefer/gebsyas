@@ -11,7 +11,6 @@ from gebsyas.msg import LocalizedPoseStamped as LPSMsg
 from gebsyas.utils import expr_to_rosmsg
 from gebsyas.simulator import frame_tuple_to_sym_frame
 from gebsyas.ros_visualizer import ROSVisualizer
-from gebsyas.np_transformations import *
 from giskardpy.symengine_wrappers import *
 from gop_gebsyas_msgs.msg import ProbObject as POMsg
 from gop_gebsyas_msgs.msg import ProbObjectList as POLMsg
@@ -81,7 +80,7 @@ class FullPerceptionPublisher(SimulatorPlugin):
                     self.msg_list.objects.append(msg)
                 else:
                     msg = self.message_templates[name]
-                
+
                 msg.header.stamp   = rospy.Time.now()
                 pose = body.pose()
                 msg.cov_pose.pose.position  = expr_to_rosmsg(pose.position)
@@ -89,7 +88,7 @@ class FullPerceptionPublisher(SimulatorPlugin):
                 msg.cov_pose.pose.orientation.y = pose.quaternion[1]
                 msg.cov_pose.pose.orientation.z = pose.quaternion[2]
                 msg.cov_pose.pose.orientation.w = pose.quaternion[3]
-        
+
         self.publisher.publish(self.msg_list)
 
 
@@ -127,7 +126,7 @@ class ProbPerceptionPublisher(SimulatorPlugin):
         self.near        = near
         self.far         = far
         self.camera_h_gain = h_precision_gain
-        self.camera_d_gain = d_precision_gain 
+        self.camera_d_gain = d_precision_gain
         self._enabled = True
         self.object_cov = {}
         self.visualizer = ROSVisualizer('probabilistic_vis', 'map')
@@ -179,9 +178,9 @@ class ProbPerceptionPublisher(SimulatorPlugin):
                 tpose   = body.pose()
                 obj_pos = point3(*tpose.position)
                 c2o  = obj_pos - pos_of(camera_frame)
-                dist = norm(c2o) 
+                dist = norm(c2o)
                 if dist < self.far and dist > self.near and dot(c2o, x_of(camera_frame)) > cos(self.fov * 0.5) * dist:
-                    
+
                     s_h = min(1, max(0.01, 1 - self.camera_h_gain / dist * deltaT))
                     s_d = min(1, max(0.01, 1 - self.camera_d_gain / dist * deltaT))
                     S_pos = diag(s_d, s_h, s_h)
@@ -221,7 +220,7 @@ class ProbPerceptionPublisher(SimulatorPlugin):
                 msg.object_pose_gmm[0].cov_pose.pose.orientation.z = tpose.quaternion[2]
                 msg.object_pose_gmm[0].cov_pose.pose.orientation.w = tpose.quaternion[3]
                 msg.object_pose_gmm[0].cov_pose.covariance = list(object_cov)
-        
+
                 self.publisher.publish(msg)
 
         self.visualizer.render()
@@ -531,7 +530,7 @@ class InstantiateSearchObjects(SimulatorPlugin):
                                        list(quaternion_from_matrix(pose)),
                                        dl_object.mass, name_override=Id)
             else:
-                Exception('Cannot generate Bullet-body for object which is not a sphere, box, or cylinder.\nObject: {}'.format(str(dl_object)))  
+                Exception('Cannot generate Bullet-body for object which is not a sphere, box, or cylinder.\nObject: {}'.format(str(dl_object)))
 
             self.simulator.gpcs[dl_object.id] = sorted_gmm
             self.simulator.initial_weights[dl_object.id] = [gc.weight for gc in sorted_gmm]
@@ -556,7 +555,7 @@ class InstantiateSearchObjects(SimulatorPlugin):
 
     @classmethod
     def factory(cls, simulator, init_dict):
-        return cls(simulator, init_dict['topic'])    
+        return cls(simulator, init_dict['topic'])
 
 
 def create_search_object_message(body, name):

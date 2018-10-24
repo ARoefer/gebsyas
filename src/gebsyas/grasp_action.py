@@ -99,7 +99,7 @@ class GraspActionInterface(PActionInterface):
 		super(GraspActionInterface, self).__init__(
 			'GraspAction',
 			[PInstance(Graspable, ('a', 'b'), True),
-			 PInstance(Free,           ('a'), True)],
+			 PInstance(Free,          ('a',), True)],
 
 			[PInstance(IsControlled,  ('b',), True),
 			 PInstance(IsGrasped, ('a', 'b'), True),
