@@ -1,0 +1,7 @@
+<launch>
+    <arg name="mode" default="direct"/>
+
+    <rosparam command="load" file="$(find gebsyas)/config/fetch_bbb_mirror.yaml" ns="/sim_config"/>
+    <node name="mirror_sim" pkg="gebsyas" type="simulator_node.py" args="$(arg mode)" output="screen"/>
+    <node name="localization_republisher" pkg="gebsyas" type="localization_republisher.py" output="screen"/>
+</launch>
