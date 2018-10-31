@@ -6,6 +6,7 @@ import pybullet as pb
 from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform, hsva_to_rgba
 from iai_bullet_sim.rigid_body import RigidBody
 from iai_bullet_sim.multibody import SimpleBaseDriver
+from iai_bullet_sim.utils import Frame
 
 from gebsyas.msg import LocalizedPoseStamped as LPSMsg
 from gebsyas.utils import expr_to_rosmsg
@@ -18,6 +19,7 @@ from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
 from gop_gebsyas_msgs.msg import SearchObjectList as SearchObjectListMsg
 from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGCMsg
 
+from sensor_msgs.msg import JointState as JointStateMsg
 from sensor_msgs.msg import LaserScan as LaserScanMsg
 
 from symengine import ones
@@ -556,6 +558,110 @@ class InstantiateSearchObjects(SimulatorPlugin):
     @classmethod
     def factory(cls, simulator, init_dict):
         return cls(simulator, init_dict['topic'])
+
+
+class RobotMirror(SimulatorPlugin):
+    """Plugin which publishes an object's current pose as nav_msgs/Odometry message."""
+    def __init__(self, multibody, state_topic='/joint_states', localization_topic='/localization'):
+        """Initializes the plugin.
+
+        :param simulator: Simulator
+        :type  simulator: BasicSimulator
+        :param multibody: Object to observe.
+        :type  multibody: iai_bullet_sim.multibody.MultiBody
+        :param child_frame_id: Name of the frame being published.
+        :type  child_frame_id: str
+        """
+        super(RobotMirror, self).__init__('Robot Mirror')
+        self.body = multibody
+        multibody.register_deletion_cb(self.on_obj_deleted)
+        self.state_topic = state_topic
+        self.localization_topic = localization_topic
+        self.sub_js = rospy.Subscriber(state_topic, JointStateMsg, callback=self.on_new_js, queue_size=1)
+        self.sub_loc = rospy.Subscriber(localization_topic, LPSMsg, callback=self.on_new_loc, queue_size=1)
+
+        self.js = None
+        self.location = None
+
+        self.__enabled = True
+
+    def on_new_js(self, msg):
+        self.js = {msg.name[x]: msg.position[x] for x in range(len(msg.name)) if msg.name[x] in self.body.joints}
+
+    def on_new_loc(self, msg):
+        roll_half  = msg.pose.angular.x / 2.0
+        pitch_half = msg.pose.angular.y / 2.0
+        yaw_half   = msg.pose.angular.z / 2.0
+
+        c_roll  = cos(roll_half)
+        s_roll  = sin(roll_half)
+        c_pitch = cos(pitch_half)
+        s_pitch = sin(pitch_half)
+        c_yaw   = cos(yaw_half)
+        s_yaw   = sin(yaw_half)
+
+        cc = c_roll * c_yaw
+        cs = c_roll * s_yaw
+        sc = s_roll * c_yaw
+        ss = s_roll * s_yaw
+
+        x = c_pitch * sc - s_pitch * cs
+        y = c_pitch * ss + s_pitch * cc
+        z = c_pitch * cs - s_pitch * sc
+        w = c_pitch * cc + s_pitch * ss
+
+        self.location = Frame([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z], [x, y, z, w])
+
+    def on_obj_deleted(self, simulator, Id, obj):
+        self.disable(simulator)
+        simulator.deregister_plugin(self)
+
+    def pre_physics_update(self, simulator, deltaT):
+        """Updates the body's state according to the latest update.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type deltaT: float
+        """
+        if self.__enabled is False:
+            return
+
+        if self.location is not None:
+            self.body.set_pose(self.location)
+            self.location = None
+
+        if self.js is not None:
+            self.body.set_joint_positions(self.js)
+            self.js = None
+
+    def disable(self, simulator):
+        """Disables the publisher.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
+        self.__enabled = False
+        self.sub_loc.unregister()
+        self.sub_js.unregister()
+
+    def to_dict(self, simulator):
+        """Serializes this plugin to a dictionary.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :rtype: dict
+        """
+        return {'body': simulator.get_body_id(self.body.bId()),
+                'state_topic': self.state_topic,
+                'localization_topic': self.localization_topic}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        """Instantiates the plugin from a dictionary in the context of a simulator.
+
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        :type init_dict: dict
+        :rtype: OdometryPublisher
+        """
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return cls(body, init_dict['state_topic'], init_dict['localization_topic'])
 
 
 def create_search_object_message(body, name):
