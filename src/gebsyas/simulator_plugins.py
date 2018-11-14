@@ -610,7 +610,7 @@ class RobotMirror(SimulatorPlugin):
         z = c_pitch * cs - s_pitch * sc
         w = c_pitch * cc + s_pitch * ss
 
-        self.location = Frame([msg.pose.position.x, msg.pose.position.y, msg.pose.position.z], [x, y, z, w])
+        self.location = Frame([msg.pose.linear.x, msg.pose.linear.y, msg.pose.linear.z], [x, y, z, w])
 
     def on_obj_deleted(self, simulator, Id, obj):
         self.disable(simulator)

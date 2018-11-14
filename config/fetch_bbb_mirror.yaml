@@ -9,8 +9,8 @@ plugins:
   plugin_type: <class 'iai_bullet_sim.ros_plugins.TFPublisher'>
 - plugin_type: <class 'gebsyas.simulator_plugins.RobotMirror'>
   body: fetch
-  state_topic: joint_states
-  localization_topic: localization
+  state_topic: /joint_states
+  localization_topic: /fetch/localization
 tick_rate: 50
 world:
   constraints: []
