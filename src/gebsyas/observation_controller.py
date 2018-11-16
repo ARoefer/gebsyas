@@ -262,8 +262,13 @@ class ObservationController(InEqBulletController):
     def handle_nav_result(self, msg):
         if self.global_nav_mode:
             if msg.status.status == GoalStatusMsg.SUCCEEDED or msg.status.status == GoalStatusMsg.PREEMPTED:
+                if msg.status.status == GoalStatusMsg.SUCCEEDED:
+                    print('Global nav reached its goal')
+                else:
+                    print('Global nav got terminated')
                 self.local_nav()
             elif msg.status.status == GoalStatusMsg.ABORTED:
+                print('Global nav aborted navigation')
                 self.find_global_pose()
 
     def get_cmd(self, nWSR=None):
@@ -454,8 +459,8 @@ class ObservationController(InEqBulletController):
                 self.base_integrator.integrate(c_base_subs, self.global_base_controller.get_cmd(), time_step)
                 for c in self.essential_base_constraints:
                     lbA, ubA = self.global_base_controller.qp_problem_builder.get_a_bounds(c)
-                    if lbA > LBA_BOUND or ubA < UBA_BOUND:
-                        print('{} unsatisfied: {:>30} {:>30}'.format(c, lbA, ubA))
+                    #if lbA > LBA_BOUND or ubA < UBA_BOUND:
+                    #    print('{} unsatisfied: {:>30} {:>30}'.format(c, lbA, ubA))
                 # positions = {j: (JointState(c_base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
                 # trajectory_log.append(StampedData(rospy.Time.from_sec(x * time_step), positions))
                 # if self.visualizer != None:
