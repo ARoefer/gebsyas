@@ -300,7 +300,7 @@ class ObservationController(InEqBulletController):
                 avg_lin_vel = self.map_lin_vel.avg()
                 avg_ang_vel = abs(self.map_ang_vel.avg())
 
-                if (obs_ub >= UBA_BOUND and self.current_subs[self.s_occlusion_weight] == 0) or (avg_lin_vel < 0.02 and avg_ang_vel < 0.1):
+                if (obs_ub >= UBA_BOUND and self.current_subs[self.s_occlusion_weight] == 0):# or (avg_lin_vel < 0.02 and avg_ang_vel < 0.1):
                     self.local_nav()
             return cmd
             #self.print_fn('Waiting for updated object information')
