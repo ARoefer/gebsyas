@@ -135,7 +135,7 @@ def ros_msg_to_ks(ros_msg, name, state={}):
             state[syms[0]] = o.x
             state[syms[1]] = o.y
             state[syms[2]] = o.z
-            state[syms[3]] = o.2
+            state[syms[3]] = o.w
 
         return rotation3_quaternion(*syms), rf
     elif t_msg == list or t_msg == tuple:
