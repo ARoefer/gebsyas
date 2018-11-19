@@ -43,7 +43,7 @@ from blessed import Terminal
 obs_dist_constraint = 'obs_dist'
 yaw_constraint = 'occlusion_escape_yaw'
 
-# Switches the usage of vulcan. 
+# Switches the usage of vulcan.
 #   True:  Vulcan is only used as a fall when giskard gets stuck
 #   False: Vulcan is used for all global navigation
 VULCAN_FALLBACK = True
@@ -94,7 +94,7 @@ class ObservationController(InEqBulletController):
         v_e2_flat = diag(1,1,0,1) * v_e2
         v_e3_flat = diag(1,1,0,1) * v_e3
 
-        opt_obs_range   = 1.0 # Figure this out by semantic type and observations. 
+        opt_obs_range   = 1.0 # Figure this out by semantic type and observations.
 
         self.goal_obj_index = -1
         self.goal_gmm_index = -1
@@ -112,7 +112,7 @@ class ObservationController(InEqBulletController):
         look_dir = c2o / z_dist
         obs_ctrl = 1 #1 - (z_dist / opt_obs_range) # ((opt_obs_range - z_dist) / opt_obs_falloff) ** 2
         in_view  = acos(dot(view_dir, c2o) / norm(c2o))
-        proximity = norm(diag(1,1,0,1) * (pos_of(pose) - pos_of(proximity_frame))) 
+        proximity = norm(diag(1,1,0,1) * (pos_of(pose) - pos_of(proximity_frame)))
 
 
         co_lin_x = norm(cross(view_dir_flat, v_e1_flat)) #dot(view_dir, v_e1)
@@ -127,7 +127,7 @@ class ObservationController(InEqBulletController):
         s_in_view    = SC(- in_view, 0.1 - in_view, 1 + norm(v_e1) + norm(v_e2) + norm(v_e3), in_view)
         s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.5 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
-        
+
         s_v_e1 = SC(-co_lin_x, -co_lin_x, norm(v_e1) * (1 - 0.5 * self.s_occlusion_weight), co_lin_x)
         s_v_e2 = SC(-co_lin_y, -co_lin_y, norm(v_e2) * (1 - 0.5 * self.s_occlusion_weight), co_lin_y)
         s_v_e3 = SC(-co_lin_z, -co_lin_z, norm(v_e3) * (1 - 0.5 * self.s_occlusion_weight), co_lin_z)
@@ -153,35 +153,35 @@ class ObservationController(InEqBulletController):
         self.current_subs[self.s_occlusion_weight] = 0
 
         self.robot_can_strafe = 'base_strafe_joint' in self.robot.joint_states_input.joint_map
-        
+
         if self.robot_can_strafe:
             # MOVE TO EDGE OF OCCLUSION BY USING ANGLES
             yaw_goal_angular = sym_c_dist(obs_dir_yaw, self.s_yaw_goal)
-            s_escape_yaw_occlusion = SC(-yaw_goal_angular, 
-                                        -yaw_goal_angular, 
-                                        self.s_occlusion_weight, 
+            s_escape_yaw_occlusion = SC(-yaw_goal_angular,
+                                        -yaw_goal_angular,
+                                        self.s_occlusion_weight,
                                         self.yaw_goal_angular)
             soft_constraints[yaw_constraint] = s_escape_yaw_occlusion
         else:
-            goal_pos = diag(1,1,0,1) * (pos_of(pose) + point3(cos(self.s_yaw_goal) * opt_obs_range, 
+            goal_pos = diag(1,1,0,1) * (pos_of(pose) + point3(cos(self.s_yaw_goal) * opt_obs_range,
                                                               sin(self.s_yaw_goal) * opt_obs_range, 0))
             direct_drive_dist = norm(diag(1,1,0,1) * (goal_pos - pos_of(proximity_frame)))
 
             s_drive_base = SC(-direct_drive_dist,
-                              -direct_drive_dist, 
+                              -direct_drive_dist,
                               self.s_occlusion_weight,
                               direct_drive_dist)
 
             soft_constraints[yaw_constraint] = s_drive_base
 
-        soft_constraints['occlusion_escape_pitch'] = SC(self.s_pitch_goal - obs_dir_pitch, 
-                                      self.s_pitch_goal - obs_dir_pitch, 
-                                      self.s_occlusion_weight, 
+        soft_constraints['occlusion_escape_pitch'] = SC(self.s_pitch_goal - obs_dir_pitch,
+                                      self.s_pitch_goal - obs_dir_pitch,
+                                      self.s_occlusion_weight,
                                       obs_dir_pitch)
 
 
         # HEADLESS CONTROLLER FOR FINDING POSES FOR EXTERNAL NAVIGATION
-        self.global_base_controller = InEqController(context.agent.robot, 
+        self.global_base_controller = InEqController(context.agent.robot,
                                                            self.print_fn,
                                                            True)
         self.s_area_border = Symbol('non_occluded_area_width')
@@ -192,7 +192,7 @@ class ObservationController(InEqBulletController):
         facing_dot = dot(x_of(proximity_frame), -o2c_flat_normed)
         s_restrict_rotation = SC(-facing_dot, 1 - facing_dot, 1, facing_dot)
 
-        base_constraints = {'in_view' : s_in_view,  
+        base_constraints = {'in_view' : s_in_view,
                             'not_occluded': s_base_non_occlusion,
                             'dont_face_away': s_restrict_rotation,
                             obs_dist_constraint : s_in_v_dist}
@@ -202,7 +202,7 @@ class ObservationController(InEqBulletController):
                 if hasattr(f, 'free_symbols'):
                     self.bc_free_symbols = self.bc_free_symbols.union(f.free_symbols)
         #print(self.bc_free_symbols)
-        
+
         # ADD CLOSEST POINT QUERIES RELATING TO BASE
         self.bc_cpq = []
         for cpq in self.closest_point_queries:
@@ -262,8 +262,13 @@ class ObservationController(InEqBulletController):
     def handle_nav_result(self, msg):
         if self.global_nav_mode:
             if msg.status.status == GoalStatusMsg.SUCCEEDED or msg.status.status == GoalStatusMsg.PREEMPTED:
+                if msg.status.status == GoalStatusMsg.SUCCEEDED:
+                    print('Global nav reached its goal')
+                else:
+                    print('Global nav got terminated')
                 self.local_nav()
             elif msg.status.status == GoalStatusMsg.ABORTED:
+                print('Global nav aborted navigation')
                 self.find_global_pose()
 
     def get_cmd(self, nWSR=None):
@@ -295,18 +300,18 @@ class ObservationController(InEqBulletController):
                 avg_lin_vel = self.map_lin_vel.avg()
                 avg_ang_vel = abs(self.map_ang_vel.avg())
 
-                if (obs_ub >= UBA_BOUND and self.current_subs[self.s_occlusion_weight] == 0) or (avg_lin_vel < 0.02 and avg_ang_vel < 0.1):
+                if (obs_ub >= UBA_BOUND and self.current_subs[self.s_occlusion_weight] == 0):# or (avg_lin_vel < 0.02 and avg_ang_vel < 0.1):
                     self.local_nav()
             return cmd
             #self.print_fn('Waiting for updated object information')
         return {}
 
     def is_stuck(self, last_cmd):
-        
+
 
         obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
         updated = self.obs_vels.log(obs_ub)
-        self.occ_vels.log(self.current_subs[self.s_yaw_goal]) 
+        self.occ_vels.log(self.current_subs[self.s_yaw_goal])
         self.base_ang_vels.log(last_cmd['base_angular_joint'])
         self.base_lin_vels.log(last_cmd['base_linear_joint'])
 
@@ -334,7 +339,7 @@ class ObservationController(InEqBulletController):
                     print('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
                           avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                     return True
-        
+
 
 
     def update_objects(self, gmm_objects):
@@ -383,10 +388,10 @@ class ObservationController(InEqBulletController):
 
             self.goal_obj_index = new_obj_index
             self.goal_gmm_index = new_gmm_index
-            self.base_ang_vels.reset()  
-            self.base_lin_vels.reset()  
-            self.obs_vels.reset()       
-            self.occ_vels.reset()       
+            self.base_ang_vels.reset()
+            self.base_lin_vels.reset()
+            self.obs_vels.reset()
+            self.occ_vels.reset()
             self.current_subs[self.s_occlusion_weight] = 0
             self.update_object_terms()
 
@@ -440,7 +445,7 @@ class ObservationController(InEqBulletController):
 
         while not good:
             x += 1
-            #self.visualizer.begin_draw_cycle()
+            self.visualizer.begin_draw_cycle('runner')
             for c_base_subs in coll_subs:
                 self.global_base_controller.current_subs = c_base_subs
                 self.bullet_bot.set_joint_positions({j: c_base_subs[s] for j, s in self.base_integrator.symbol_map.items() if s in c_base_subs})
@@ -454,12 +459,19 @@ class ObservationController(InEqBulletController):
                 self.base_integrator.integrate(c_base_subs, self.global_base_controller.get_cmd(), time_step)
                 for c in self.essential_base_constraints:
                     lbA, ubA = self.global_base_controller.qp_problem_builder.get_a_bounds(c)
-                    if lbA > LBA_BOUND or ubA < UBA_BOUND:
-                        print('{} unsatisfied: {:>30} {:>30}'.format(c, lbA, ubA))
+                    #if lbA > LBA_BOUND or ubA < UBA_BOUND:
+                    #    print('{} unsatisfied: {:>30} {:>30}'.format(c, lbA, ubA))
                 # positions = {j: (JointState(c_base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
                 # trajectory_log.append(StampedData(rospy.Time.from_sec(x * time_step), positions))
                 # if self.visualizer != None:
                 #     self.visualizer.draw_robot_pose('runner', self.robot, {j: s.position for j, s in positions.items()})
+
+                # positions = {j: (JointState(c_base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
+                # trajectory_log.append(StampedData(rospy.Time.from_sec(x * time_step), positions))
+                if self.visualizer != None:
+                     self.visualizer.draw_mesh('runner', frame3_rpy(0,0,c_base_subs[self.base_integrator.symbol_map['localization_z_ang']],
+                                [c_base_subs[self.base_integrator.symbol_map['localization_x']],
+                                 c_base_subs[self.base_integrator.symbol_map['localization_y']], 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', r=1.0, g=0.6, a=1.0)
 
                 if self.global_base_controller.qp_problem_builder.constraints_met(lbThreshold=LBA_BOUND, ubThreshold=UBA_BOUND, names=self.essential_base_constraints):
                     good = True
@@ -471,9 +483,9 @@ class ObservationController(InEqBulletController):
                     c = base_subs.copy()
                     c[self.base_integrator.symbol_map['localization_x']] += spread * (0.5 - random.random())
                     c[self.base_integrator.symbol_map['localization_y']] += spread * (0.5 - random.random())
-                    coll_subs.append(c)                
+                    coll_subs.append(c)
 
-            #self.visualizer.render()
+            self.visualizer.render('runner')
 
         goal_x = base_subs[self.base_integrator.symbol_map['localization_x']]
         goal_y = base_subs[self.base_integrator.symbol_map['localization_y']]
@@ -519,7 +531,7 @@ class ObservationController(InEqBulletController):
                 self.current_subs[self.s_yaw_goal] = goal_yaw
                 self.current_subs[self.s_pitch_goal] = goal_pitch
                 self.current_subs[self.s_occlusion_weight] = 2
-                
+
                 self.visualizer.begin_draw_cycle('occlusion_map')
                 oc_map.draw(self.visualizer, pos_of(pose), 0.5)
                 self.visualizer.render('occlusion_map')
@@ -603,9 +615,9 @@ class ActivePerceptionAction(Action):
                                                 context.log) #context.log
             # motion_ctrl = ObservationController(context.agent.robot,
             #                                     self.clear_and_print) #context.log
-            motion_ctrl.init(context, 
+            motion_ctrl.init(context,
                              context.agent.robot.get_fk_expression('map', 'base_link') * translation3(0.1, 0, 0),
-                             context.agent.robot.camera, 
+                             context.agent.robot.camera,
                              self.object_id)
 
             motion_success, m_lf, t_log = run_observation_controller(context.agent.robot, motion_ctrl, context.agent, 0.015, 0.9)
@@ -630,7 +642,7 @@ ACTIONS = [ActivePerceptionInterface()]
 
 class ObservationRunner(object):
     """This class runs an observation controller. It processes joint state updates and new commands.
-       It also terminates controller execution when the searched object is clearly perceived. 
+       It also terminates controller execution when the searched object is clearly perceived.
        It is assumed, that the object can always be found.
     """
     def __init__(self, robot, controller, f_send_command,
