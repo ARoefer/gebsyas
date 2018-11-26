@@ -96,7 +96,7 @@ def ros_msg_to_ks(ros_msg, name, state={}):
             state[syms[3]] = o.orientation.x
             state[syms[4]] = o.orientation.y
             state[syms[5]] = o.orientation.z
-            state[syms[6]] = o.orientation.2
+            state[syms[6]] = o.orientation.w
         return frame3_quaternion(*syms), rf
     elif t_msg == PointMsg:
         syms = []
