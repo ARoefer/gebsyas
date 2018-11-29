@@ -1,0 +1,7 @@
+<launch>
+    <arg name="mode" default="direct"/>
+
+    <rosparam command="load" file="$(find gebsyas)/config/bbb_2nd_floor_collision_map.yaml" ns="/sim_config"/>
+    <node name="gebsyas_sim" pkg="gebsyas" type="map_provider_node.py" args="$(arg mode)" output="screen"/>
+    <!-- <node name="fake_odom_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map odom 10"/> -->
+</launch>
