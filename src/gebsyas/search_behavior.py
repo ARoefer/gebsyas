@@ -142,7 +142,7 @@ class MultiObjectSearchAndDeliveryAction(Action):
         sos.search_object_list = []
         sos.weights = []
         for x in range(len(stamped_objects.data.weights)):
-            if max([s in stamped_objects.data.search_object_list[x].id for s in self.searched_ids]):
+            if len(self.searched_ids) > 0  and max([s in stamped_objects.data.search_object_list[x].id for s in self.searched_ids]):
                 sos.search_object_list.append(stamped_objects.data.search_object_list[x])
                 sos.weights.append(stamped_objects.data.weights[x])
 

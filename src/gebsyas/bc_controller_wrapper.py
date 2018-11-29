@@ -21,14 +21,14 @@ class BCControllerWrapper(SymEngineController):
         self.print_fn = print_fn
         self.control_localization = control_localization
 
-    def init(self, soft_constraints, dynamic_base_weight=False):
+    def init(self, soft_constraints, dynamic_base_weight=False, add_dynamic_constraints=True):
         free_symbols = set()
         for sc in soft_constraints.values():
             for f in sc:
                 if hasattr(f, 'free_symbols'):
                     free_symbols = free_symbols.union(f.free_symbols)
         self.set_controlled_joints(free_symbols, dynamic_base_weight)
-        if hasattr(self.robot, 'soft_dynamics_constraints'):
+        if hasattr(self.robot, 'soft_dynamics_constraints') and add_dynamic_constraints:
             for k, c in self.robot.soft_dynamics_constraints.items():
                 if len(c.expression.free_symbols.intersection(free_symbols)) > 0:
                     soft_constraints[k] = c

@@ -79,16 +79,21 @@ class InEqBulletController(InEqController):
 
         self.filter_set = {self.bullet_bot}#.union(self.allowed_objects.values())
         self.avoidance_constraints = {}
+        self.external_avoidance_constraints = set()
+        self.self_avoidance_constraints = set()
         for link, (margin, blowup, n) in self.robot.collision_avoidance_links.items():
             cpq = ClosestPointQuery_AnyN(self.bullet_bot, link, self.robot.get_fk_expression('map', link), margin, filter=self.filter_set, n=n, aabb_border=blowup)
             self.closest_point_queries.append(cpq)
-            self.avoidance_constraints.update(cpq.generate_constraints())
+            acstrs = cpq.generate_constraints()
+            self.avoidance_constraints.update(acstrs)
+            self.external_avoidance_constraints.update(acstrs.keys())
 
         for Id, sym_object in self.controlled_objects.items():
             cpq = ClosestPointQuery_AnyN(self.bullet_bot, Id, sym_object.pose, 0.02, filter=self.filter_set, n=4, aabb_border=0.1)
             self.closest_point_queries.append(cpq)
-            self.avoidance_constraints.update(cpq.generate_constraints())            
-
+            acstrs = cpq.generate_constraints()
+            self.avoidance_constraints.update(acstrs)            
+            self.external_avoidance_constraints.update(acstrs.keys())
 
         for link_a, link_b, margin in self.robot.self_collision_avoidance_pairs:
             cpq = ClosestPointQuery_Specific_BA(self.bullet_bot, link_a, self.bullet_bot, link_b, 
@@ -96,7 +101,9 @@ class InEqBulletController(InEqController):
                                                 self.robot.get_fk_expression('map', link_b),
                                                 margin)
             self.closest_point_queries.append(cpq)
-            self.avoidance_constraints.update(cpq.generate_constraints())
+            acstrs = cpq.generate_constraints()
+            self.avoidance_constraints.update(acstrs)
+            self.self_avoidance_constraints.update(acstrs.keys())
 
         self.ppl = ppl
         self.link_cd_inputs = {}

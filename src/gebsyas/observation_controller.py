@@ -46,7 +46,8 @@ yaw_constraint = 'occlusion_escape_yaw'
 # Switches the usage of vulcan.
 #   True:  Vulcan is only used as a fall when giskard gets stuck
 #   False: Vulcan is used for all global navigation
-VULCAN_FALLBACK = True
+VULCAN_FALLBACK = False
+VULCAN_DIST     = 4.0
 opt_obs_falloff = 0.2
 
 
@@ -124,13 +125,17 @@ class ObservationController(InEqBulletController):
         self.s_yaw_goal   = Symbol('yaw_goal')
         self.s_occlusion_weight = Symbol('occlusion_weight')
 
-        s_in_view    = SC(- in_view, 0.1 - in_view, 1 + norm(v_e1) + norm(v_e2) + norm(v_e3), in_view)
+        self.close_enough = (0.5 + 0.5 * tanh(6 - 4 * (proximity / opt_obs_range)))
+
+        s_in_view    = SC(- in_view, 0.1 - in_view, (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough, in_view)
         s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.5 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
 
-        s_v_e1 = SC(-co_lin_x, -co_lin_x, norm(v_e1) * (1 - 0.5 * self.s_occlusion_weight), co_lin_x)
-        s_v_e2 = SC(-co_lin_y, -co_lin_y, norm(v_e2) * (1 - 0.5 * self.s_occlusion_weight), co_lin_y)
-        s_v_e3 = SC(-co_lin_z, -co_lin_z, norm(v_e3) * (1 - 0.5 * self.s_occlusion_weight), co_lin_z)
+        s_v_e1 = SC(-co_lin_x, -co_lin_x, norm(v_e1) * (1 - 0.5 * self.s_occlusion_weight) * self.close_enough, co_lin_x)
+        s_v_e2 = SC(-co_lin_y, -co_lin_y, norm(v_e2) * (1 - 0.5 * self.s_occlusion_weight) * self.close_enough, co_lin_y)
+        s_v_e3 = SC(-co_lin_z, -co_lin_z, norm(v_e3) * (1 - 0.5 * self.s_occlusion_weight) * self.close_enough, co_lin_z)
+
+        self.proximity = proximity
 
         soft_constraints = {#'igain'   : s_igain,
                              'near_clip': s_avoid_near,
@@ -192,7 +197,7 @@ class ObservationController(InEqBulletController):
         facing_dot = dot(x_of(proximity_frame), -o2c_flat_normed)
         s_restrict_rotation = SC(-facing_dot, 1 - facing_dot, 1, facing_dot)
 
-        base_constraints = {'in_view' : s_in_view,
+        base_constraints = {#'in_view' : s_in_view,
                             'not_occluded': s_base_non_occlusion,
                             'dont_face_away': s_restrict_rotation,
                             obs_dist_constraint : s_in_v_dist}
@@ -207,15 +212,15 @@ class ObservationController(InEqBulletController):
         self.bc_cpq = []
         for cpq in self.closest_point_queries:
             cac = cpq.generate_constraints()
-            for ac in cac.values():
-                if len(self.bc_free_symbols.intersection(ac.expression.free_symbols)) > 0:
+            for n, ac in cac.items():
+                if n not in self.self_avoidance_constraints and len(self.bc_free_symbols.intersection(ac.expression.free_symbols)) > 0:
                     base_constraints.update(cac)
                     self.bc_cpq.append(cpq)
                     break
 
         self.essential_base_constraints = set(base_constraints.keys())
-        self.essential_base_constraints.remove('in_view')
-        self.global_base_controller.init(base_constraints)
+        #self.essential_base_constraints.remove('in_view')
+        self.global_base_controller.init(base_constraints, False, False)
         self.base_integrator = LocalizationIntegrator(context.agent.robot._joints, context.agent.robot.get_joint_symbol_map().joint_map)
 
         # KEEP LIMBS FROM OBSTRUCTING THE CAMERA'S FIELD OF VIEW
@@ -246,29 +251,32 @@ class ObservationController(InEqBulletController):
         self.pub_cancel.publish(GoalIDMsg())
         self.global_nav_mode = False
         self.current_subs[self.s_base_weight] = 1.0
-        self.occ_vels.reset()
-        print('Taking base control from global navigation')
+        self.reset_stuck_markers()
+        self.context.log('Taking base control from global navigation')
 
     def global_nav(self, goal_location):
         msg = ATPGoalMsg()
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id = 'map'
         msg.goal.pose.x = goal_location[0]
         msg.goal.pose.y = goal_location[1]
         msg.goal.pose.theta = goal_location[2]
         self.pub_set_nav_goal.publish(msg)
         self.global_nav_mode = True
+        self.reset_stuck_markers()
         #self.current_subs[self.s_base_weight] = 10000
-        print('Giving base control to global navigation')
+        self.context.log('Giving base control to global navigation')
 
     def handle_nav_result(self, msg):
         if self.global_nav_mode:
             if msg.status.status == GoalStatusMsg.SUCCEEDED or msg.status.status == GoalStatusMsg.PREEMPTED:
                 if msg.status.status == GoalStatusMsg.SUCCEEDED:
-                    print('Global nav reached its goal')
+                    self.context.log('Global nav reached its goal')
                 else:
-                    print('Global nav got terminated')
+                    self.context.log('Global nav got terminated')
                 self.local_nav()
             elif msg.status.status == GoalStatusMsg.ABORTED:
-                print('Global nav aborted navigation')
+                self.context.log('Global nav aborted navigation')
                 self.find_global_pose()
 
     def get_cmd(self, nWSR=None):
@@ -280,14 +288,10 @@ class ObservationController(InEqBulletController):
             obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
             if VULCAN_FALLBACK:
                 if not self.global_nav_mode:
-                    if self.is_stuck(cmd):
-                        self.map_lin_vel.reset()
-                        self.map_ang_vel.reset()
+                    if self.is_stuck(cmd) or self.proximity.subs(self.current_subs) > VULCAN_DIST:
                         self.find_global_pose()
             else:
                 if obs_ub < UBA_BOUND and not self.global_nav_mode:
-                    self.map_lin_vel.reset()
-                    self.map_ang_vel.reset()
                     self.find_global_pose()
 
             if self.global_nav_mode:
@@ -302,13 +306,14 @@ class ObservationController(InEqBulletController):
 
                 if (obs_ub >= UBA_BOUND and self.current_subs[self.s_occlusion_weight] == 0):# or (avg_lin_vel < 0.02 and avg_ang_vel < 0.1):
                     self.local_nav()
+
+            #self.context.log('Close enough: {}'.format(self.close_enough.subs(self.current_subs)))
+
             return cmd
             #self.print_fn('Waiting for updated object information')
         return {}
 
     def is_stuck(self, last_cmd):
-
-
         obs_lb, obs_ub = self.qp_problem_builder.get_a_bounds(obs_dist_constraint)
         updated = self.obs_vels.log(obs_ub)
         self.occ_vels.log(self.current_subs[self.s_yaw_goal])
@@ -331,12 +336,12 @@ class ObservationController(InEqBulletController):
                    avg_obs_vel < abs(obs_ub) - opt_obs_falloff and \
                    (avg_ang_vel < 0.1 or jitter_factor > 0.3) and \
                    avg_obs_vel < 0.1:
-                    print('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
+                    self.context.log('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
                           avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                     return True
             else: # NAVIGATION TO CIRCLE OBJECCT
                 if avg_occ_vel < 0.03:
-                    print('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
+                    self.context.log('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
                           avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                     return True
 
@@ -345,6 +350,14 @@ class ObservationController(InEqBulletController):
     def update_objects(self, gmm_objects):
         self.search_objects = gmm_objects
         self.update_object_terms()
+
+    def reset_stuck_markers(self):
+        self.obs_vels.reset()
+        self.occ_vels.reset()
+        self.base_lin_vels.reset()
+        self.base_ang_vels.reset()
+        self.map_lin_vel.reset()
+        self.map_ang_vel.reset()
 
     def reset_search(self):
         self.search_objects = None
@@ -395,7 +408,7 @@ class ObservationController(InEqBulletController):
             self.current_subs[self.s_occlusion_weight] = 0
             self.update_object_terms()
 
-    def find_global_pose(self, iterations=100, time_step=0.5, samples=20, spread=3.0):
+    def find_global_pose(self, iterations=100, time_step=1.0, samples=20, spread=3.0):
         if self.goal_obj_index == -1:
             return
 
@@ -417,23 +430,25 @@ class ObservationController(InEqBulletController):
             cpq.reset_subs_dict(base_subs)
 
         good = False
-        print('Doing initial search...')
+        self.context.log('Doing initial search...')
+        self.visualizer.begin_draw_cycle('runner_step_1')
         for x in range(iterations):
             next_cmd = self.global_base_controller.get_cmd()
             self.base_integrator.integrate(base_subs, next_cmd, time_step)
             #print('\n  '.join(['{}: {}'.format(str(s), v) for s, v in base_subs.items()]))
             #positions = {j: (JointState(base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
             #trajectory_log.append(StampedData(rospy.Time.from_sec(x * time_step), positions))
-            # if self.visualizer != None:
-            #     self.visualizer.begin_draw_cycle()
-            #     self.visualizer.draw_robot_pose('runner', self.robot, {j: s.position for j, s in positions.items()})
-            #     self.visualizer.render()
+            if self.visualizer != None:
+                self.visualizer.draw_mesh('runner_step_1', frame3_rpy(0,0,base_subs[self.base_integrator.symbol_map['localization_z_ang']],
+                        [base_subs[self.base_integrator.symbol_map['localization_x']],
+                         base_subs[self.base_integrator.symbol_map['localization_y']], 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', g=1.0, b=1.0, a=1.0)
 
             if self.global_base_controller.qp_problem_builder.constraints_met(lbThreshold=LBA_BOUND, ubThreshold=UBA_BOUND, names=[obs_dist_constraint]):
-                print('Terminated initial search prematurely after {} iterations'.format(x))
+                self.context.log('Terminated initial search prematurely after {} iterations'.format(x))
                 break
+        self.visualizer.render('runner_step_1')
 
-        print('Doing collision search...')
+        self.context.log('Doing collision search...')
         x = 0
 
         coll_subs = []
@@ -443,9 +458,11 @@ class ObservationController(InEqBulletController):
             c[self.base_integrator.symbol_map['localization_y']] += spread * (0.5 - random.random())
             coll_subs.append(c)
 
+        constraint_counter = {c: 0 for c in self.essential_base_constraints}
+
         while not good:
             x += 1
-            self.visualizer.begin_draw_cycle('runner')
+            self.visualizer.begin_draw_cycle('runner_step_2')
             for c_base_subs in coll_subs:
                 self.global_base_controller.current_subs = c_base_subs
                 self.bullet_bot.set_joint_positions({j: c_base_subs[s] for j, s in self.base_integrator.symbol_map.items() if s in c_base_subs})
@@ -459,8 +476,8 @@ class ObservationController(InEqBulletController):
                 self.base_integrator.integrate(c_base_subs, self.global_base_controller.get_cmd(), time_step)
                 for c in self.essential_base_constraints:
                     lbA, ubA = self.global_base_controller.qp_problem_builder.get_a_bounds(c)
-                    #if lbA > LBA_BOUND or ubA < UBA_BOUND:
-                    #    print('{} unsatisfied: {:>30} {:>30}'.format(c, lbA, ubA))
+                    if lbA > LBA_BOUND or ubA < UBA_BOUND:
+                        constraint_counter[c] += 1
                 # positions = {j: (JointState(c_base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
                 # trajectory_log.append(StampedData(rospy.Time.from_sec(x * time_step), positions))
                 # if self.visualizer != None:
@@ -469,12 +486,13 @@ class ObservationController(InEqBulletController):
                 # positions = {j: (JointState(c_base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
                 # trajectory_log.append(StampedData(rospy.Time.from_sec(x * time_step), positions))
                 if self.visualizer != None:
-                     self.visualizer.draw_mesh('runner', frame3_rpy(0,0,c_base_subs[self.base_integrator.symbol_map['localization_z_ang']],
+                     self.visualizer.draw_mesh('runner_step_2', frame3_rpy(0,0,c_base_subs[self.base_integrator.symbol_map['localization_z_ang']],
                                 [c_base_subs[self.base_integrator.symbol_map['localization_x']],
                                  c_base_subs[self.base_integrator.symbol_map['localization_y']], 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', r=1.0, g=0.6, a=1.0)
 
                 if self.global_base_controller.qp_problem_builder.constraints_met(lbThreshold=LBA_BOUND, ubThreshold=UBA_BOUND, names=self.essential_base_constraints):
                     good = True
+                    base_subs = c_base_subs
                     print('Terminated collision resolve search after {} iterations'.format(x))
                     break
             if x > 50:
@@ -484,8 +502,11 @@ class ObservationController(InEqBulletController):
                     c[self.base_integrator.symbol_map['localization_x']] += spread * (0.5 - random.random())
                     c[self.base_integrator.symbol_map['localization_y']] += spread * (0.5 - random.random())
                     coll_subs.append(c)
+                constraint_counter = {c: 0 for c in self.essential_base_constraints}
+                x = 0
 
-            self.visualizer.render('runner')
+            self.visualizer.render('runner_step_2')
+            self.context.log('Total Iterations: {}\nConstraint hit proportion:\n  {}'.format(x, '\n  '.join(['{}: {}'.format(k, v / float(x * y)) for v, k in sorted([(t[1], t[0]) for t in constraint_counter.items()])])))
 
         goal_x = base_subs[self.base_integrator.symbol_map['localization_x']]
         goal_y = base_subs[self.base_integrator.symbol_map['localization_y']]
@@ -494,11 +515,14 @@ class ObservationController(InEqBulletController):
         self.global_nav((goal_x, goal_y, goal_theta))
         self.visualizer.begin_draw_cycle('nav_goal')
         self.visualizer.draw_mesh('nav_goal', frame3_rpy(0,0,goal_theta, [goal_x, goal_y, 0]), [1.0] * 3, 'package://gebsyas/meshes/nav_arrow.dae', r=1.0, a=1.0)
+        positions = {j: (JointState(base_subs[s], 0, 0) if s in base_subs else JointState(self.current_subs[s], 0,0)) for j, s in self.base_integrator.symbol_map.items()}
+        if self.visualizer != None:
+            self.visualizer.draw_robot_pose('nav_goal', self.robot, {j: s.position for j, s in positions.items()})
         self.visualizer.render('nav_goal')
 
 
     def update_object_terms(self):
-        if self.goal_obj_index == -1:
+        if self.goal_obj_index == -1 or self.goal_obj_index >= len(self.search_objects.search_object_list):
             return
 
         gmm_object = self.search_objects.search_object_list[self.goal_obj_index]
@@ -749,8 +773,8 @@ class ObservationRunner(object):
                              self.controller.current_weight >= self.t_weight and \
                              sqrt(abs(cov[0,0])) <= t_var[0] and \
                              sqrt(abs(cov[1,1])) <= t_var[1] and \
-                             sqrt(abs(cov[2,2])) <= t_var[2] and \
-                                  abs(cov[3,3]) >= t_var[3]
+                             sqrt(abs(cov[2,2])) <= t_var[2] #and \
+                                  #abs(cov[3,3]) >= t_var[3]
         self.last_update = now
 
 def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):
