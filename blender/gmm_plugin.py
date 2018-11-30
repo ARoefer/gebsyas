@@ -155,8 +155,9 @@ class ExportScene(bpy.types.Operator, ExportHelper):
                     pass
                 v.name = ''.join(parts)
             
-            if 'GMM_Root' in v and v not in gmm_objs:
-                gmm_objs[v] = []
+            if 'GMM_Root' in v: 
+                if v not in gmm_objs:
+                    gmm_objs[v] = []
             elif 'GMM_Object' in v:
                 if v['GMM_Object'] not in gmm_objs:
                     gmm_objs[v['GMM_Object']] = []
