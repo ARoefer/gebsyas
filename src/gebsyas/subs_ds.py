@@ -122,7 +122,7 @@ def ros_msg_to_ks(ros_msg, name, state={}):
             state[syms[0]] = o.x
             state[syms[1]] = o.y
             state[syms[2]] = o.z
-        
+
         return vector3(*syms), rf
     elif t_msg == QuaternionMsg:
         syms = []
