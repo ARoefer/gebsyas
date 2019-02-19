@@ -750,9 +750,9 @@ class ObservationRunner(object):
                              sqrt(abs(cov[2,2])) <= t_var[2] #and \
                                   #abs(cov[3,3]) >= t_var[3]
             if self.terminate:
-                print sqrt(abs(cov[0,0]))
-                print sqrt(abs(cov[1,1]))
-                print sqrt(abs(cov[2,2]))
+                print(sqrt(abs(cov[0,0])))
+                print(sqrt(abs(cov[1,1])))
+                print(sqrt(abs(cov[2,2])))
         self.last_update = now
 
 def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):
