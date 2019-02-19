@@ -742,13 +742,17 @@ class ObservationRunner(object):
         if self.controller.goal_obj_index > -1:
             cov = self.controller.current_cov
             c_obj = self.controller.get_current_object()
-            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else ([self.t_variance] * 3) + [5]
+            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else ([0.1] * 3) + [5]
             self.terminate = not self.controller.current_cov_occluded and \
                              self.controller.current_weight >= self.t_weight and \
                              sqrt(abs(cov[0,0])) <= t_var[0] and \
                              sqrt(abs(cov[1,1])) <= t_var[1] and \
                              sqrt(abs(cov[2,2])) <= t_var[2] #and \
                                   #abs(cov[3,3]) >= t_var[3]
+            if self.terminate:
+                print sqrt(abs(cov[0,0]))
+                print sqrt(abs(cov[1,1]))
+                print sqrt(abs(cov[2,2]))
         self.last_update = now
 
 def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):

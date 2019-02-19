@@ -163,25 +163,25 @@ def rot3_to_rpy(rot3, evaluate=False):
 def real_quat_from_matrix(frame):
 	tr = frame[0,0] + frame[1,1] + frame[2,2]
 
-	if tr > 0: 
-		S = sqrt(tr+1.0) * 2 # S=4*qw 
+	if tr > 0:
+		S = sqrt(tr+1.0) * 2 # S=4*qw
 		qw = 0.25 * S
 		qx = (frame[2,1] - frame[1,2]) / S
-		qy = (frame[0,2] - frame[2,0]) / S 
-		qz = (frame[1,0] - frame[0,1]) / S 
-	elif frame[0,0] > frame[1,1] and frame[0,0] > frame[2,2]: 
-		S  = sqrt(1.0 + frame[0,0] - frame[1,1] - frame[2,2]) * 2 # S=4*qx 
+		qy = (frame[0,2] - frame[2,0]) / S
+		qz = (frame[1,0] - frame[0,1]) / S
+	elif frame[0,0] > frame[1,1] and frame[0,0] > frame[2,2]:
+		S  = sqrt(1.0 + frame[0,0] - frame[1,1] - frame[2,2]) * 2 # S=4*qx
 		qw = (frame[2,1] - frame[1,2]) / S
 		qx = 0.25 * S
-		qy = (frame[0,1] + frame[1,0]) / S 
-		qz = (frame[0,2] + frame[2,0]) / S 
-	elif frame[1,1] > frame[2,2]: 
+		qy = (frame[0,1] + frame[1,0]) / S
+		qz = (frame[0,2] + frame[2,0]) / S
+	elif frame[1,1] > frame[2,2]:
 		S  = sqrt(1.0 + frame[1,1] - frame[0,0] - frame[2,2]) * 2 # S=4*qy
 		qw = (frame[0,2] - frame[2,0]) / S
-		qx = (frame[0,1] + frame[1,0]) / S 
+		qx = (frame[0,1] + frame[1,0]) / S
 		qy = 0.25 * S
-		qz = (frame[1,2] + frame[2,1]) / S 
-	else: 
+		qz = (frame[1,2] + frame[2,1]) / S
+	else:
 		S  = sqrt(1.0 + frame[2,2] - frame[0,0] - frame[1,1]) * 2 # S=4*qz
 		qw = (frame[1,0] - frame[0,1]) / S
 		qx = (frame[0,2] + frame[2,0]) / S
@@ -193,7 +193,7 @@ def real_quat_from_matrix(frame):
 from std_msgs.msg import Header, String, Float64, Bool, Int32
 from geometry_msgs.msg import Pose    as PoseMsg
 from geometry_msgs.msg import Point   as PointMsg
-from geometry_msgs.msg import Vector3 as Vector3Msg 
+from geometry_msgs.msg import Vector3 as Vector3Msg
 from geometry_msgs.msg import Quaternion as QuaternionMsg
 from geometry_msgs.msg import PoseStamped as PoseStampedMsg
 
@@ -217,8 +217,8 @@ def ros_msg_to_expr(ros_msg):
 	elif t_msg == SearchObjectMsg:
 		return gmm_obj_to_expr(ros_msg)
 	elif t_msg == PoseMsg:
-		return frame3_quaternion(ros_msg.position.x, 
-								 ros_msg.position.y, 
+		return frame3_quaternion(ros_msg.position.x,
+								 ros_msg.position.y,
 								 ros_msg.position.z,
 								 ros_msg.orientation.x,
 								 ros_msg.orientation.y,
@@ -240,8 +240,8 @@ def ros_msg_to_expr(ros_msg):
 		return {ros_msg.name[x]: JointState(ros_msg.position[x], ros_msg.velocity[x], ros_msg.effort[x]) for x in range(len(ros_msg.name))}
 	elif t_msg == OPGMsg:
 		return GaussianPoseComponent(ros_msg.id,
-									 ros_msg.weight, 
-									 ros_msg_to_expr(ros_msg.cov_pose.pose), 
+									 ros_msg.weight,
+									 ros_msg_to_expr(ros_msg.cov_pose.pose),
 									 ros_msg_to_expr(ros_msg.cov_pose.covariance),
 									 ros_msg.occluded)
 	else:
@@ -409,6 +409,7 @@ def decode_obj_shape(name, out):
 		out.radius = 1.024 * 0.5
 		out.height = 0.74
 		out.mass   = 30.0
+		out.good_variance = [0.2, 0.2, 0.2, 10]
 	elif name == 'floor':
 		out.width  = 20.0
 		out.height = 1.0
@@ -483,17 +484,17 @@ def decode_obj_shape(name, out):
 
 def pobj_to_expr(msg):
 	out = Blank()
-	
+
 	msg.name = ''.join([i for i in msg.name if not i.isdigit()])
 
 	decode_obj_shape(msg.name, out)
-		
+
 	#raise Exception("Unrecognized semantic class '{}'".format(msg.name))
 
 	out.id = '{}{}'.format(msg.name, msg.id)
 	out.pose = ros_msg_to_expr(msg.cov_pose.pose)
 	out.pose_cov = ros_msg_to_expr(msg.cov_pose.covariance)
-	
+
 	out.concepts = {msg.name}
 
 	return out
@@ -501,7 +502,7 @@ def pobj_to_expr(msg):
 
 def gmm_obj_to_expr(msg):
 	out = Blank()
-	
+
 	msg.name = ''.join([i for i in msg.name if not i.isdigit()])
 
 	decode_obj_shape(msg.name, out)
@@ -518,7 +519,7 @@ def vis_obj_to_expr(msg):
 	out = Blank()
 
 	out.id = msg.ns
-	out.concepts = {''.join([i for i in msg.ns if not i.isdigit()])}	
+	out.concepts = {''.join([i for i in msg.ns if not i.isdigit()])}
 	out.pose = ros_msg_to_expr(msg.pose)
 	out.mass = 0.0
 	if msg.type == MarkerMsg.CUBE:

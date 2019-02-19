@@ -72,9 +72,9 @@ if __name__ == '__main__':
 
 
 
-    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=True))
+    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=False))
 
     os.system('rostopic pub /nav_to_pose/cancel actionlib_msgs/GoalID "{stamp: {secs: 0, nsecs: 0}, id: ''}" -1')
 
     if stop_bag:
-        os.system('rosservice call /record "data: false"')        
+        os.system('rosservice call /record "data: false"')
