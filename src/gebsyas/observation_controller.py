@@ -449,7 +449,7 @@ class ObservationController(InEqBulletController):
         self.visualizer.render('runner_step_1')
 
         self.context.log('Doing collision search...')
-        x = 0
+        x = 1
 
         coll_subs = []
         for y in range(samples):
@@ -461,7 +461,6 @@ class ObservationController(InEqBulletController):
         constraint_counter = {c: 0 for c in self.essential_base_constraints}
 
         while not good:
-            x += 1
             self.visualizer.begin_draw_cycle('runner_step_2')
             for c_base_subs in coll_subs:
                 self.global_base_controller.current_subs = c_base_subs
@@ -503,10 +502,11 @@ class ObservationController(InEqBulletController):
                     c[self.base_integrator.symbol_map['localization_y']] += spread * (0.5 - random.random())
                     coll_subs.append(c)
                 constraint_counter = {c: 0 for c in self.essential_base_constraints}
-                x = 0
+                x = 1
 
             self.visualizer.render('runner_step_2')
             self.context.log('Total Iterations: {}\nConstraint hit proportion:\n  {}'.format(x, '\n  '.join(['{}: {}'.format(k, v / float(x * y)) for v, k in sorted([(t[1], t[0]) for t in constraint_counter.items()])])))
+            x += 1
 
         goal_x = base_subs[self.base_integrator.symbol_map['localization_x']]
         goal_y = base_subs[self.base_integrator.symbol_map['localization_y']]
