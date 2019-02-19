@@ -712,6 +712,7 @@ class ObservationRunner(object):
         while not rospy.is_shutdown() and not self.terminate:
             pass
 
+        self.controller.local_nav()
         print('Runner terminating...')
         #self.controller.stop()
         return self.terminate, self.controller.current_weight
@@ -734,33 +735,6 @@ class ObservationRunner(object):
             traceback.print_exc()
             print(e)
             return
-
-        # obs_lb, obs_ub = self.controller.qp_problem_builder.get_a_bounds(obs_dist_constraint)
-        # if obs_ub < UBA_BOUND and self.last_update != None:
-        #     v_obs = (obs_ub - self.last_obs_ub) / delta_t
-        #     if v_obs >= 0.1:
-        #         self.base_timeout = now + self.base_timeout_duration
-        #     if now >= self.base_timeout and not self.external_navigation:
-        #         print('vulcan would kick in now. v_obs: {}'.format(v_obs))
-        #         symbol_map = self.robot.get_joint_symbol_map().joint_map
-        #         runner = CollisionResolverRunner(self.controller.global_base_controller, LocalizationIntegrator(self.robot._joints, symbol_map), self.visualizer)
-        #         self.visualizer.begin_draw_cycle('resolved_pose')
-        #         if runner.run():
-        #             self.visualizer.draw_robot_trajectory('resolved_pose', self.robot, runner.trajectory_log, tint=(0,1,0,1))
-        #         else:
-        #             self.visualizer.draw_robot_trajectory('resolved_pose', self.robot, runner.trajectory_log, tint=(1,0,0,1))
-        #         self.visualizer.render()
-        #         self.external_navigation = True
-
-        # self.last_obs_ub = obs_ub
-
-        # if self.external_navigation:
-        #     if 'base_linear_joint' in command:
-        #         del command['base_linear_joint']
-
-        #     if 'base_angular_joint' in command:
-        #         del command['base_angular_joint']
-
 
         #print('\n'.join(['{:>20}: {}'.format(name, vel) for name, vel in command.items()]))
         #self.controller.qp_problem_builder.print_jacobian()

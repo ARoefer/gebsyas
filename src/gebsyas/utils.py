@@ -400,11 +400,15 @@ def decode_obj_shape(name, out):
 		out.width  = 0.114
 		out.height = 0.070
 		out.mass   = 1.0
+	# elif name == 'table':
+	# 	out.width  = 1.15
+	# 	out.height = 0.84
+	# 	out.length = 0.54
+	# 	out.mass   = 100.0
 	elif name == 'table':
-		out.width  = 1.15
-		out.height = 0.84
-		out.length = 0.54
-		out.mass   = 100.0
+		out.radius = 1.024 * 0.5
+		out.height = 0.74
+		out.mass   = 30.0
 		out.good_variance = [0.2, 0.2, 0.2, 10]
 	elif name == 'floor':
 		out.width  = 20.0

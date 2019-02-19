@@ -1,5 +1,7 @@
 import rospy
 from gebsyas.actions import Action
+from gebsyas.backoff_hack import BackoffHack
+from gebsyas.basic_controllers import run_ineq_controller
 from gebsyas.generic_motion_action import GenericMotionAction
 from gebsyas.grasp_action import GraspAction, LetGoAction
 from gebsyas.predicates import IsGrasped, Graspable, Above, PointingAt, ClearlyPerceived, IsControlled,InPosture
@@ -52,6 +54,9 @@ class MultiObjectSearchAndDeliveryAction(Action):
         data_state = context.agent.get_data_state()
         predicate_state = context.agent.get_predicate_state()
         robot = context.agent.robot
+
+        backoff_controller = BackoffHack(robot)
+
         #delivery_box = bb(width=0.33, height=0.14, length=0.31, mass=0.5, pose=robot.get_fk_expression('map', 'box_link'))
 
         #stupid_thing = bb(radius=0.035, height=0.2, mass=1.0, pose=(robot.gripper.pose * translation3(0,0,0.1)))
@@ -79,7 +84,14 @@ class MultiObjectSearchAndDeliveryAction(Action):
             b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.02, 0.9)
             if b_found_object:
                 found_obj = observation_controller.get_current_object()
+                found_obj.pose = sorted(found_obj.gmm)[-1].pose
                 found_id = found_obj.id
+
+                context.log('Backing robot off a bit')
+                backoff_controller.set_goal(data_state['localization'].data, found_obj.pose)
+                run_ineq_controller(robot, backoff_controller, 20, 3, context.agent)
+                context.log('Backing off complete')
+
                 result_msg = SearchResultMsg()
                 result_msg.id = int(''.join([c for c in found_id if c.isdigit()]))
                 result_msg.grasp = len({i for i in self.searched_ids if i in found_id}) > 0
@@ -89,7 +101,6 @@ class MultiObjectSearchAndDeliveryAction(Action):
 
                 if 'table' in found_id:
                     print('found a table')
-                    found_obj.pose = sorted(found_obj.gmm)[-1].pose
                     del found_obj.gmm
                     found_obj.pose[2, 3] = found_obj.height * 0.5
                 
