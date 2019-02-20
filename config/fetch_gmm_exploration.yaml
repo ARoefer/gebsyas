@@ -1,6 +1,7 @@
 camera_config: {body: fetch, camera_link: head_camera_link, d_gain: 0.6, far: 6.0,
   fov: 0.942478, h_gain: 0.6, near: 0.3}
 gravity: [0, 0, -9.81]
+gmm_objects: [pringle]
 plugins:
 - {body: fetch, plugin_type: <class 'gebsyas.simulator_plugins.LocalizationPublisher'>,
   topic_prefix: fetch}
