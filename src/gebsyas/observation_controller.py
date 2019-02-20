@@ -50,6 +50,8 @@ VULCAN_FALLBACK = False
 VULCAN_DIST     = 4.0
 opt_obs_falloff = 0.2
 
+def blank_pass(a):
+    pass
 
 class ObservationController(InEqBulletController):
 
@@ -115,7 +117,6 @@ class ObservationController(InEqBulletController):
         in_view  = dot(view_dir, look_dir)
         proximity = norm(diag(1,1,0,1) * (pos_of(pose) - pos_of(proximity_frame)))
 
-
         co_lin_x = norm(cross(view_dir_flat, v_e1_flat)) #dot(view_dir, v_e1)
         co_lin_y = norm(cross(view_dir_flat, v_e2_flat)) #dot(view_dir, v_e2)
         co_lin_z = norm(cross(view_dir_flat, v_e3_flat)) #dot(view_dir, v_e3)
@@ -127,7 +128,12 @@ class ObservationController(InEqBulletController):
 
         self.close_enough = (0.5 + 0.5 * tanh(6 - 4 * (proximity / opt_obs_range)))
 
-        s_in_view    = SC((0.99-in_view)*15 , (1-in_view)*15, (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough, in_view)
+        look_gain = 10
+
+        s_in_view    = SC((0.95 - in_view) * look_gain,
+                          (1 - in_view) * look_gain,
+                          (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough,
+                          in_view)
         s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.5 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
 
@@ -151,6 +157,7 @@ class ObservationController(InEqBulletController):
         o2c_flat_normed = o2c_flat / norm(o2c_flat)
         obs_dir_yaw   = acos(o2c_flat_normed[0]) * fake_sign(o2c_flat_normed[1])
         obs_dir_pitch = asin(o2c[2] / norm(o2c))
+        self.obs_dir_pitch = obs_dir_pitch
 
 
         self.current_subs[self.s_yaw_goal] = 0
@@ -187,7 +194,7 @@ class ObservationController(InEqBulletController):
 
         # HEADLESS CONTROLLER FOR FINDING POSES FOR EXTERNAL NAVIGATION
         self.global_base_controller = InEqController(context.agent.robot,
-                                                           self.print_fn,
+                                                           blank_pass,
                                                            True)
         self.s_area_border = Symbol('non_occluded_area_width')
         area_center = vector3(cos(self.s_yaw_goal), sin(self.s_yaw_goal), 0)
@@ -252,7 +259,7 @@ class ObservationController(InEqBulletController):
         self.global_nav_mode = False
         self.current_subs[self.s_base_weight] = 1.0
         self.reset_stuck_markers()
-        self.context.log('Taking base control from global navigation')
+        self.context.log('Taking base control from global navigation.')
 
     def global_nav(self, goal_location):
         msg = ATPGoalMsg()
@@ -291,7 +298,7 @@ class ObservationController(InEqBulletController):
                     if self.is_stuck(cmd) or self.proximity.subs(self.current_subs) > VULCAN_DIST:
                         self.find_global_pose()
             else:
-                if obs_ub < UBA_BOUND and not self.global_nav_mode:
+                if (obs_ub < UBA_BOUND or self.current_subs[self.s_occlusion_weight] > 0) and not self.global_nav_mode:
                     self.find_global_pose()
 
             if self.global_nav_mode:
@@ -305,6 +312,7 @@ class ObservationController(InEqBulletController):
                 avg_ang_vel = abs(self.map_ang_vel.avg())
 
                 if (obs_ub >= UBA_BOUND and self.current_subs[self.s_occlusion_weight] == 0):# or (avg_lin_vel < 0.02 and avg_ang_vel < 0.1):
+                    self.context.log('Robot is close enough to target and currently not forced to avoid occlusions.')
                     self.local_nav()
 
             #self.context.log('Close enough: {}'.format(self.close_enough.subs(self.current_subs)))
@@ -339,12 +347,12 @@ class ObservationController(InEqBulletController):
                     self.context.log('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
                           avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                     return True
-            else: # NAVIGATION TO CIRCLE OBJECCT
+            elif not self.global_nav_mode: # NAVIGATION TO CIRCLE OBJECCT
                 if avg_occ_vel < 0.03:
                     self.context.log('Stuck:\n  avg vl: {}\n  avg va: {}\n  avg ov: {}\n      ov: {}\n  avg |va|: {}\n  jf: {}'.format(
                           avg_base_vel, avg_ang_vel, avg_obs_vel, abs(obs_ub), abs_avg_ang_vel, jitter_factor))
                     return True
-
+        return False
 
 
     def update_objects(self, gmm_objects):
@@ -544,11 +552,13 @@ class ObservationController(InEqBulletController):
 
             c_pos = self.camera_position.subs(self.current_subs)
             goal_yaw, goal_pitch = oc_map.update(c_pos, pos_of(pose))
+            #print('   goal_pitch: {}\ncurrent pitch: {}'.format(goal_pitch, self.obs_dir_pitch.subs(self.current_subs)))
             if oc_map.is_closed():
                 msg = NPCMsg()
                 msg.object_id = int(''.join([c for c in gmm_object.id if c.isdigit()]))
                 msg.component_id = gc.id
                 self.current_subs[self.s_occlusion_weight] = 0
+                print('Bad GMM component found!')
                 self.pub_bad_component.publish(msg)
             else:
                 #print('Goal yaw: {}\nYaw term: {}'.format(goal_yaw, self.yaw_goal_angular.subs(self.current_subs)))
@@ -750,9 +760,9 @@ class ObservationRunner(object):
                              sqrt(abs(cov[2,2])) <= t_var[2] #and \
                                   #abs(cov[3,3]) >= t_var[3]
             if self.terminate:
-                print sqrt(abs(cov[0,0]))
-                print sqrt(abs(cov[1,1]))
-                print sqrt(abs(cov[2,2]))
+                print(sqrt(abs(cov[0,0])))
+                print(sqrt(abs(cov[1,1])))
+                print(sqrt(abs(cov[2,2])))
         self.last_update = now
 
 def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):
