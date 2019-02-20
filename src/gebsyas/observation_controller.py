@@ -112,7 +112,7 @@ class ObservationController(InEqBulletController):
         z_dist   = norm(c2o)
         look_dir = c2o / z_dist
         obs_ctrl = 1 #1 - (z_dist / opt_obs_range) # ((opt_obs_range - z_dist) / opt_obs_falloff) ** 2
-        in_view  = acos(dot(view_dir, c2o) / norm(c2o))
+        in_view  = dot(view_dir, look_dir)
         proximity = norm(diag(1,1,0,1) * (pos_of(pose) - pos_of(proximity_frame)))
 
 
@@ -127,7 +127,7 @@ class ObservationController(InEqBulletController):
 
         self.close_enough = (0.5 + 0.5 * tanh(6 - 4 * (proximity / opt_obs_range)))
 
-        s_in_view    = SC(- in_view, 0.1 - in_view, (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough, in_view)
+        s_in_view    = SC((0.99-in_view)*15 , (1-in_view)*15, (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough, in_view)
         s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.5 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
 
@@ -449,7 +449,7 @@ class ObservationController(InEqBulletController):
         self.visualizer.render('runner_step_1')
 
         self.context.log('Doing collision search...')
-        x = 0
+        x = 1
 
         coll_subs = []
         for y in range(samples):
@@ -461,7 +461,6 @@ class ObservationController(InEqBulletController):
         constraint_counter = {c: 0 for c in self.essential_base_constraints}
 
         while not good:
-            x += 1
             self.visualizer.begin_draw_cycle('runner_step_2')
             for c_base_subs in coll_subs:
                 self.global_base_controller.current_subs = c_base_subs
@@ -503,10 +502,11 @@ class ObservationController(InEqBulletController):
                     c[self.base_integrator.symbol_map['localization_y']] += spread * (0.5 - random.random())
                     coll_subs.append(c)
                 constraint_counter = {c: 0 for c in self.essential_base_constraints}
-                x = 0
+                x = 1
 
             self.visualizer.render('runner_step_2')
             self.context.log('Total Iterations: {}\nConstraint hit proportion:\n  {}'.format(x, '\n  '.join(['{}: {}'.format(k, v / float(x * y)) for v, k in sorted([(t[1], t[0]) for t in constraint_counter.items()])])))
+            x += 1
 
         goal_x = base_subs[self.base_integrator.symbol_map['localization_x']]
         goal_y = base_subs[self.base_integrator.symbol_map['localization_y']]
@@ -742,7 +742,7 @@ class ObservationRunner(object):
         if self.controller.goal_obj_index > -1:
             cov = self.controller.current_cov
             c_obj = self.controller.get_current_object()
-            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else ([0.1] * 3) + [5]
+            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else ([self.t_variance] * 3) + [5]
             self.terminate = not self.controller.current_cov_occluded and \
                              self.controller.current_weight >= self.t_weight and \
                              sqrt(abs(cov[0,0])) <= t_var[0] and \

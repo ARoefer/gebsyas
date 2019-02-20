@@ -72,7 +72,7 @@ class MultiObjectSearchAndDeliveryAction(Action):
                                                 set(),
                                                 3,
                                                 context.log)
-        observation_controller.init(context, 
+        observation_controller.init(context,
                                     robot.get_fk_expression('map', 'base_link') * translation3(0.1, 0, 0),
                                     robot.camera)
         data_state.register_new_data_cb(dl_rigid_objects, observation_controller.add_new_obstacle)
@@ -81,29 +81,29 @@ class MultiObjectSearchAndDeliveryAction(Action):
         while not rospy.is_shutdown() and not len(self.searched_ids) == 0:
             context.log('New searched ids: {}'.format(', '.join(self.searched_ids)))
             observation_controller.reset_search()
-            b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.02, 0.9)
+            b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.1, 0.9)
             if b_found_object:
                 found_obj = observation_controller.get_current_object()
                 found_obj.pose = sorted(found_obj.gmm)[-1].pose
                 found_id = found_obj.id
 
-                context.log('Backing robot off a bit')
-                backoff_controller.set_goal(data_state['localization'].data, found_obj.pose)
-                run_ineq_controller(robot, backoff_controller, 20, 3, context.agent)
-                context.log('Backing off complete')
+                # context.log('Backing robot off a bit')
+                # backoff_controller.set_goal(data_state['localization'].data, found_obj.pose)
+                # run_ineq_controller(robot, backoff_controller, 20, 3, context.agent)
+                # context.log('Backing off complete')
 
                 result_msg = SearchResultMsg()
                 result_msg.id = int(''.join([c for c in found_id if c.isdigit()]))
                 result_msg.grasp = len({i for i in self.searched_ids if i in found_id}) > 0
                 self.pub_found_id.publish(result_msg)
-                
+
                 context.log('Found thing is called {}. Pose:\n{}'.format(found_id, str(sorted(found_obj.gmm)[-1].pose)))
 
                 if 'table' in found_id:
                     print('found a table')
                     del found_obj.gmm
                     found_obj.pose[2, 3] = found_obj.height * 0.5
-                
+
                 data_state.insert_data(StampedData(rospy.Time.now(), found_obj), found_id)
 
                 if result_msg.grasp:
