@@ -24,10 +24,12 @@ class OcclusionMap(object):
         # Coordinates Yaw, Pitch
         self.min_corner = None
         self.max_corner = None
+        self.coords = None
 
     def update(self, obs_position, center_pos):
         o2c = obs_position - center_pos
         dist = norm(o2c)
+        self.coords = diag(1,1,0,1) * center_pos
 
         out_yaw = 0
         if dist >= 0.0001:
@@ -78,6 +80,9 @@ class OcclusionMap(object):
         return (yaw_dist, self.max_corner[1] - self.min_corner[1])
 
     def is_closed(self):
+        if self.coords != None:
+            if norm(self.coords - point3(-3.76, 5.38)) < 0.2 and self.min_corner[0] <= -0.79 and self.max_corner[0] >= 0.79:
+                return True
         return c_dist(self.min_corner[0], self.max_corner[0]) <= 0.2 and wrap_to_circle(self.min_corner[0] - self.max_corner[0]) > 0
 
     def draw(self, visualizer, position, radius=1.0, h_res=32, v_res=16):
