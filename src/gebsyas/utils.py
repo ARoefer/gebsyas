@@ -407,7 +407,7 @@ def decode_obj_shape(name, out):
 	# 	out.mass   = 100.0
 	elif name == 'table':
 		out.radius = 1.024 * 0.5
-		out.height = 0.74
+		out.height = 0.7
 		out.mass   = 30.0
 		out.good_variance = [0.2, 0.2, 0.2, 10]
 	elif name == 'floor':
