@@ -409,7 +409,7 @@ def decode_obj_shape(name, out):
 		out.radius = 1.024 * 0.5
 		out.height = 0.7
 		out.mass   = 30.0
-		out.good_variance = [0.2, 0.2, 0.2, 10]
+		out.good_variance = [0.1, 0.1, 0.1, 10]
 	elif name == 'floor':
 		out.width  = 20.0
 		out.height = 1.0

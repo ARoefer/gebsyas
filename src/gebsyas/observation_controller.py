@@ -130,9 +130,9 @@ class ObservationController(InEqBulletController):
 
         look_gain = 10
 
-        s_in_view    = SC((0.95 - in_view) * look_gain, 
-                          (1 - in_view) * look_gain, 
-                          (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough, 
+        s_in_view    = SC((0.95 - in_view) * look_gain,
+                          (1 - in_view) * look_gain,
+                          (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough,
                           in_view)
         s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.5 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
@@ -752,7 +752,7 @@ class ObservationRunner(object):
         if self.controller.goal_obj_index > -1:
             cov = self.controller.current_cov
             c_obj = self.controller.get_current_object()
-            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else ([0.1] * 3) + [5]
+            t_var = c_obj.good_variance if hasattr(c_obj, 'good_variance') else ([self.t_variance] * 3) + [5]
             self.terminate = not self.controller.current_cov_occluded and \
                              self.controller.current_weight >= self.t_weight and \
                              sqrt(abs(cov[0,0])) <= t_var[0] and \
