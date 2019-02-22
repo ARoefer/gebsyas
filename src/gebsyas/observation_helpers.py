@@ -81,9 +81,9 @@ class OcclusionMap(object):
 
     def is_closed(self):
         if self.coords != None:
-            print(norm(self.coords - point3(-3.76, 5.38, 0)))
-            print(self.min_corner[0])
-            print(self.max_corner[0])
+            # print(norm(self.coords - point3(-3.76, 5.38, 0)))
+            # print(self.min_corner[0])
+            # print(self.max_corner[0])
             if norm(self.coords - point3(-3.76, 5.38, 0)) < 0.1 and self.min_corner[0] <= -0.1 and self.max_corner[0] >= 0.1:
                 return True
 

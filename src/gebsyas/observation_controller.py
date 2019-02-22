@@ -97,7 +97,7 @@ class ObservationController(InEqBulletController):
         v_e2_flat = diag(1,1,0,1) * v_e2
         v_e3_flat = diag(1,1,0,1) * v_e3
 
-        opt_obs_range   = 1.0 # Figure this out by semantic type and observations.
+        opt_obs_range   = 1.2 # Figure this out by semantic type and observations.
 
         self.goal_obj_index = -1
         self.goal_gmm_index = -1
@@ -134,7 +134,7 @@ class ObservationController(InEqBulletController):
                           (1 - in_view) * look_gain,
                           (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough,
                           in_view)
-        s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.5 * self.s_occlusion_weight), proximity)
+        s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.25 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
 
         s_v_e1 = SC(-co_lin_x, -co_lin_x, norm(v_e1) * (1 - 0.5 * self.s_occlusion_weight) * self.close_enough, co_lin_x)
@@ -416,7 +416,7 @@ class ObservationController(InEqBulletController):
             self.current_subs[self.s_occlusion_weight] = 0
             self.update_object_terms()
 
-    def find_global_pose(self, iterations=100, time_step=1.0, samples=20, spread=3.0):
+    def find_global_pose(self, iterations=100, time_step=0.25, samples=20, spread=3.0):
         if self.goal_obj_index == -1:
             return
 

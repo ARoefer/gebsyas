@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     try:
         srv_reset = rospy.ServiceProxy('/reset', EmptySrv)
-        srv_reset()
+        #srv_reset()
     except (rospy.ServiceException, rospy.ROSException), e:
         print('Simulator does not seem to be running...')
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
 
 
-    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=False))
+    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=True))
 
     os.system('rostopic pub /nav_to_pose/cancel actionlib_msgs/GoalID "{stamp: {secs: 0, nsecs: 0}, id: ''}" -1')
 
