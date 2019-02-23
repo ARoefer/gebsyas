@@ -69,10 +69,7 @@ if __name__ == '__main__':
 
     agent = BasicAgent('Elliot', reasoner, PREDICATES, robot, capabilities, sys.argv[2])
 
-
-
-
-    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=False))
+    agent.awake(MultiObjectSearchAndDeliveryAction([a for a in sys.argv[3:] if ':=' not in a], sp.eye(4), sim_mode=rospy.get_param('sim_mode', False)))
 
     os.system('rostopic pub /nav_to_pose/cancel actionlib_msgs/GoalID "{stamp: {secs: 0, nsecs: 0}, id: ''}" -1')
 
