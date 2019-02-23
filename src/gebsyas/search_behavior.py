@@ -92,11 +92,12 @@ class MultiObjectSearchAndDeliveryAction(Action):
                 result_msg.grasp = len({i for i in self.searched_ids if i in found_id}) > 0
 
                 if result_msg.grasp:
-                    context.log('Backing robot off a bit')
-                    backoff_controller.set_goal(data_state['localization'].data, found_obj.pose)
-                    run_ineq_controller(robot, backoff_controller, 20, 3, context.agent)
-                    context.log('Backing off complete')
-
+                    # context.log('Backing robot off a bit')
+                    # backoff_controller.set_goal(data_state['localization'].data, found_obj.pose)
+                    # run_ineq_controller(robot, backoff_controller, 20, 3, context.agent)
+                    # context.log('Backing off complete')
+                    pass
+                
                 self.pub_found_id.publish(result_msg)
 
                 context.log('Found thing is called {}. Pose:\n{}'.format(found_id, str(sorted(found_obj.gmm)[-1].pose)))
