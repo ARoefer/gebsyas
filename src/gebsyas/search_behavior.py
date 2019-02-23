@@ -97,12 +97,12 @@ class MultiObjectSearchAndDeliveryAction(Action):
                     # run_ineq_controller(robot, backoff_controller, 20, 3, context.agent)
                     # context.log('Backing off complete')
                     pass
-                
+
                 self.pub_found_id.publish(result_msg)
 
                 context.log('Found thing is called {}. Pose:\n{}'.format(found_id, str(sorted(found_obj.gmm)[-1].pose)))
 
-                if 'table' in found_id:
+                if 'table' in found_id or 'rack' in found_id:
                     print('found a table')
                     del found_obj.gmm
                     found_obj.pose[2, 3] = found_obj.height * 0.5
