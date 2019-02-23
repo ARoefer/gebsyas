@@ -411,9 +411,9 @@ def decode_obj_shape(name, out):
 		out.mass   = 30.0
 		out.good_variance = [0.1, 0.1, 0.1, 10]
 	elif name == 'rack':
-		out.width  = 0.86
+		out.width  = 0.3
 		out.height = 0.86
-		out.length = 0.3
+		out.length = 0.86
 		out.mass   = 30.0
 		out.good_variance = [0.13, 0.13, 0.13, 10]
 	elif name == 'floor':
