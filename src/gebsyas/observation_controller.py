@@ -377,7 +377,7 @@ class ObservationController(InEqBulletController):
     def re_eval_focused_object(self):
         new_obj_index = -1
         new_gmm_index = -1
-        best_rating = 100000.0
+        best_rating = 1e9
         draw_offset = vector3(0,0,2)
         flat_robot_pos = diag(1,1,0,1) * pos_of(self.proximity_frame).subs(self.current_subs)
         arrow_start = flat_robot_pos + draw_offset
@@ -391,7 +391,7 @@ class ObservationController(InEqBulletController):
                     flat_gc_pos = diag(1,1,0,1) * pos_of(gmm_object.gmm[x].pose)
                     r2gc   = flat_gc_pos - flat_robot_pos
                     rating = math.exp(rating_scale * norm(r2gc)) / (gmm_object.gmm[x].weight * object_weight)
-                    color = hsva_to_rgba((1.0 - gmm_object.gmm[x].weight) * 0.65, 1, 1, 0.7)
+                    color  = hsva_to_rgba((1.0 - gmm_object.gmm[x].weight) * 0.65, 1, 1, 0.7)
                     self.visualizer.draw_arrow('gmm_ratings', arrow_start, flat_gc_pos + draw_offset, *color)
                     self.visualizer.draw_text('gmm_ratings', arrow_start + 0.5 * r2gc, '{:.2f}'.format(float(rating)))
                     if rating < best_rating:
