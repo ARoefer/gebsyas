@@ -84,9 +84,13 @@ class OcclusionMap(object):
             # print(norm(self.coords - point3(-3.76, 5.38, 0)))
             # print(self.min_corner[0])
             # print(self.max_corner[0])
-            if norm(self.coords - point3(-3.76, 5.38, 0)) < 0.1 and self.min_corner[0] <= -0.1 and self.max_corner[0] >= 0.1:
+            if norm(self.coords - point3(-3.76, 5.38, 0)) < 0.1 and self.min_corner[0] <= -0.2 and self.max_corner[0] >= 0.2:
                 return True
-            if norm(self.coords - point3(-20.18, -19.80, 0)) < 0.1 and self.min_corner[0] <= -0.1 and self.max_corner[0] >= 0.1:
+            if norm(self.coords - point3(-3.76, 4.80, 0)) < 0.1 and self.min_corner[0] <= -0.2 and self.max_corner[0] >= 0.2:
+                return True
+            if norm(self.coords - point3(-20.18, -19.80, 0)) < 0.1 and self.min_corner[0] <= -0.05 and self.max_corner[0] >= 0.05:
+                return True
+            if norm(self.coords - point3(-20.18, -11.33, 0)) < 0.1 and self.min_corner[0] <= -0.2 and self.max_corner[0] >= 0.2:
                 return True
 
         return c_dist(self.min_corner[0], self.max_corner[0]) <= 0.2 and wrap_to_circle(self.min_corner[0] - self.max_corner[0]) > 0
