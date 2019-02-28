@@ -377,7 +377,7 @@ class ObservationController(InEqBulletController):
     def re_eval_focused_object(self):
         new_obj_index = -1
         new_gmm_index = -1
-        best_rating = 100000.0
+        best_rating = 1e9
         draw_offset = vector3(0,0,2)
         flat_robot_pos = diag(1,1,0,1) * pos_of(self.proximity_frame).subs(self.current_subs)
         arrow_start = flat_robot_pos + draw_offset
