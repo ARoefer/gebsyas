@@ -390,7 +390,8 @@ class ObservationController(InEqBulletController):
                 if gmm_object.gmm[x].weight > 0.0:
                     flat_gc_pos = diag(1,1,0,1) * pos_of(gmm_object.gmm[x].pose)
                     r2gc   = flat_gc_pos - flat_robot_pos
-                    rating = math.exp(rating_scale * norm(r2gc)) / (gmm_object.gmm[x].weight * object_weight)
+                    # rating = math.exp(rating_scale * norm(r2gc)) / (gmm_object.gmm[x].weight * object_weight)
+                    rating = norm(r2gc) / (gmm_object.gmm[x].weight * object_weight)
                     color = hsva_to_rgba((1.0 - gmm_object.gmm[x].weight) * 0.65, 1, 1, 0.7)
                     self.visualizer.draw_arrow('gmm_ratings', arrow_start, flat_gc_pos + draw_offset, *color)
                     self.visualizer.draw_text('gmm_ratings', arrow_start + 0.5 * r2gc, '{:.2f}'.format(float(rating)))
@@ -405,7 +406,7 @@ class ObservationController(InEqBulletController):
         elif new_obj_index != self.goal_obj_index or new_gmm_index != self.goal_gmm_index:
             if new_obj_index != self.goal_obj_index:
                 msg = StringMsg()
-                msg.data = ''.join([i for i in self.search_objects.search_object_list[new_obj_index].id if not i.isdigit()])
+                msg.data = ''.join([i for i in self.search_objects.search_object_list[new_obj_index].id if i.isdigit()])
                 self.pub_pursued_object.publish(msg)
 
             self.goal_obj_index = new_obj_index
@@ -431,7 +432,7 @@ class ObservationController(InEqBulletController):
             center_angle = wrap_to_circle(oc_map.min_corner[0] - 0.5 * area_width)
             base_subs[self.s_occlusion_weight] = 2
             base_subs[self.s_yaw_goal] = center_angle
-            base_subs[self.s_area_border] = 0.5 * (area_width * 0.6)
+            base_subs[self.s_area_border] = 0.5 * (area_width * 0.8)
 
         self.global_base_controller.current_subs = base_subs
         #print('\n  '.join(['{}: {}'.format(str(s), v) for s, v in base_subs.items()]))
@@ -761,9 +762,11 @@ class ObservationRunner(object):
                              sqrt(abs(cov[2,2])) <= t_var[2] #and \
                                   #abs(cov[3,3]) >= t_var[3]
             if self.terminate:
-                print(sqrt(abs(cov[0,0])))
-                print(sqrt(abs(cov[1,1])))
-                print(sqrt(abs(cov[2,2])))
+                print(self.controller.current_weight)
+                print(self.controller.current_cov_occluded)
+                print(cov[0,0])
+                print(cov[1,1])
+                print(cov[2,2])
         self.last_update = now
 
 def run_observation_controller(robot, controller, agent, variance=0.02, weight=0.9):
