@@ -49,6 +49,7 @@ yaw_constraint = 'occlusion_escape_yaw'
 VULCAN_FALLBACK = False
 VULCAN_DIST     = 4.0
 opt_obs_falloff = 0.2
+opt_obs_range   = 1.2
 rating_scale    = 1.0
 
 def blank_pass(a):
@@ -98,7 +99,7 @@ class ObservationController(InEqBulletController):
         v_e2_flat = diag(1,1,0,1) * v_e2
         v_e3_flat = diag(1,1,0,1) * v_e3
 
-        opt_obs_range   = 1.2 # Figure this out by semantic type and observations.
+         # Figure this out by semantic type and observations.
 
         self.goal_obj_index = -1
         self.goal_gmm_index = -1
@@ -126,8 +127,9 @@ class ObservationController(InEqBulletController):
         self.s_pitch_goal = Symbol('pitch_goal')
         self.s_yaw_goal   = Symbol('yaw_goal')
         self.s_occlusion_weight = Symbol('occlusion_weight')
+        self.s_opt_obs_range = Symbol('opt_obs_range')
 
-        self.close_enough = (0.5 + 0.5 * tanh(6 - 4 * (proximity / opt_obs_range)))
+        self.close_enough = (0.5 + 0.5 * tanh(6 - 4 * (proximity / self.s_opt_obs_range)))
 
         look_gain = 10
 
@@ -135,7 +137,7 @@ class ObservationController(InEqBulletController):
                           (1 - in_view) * look_gain,
                           (1 + norm(v_e1) + norm(v_e2) + norm(v_e3)) * self.close_enough,
                           in_view)
-        s_in_v_dist  = SC(0.5 - proximity, opt_obs_range + opt_obs_falloff - proximity, (1 - 0.25 * self.s_occlusion_weight), proximity)
+        s_in_v_dist  = SC(0.5 - proximity, self.s_opt_obs_range + opt_obs_falloff - proximity, (1 - 0.25 * self.s_occlusion_weight), proximity)
         s_avoid_near = SC(camera.near - z_dist, 100, 1, z_dist)
 
         s_v_e1 = SC(-co_lin_x, -co_lin_x, norm(v_e1) * (1 - 0.5 * self.s_occlusion_weight) * self.close_enough, co_lin_x)
@@ -164,6 +166,7 @@ class ObservationController(InEqBulletController):
         self.current_subs[self.s_yaw_goal] = 0
         self.current_subs[self.s_pitch_goal] = 0
         self.current_subs[self.s_occlusion_weight] = 0
+        self.current_subs[self.s_opt_obs_range] = opt_obs_range
 
         self.robot_can_strafe = 'base_strafe_joint' in self.robot.joint_states_input.joint_map
 
@@ -407,6 +410,10 @@ class ObservationController(InEqBulletController):
                 msg = StringMsg()
                 msg.data = ''.join([i for i in self.search_objects.search_object_list[new_obj_index].id if not i.isdigit()])
                 self.pub_pursued_object.publish(msg)
+                if hasattr(self.search_objects.search_object_list[new_obj_index], 'opt_obs_range'):
+                    self.current_subs[self.s_opt_obs_range] = self.search_objects.search_object_list[new_obj_index].opt_obs_range
+                else:
+                    self.current_subs[self.s_opt_obs_range] = opt_obs_range
 
             self.goal_obj_index = new_obj_index
             self.goal_gmm_index = new_gmm_index

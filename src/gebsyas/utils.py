@@ -380,6 +380,7 @@ def decode_obj_shape(name, out):
 		out.radius = 0.037
 		out.height = 0.248
 		out.mass   = 0.3
+		out.opt_obs_range = 1.0 # CUSTOM OBSERVATION RANGE
 	elif name == 'blue_box':
 		out.length = 0.079
 		out.width  = 0.079
@@ -410,6 +411,7 @@ def decode_obj_shape(name, out):
 		out.height = 0.74
 		out.mass   = 30.0
 		out.good_variance = [0.1, 0.1, 0.1, 10]
+		out.opt_obs_range = 1.8 # CUSTOM OBSERVATION RANGE
 	elif name == 'rack':
 		out.width  = 0.3
 		out.height = 0.86
