@@ -223,6 +223,8 @@ class DLAgent(DLAtom):
     def is_a(self, obj):
         return isinstance(obj, Agent)
 
+DLAgent = DLAgent()
+
 # TBox for this file
-TBOX_LIST = [DLAgent()]
+TBOX_LIST = [DLAgent]
 TBOX = TBOX_LIST

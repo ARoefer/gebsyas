@@ -1,4 +1,4 @@
-from giskardpy.symengine_wrappers import sp, point3, vector3, frame3_quaternion,
+from giskardpy.symengine_wrappers import sp
 
 def to_sym(tuple_name):
     return sp.Symbol('__'.join(tuple_name))
@@ -50,18 +50,10 @@ class Structure(object):
         return Structure(self.name, self.rf, **{n: (v.subs(sdict) if hasattr(v, 'subs') else v) for n, v in [(k, getattr(self, k)) for k in self.edges]})
 
 
-from std_msgs.msg import Header, String, Float64, Bool, Int32
-from geometry_msgs.msg import Pose    as PoseMsg
-from geometry_msgs.msg import Point   as PointMsg
-from geometry_msgs.msg import Vector3 as Vector3Msg
-from geometry_msgs.msg import Quaternion as QuaternionMsg
-from geometry_msgs.msg import PoseStamped as PoseStampedMsg
-
-
 def f_blank(o, state):
     pass
 
-def ros_msg_to_ks(ros_msg, name, state={}):
+def ks_from_obj(obj, name, state={}):
     """
     :param name: Name of the object currently being converted
     :type  name: tuple
@@ -69,7 +61,7 @@ def ros_msg_to_ks(ros_msg, name, state={}):
     :type  state: dict
     :rtype: Structure, ListStructure, SymEngine Objects, bool, str
     """
-    t_msg = type(ros_msg)
+    t_msg = type(obj)
     if t_msg == int or t_msg == float:
         sym = to_sym(name)
         state[sym] = t_msg
@@ -77,69 +69,9 @@ def ros_msg_to_ks(ros_msg, name, state={}):
             state[sym] = o
         return sym, rf
     elif t_msg == bool or t_msg == str:
-        return ros_msg, f_blank
-    elif t_msg == PoseMsg:
-        syms = []
-        for x in ['x', 'y', 'z']:
-            p = to_sym(name + ('position', x))
-            state[p] = getattr(ros_msg.position, x)
-            syms.append(p)
-        for x in ['x', 'y', 'z', 'w']:
-            p = to_sym(name + ('orientation', x))
-            state[p] = getattr(ros_msg.orientation, x)
-            syms.append(p)
-
-        def rf(o, state):
-            state[syms[0]] = o.position.x
-            state[syms[1]] = o.position.y
-            state[syms[2]] = o.position.z
-            state[syms[3]] = o.orientation.x
-            state[syms[4]] = o.orientation.y
-            state[syms[5]] = o.orientation.z
-            state[syms[6]] = o.orientation.w
-        return frame3_quaternion(*syms), rf
-    elif t_msg == PointMsg:
-        syms = []
-        for x in ['x', 'y', 'z']:
-            p = to_sym(name + (x,))
-            state[p] = getattr(ros_msg, x)
-            syms.append(p)
-
-        def rf(o, state):
-            state[syms[0]] = o.x
-            state[syms[1]] = o.y
-            state[syms[2]] = o.z
-
-        return point3(*syms), rf
-    elif t_msg == Vector3Msg:
-        syms = []
-        for x in ['x', 'y', 'z']:
-            p = to_sym(name + (x,))
-            state[p] = getattr(ros_msg, x)
-            syms.append(p)
-
-        def rf(o, state):
-            state[syms[0]] = o.x
-            state[syms[1]] = o.y
-            state[syms[2]] = o.z
-
-        return vector3(*syms), rf
-    elif t_msg == QuaternionMsg:
-        syms = []
-        for x in ['x', 'y', 'z', 'w']:
-            p = to_sym(name + (x,))
-            state[p] = getattr(ros_msg, x)
-            syms.append(p)
-
-        def rf(o, state):
-            state[syms[0]] = o.x
-            state[syms[1]] = o.y
-            state[syms[2]] = o.z
-            state[syms[3]] = o.w
-
-        return rotation3_quaternion(*syms), rf
+        return obj, f_blank
     elif t_msg == list or t_msg == tuple:
-        objs, rfs = zip(*[ros_msg_to_ks(ros_msg[x], name + (str(x),), state) for x in range(len(ros_msg))])
+        objs, rfs = zip(*[ks_from_obj(obj[x], name + (str(x),), state) for x in range(len(obj))])
 
         def rf(o, state):
             for x in range(len(rfs)):
@@ -149,12 +81,12 @@ def ros_msg_to_ks(ros_msg, name, state={}):
     else:
         fields = {}
         rfs = {}
-        for field in dir(ros_msg):
+        for field in dir(obj):
             if field[0] == '_':
                 continue
-            attr = getattr(ros_msg, field)
+            attr = getattr(obj, field)
             if not callable(attr) and type(attr) != Header:
-                fields[field], rfs[field] = ros_msg_to_ks(getattr(ros_msg, field), name + (field,), state)
+                fields[field], rfs[field] = ks_from_obj(getattr(obj, field), name + (field,), state)
 
         def rf(o, state):
             for field, f in rfs.items():

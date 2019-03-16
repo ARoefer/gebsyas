@@ -1,10 +1,4 @@
-import symengine as spw
-
 from collections import namedtuple
-from giskardpy.symengine_robot import Robot, Gripper, Camera
-from giskardpy.symengine_wrappers import *
-from gebsyas.utils import StampedData, JointState
-from gebsyas.data_structures import SymbolicData, GaussianPoseComponent
 
 DLInstance = namedtuple('DLInstance', ['thing', 'label', 'concepts']) 
 
@@ -49,10 +43,12 @@ class DLTop(DLConcept):
 		return 'T'
 
 	def __eq__(self, other):
-		return type(other) == DLTop
+		return self is other
 
 	def implication_intersection(self, other):
 		return other.implies
+
+DLTop = DLTop()
 
 class DLBottom(DLConcept):
 	"""
@@ -70,10 +66,12 @@ class DLBottom(DLConcept):
 		return '_'
 
 	def __eq__(self, other):
-		return type(other) == DLBottom
+		return self is other
 
 	def implication_intersection(self, other):
 		return set()
+
+DLBottom = DLBottom()
 
 class DLAtom(DLConcept):
 	"""
@@ -124,9 +122,9 @@ class DLNegation(DLConcept):
 		if not isinstance(self.concept, DLAtom):
 			tc = type(self.concept)
 			if tc == DLTop:
-				return DLBottom()
+				return DLBottom
 			elif tc == DLBottom:
-				return DLTop()
+				return DLTop
 			elif tc == DLConjunction:
 				return DLDisjunction(*[DLNegation(c).to_NNF() for c in self.concept.concepts])
 			elif tc == DLDisjunction:
@@ -152,7 +150,7 @@ class DLConjunction(DLConcept):
 		for a in args:
 			if type(a) == DLBottom:
 				print('A non-satisfiable conjunction was created:\n   {}\nSubterm "{}" is equal to _'.format(str(self), str(a)))
-				self.concepts = [DLBottom()]
+				self.concepts = [DLBottom]
 				break
 			self.implies = self.implies.union(a.implies)
 		self.implied_by = {self}
@@ -185,7 +183,7 @@ class DLDisjunction(DLConcept):
 		for a in args:
 			if type(a) == DLTop:
 				print('A tautological disjunction was created:\n   {}\nSubterm "{}" is equal to _'.format(str(self), str(a)))
-				self.concepts = [DLTop()]
+				self.concepts = [DLTop]
 				break
 		self.implies = args[0].implies
 		self.implied_by = set()
@@ -217,7 +215,7 @@ class DLExistsRA(DLConcept):
 	"""
 	@brief      Implementation of the description logical "exists R successor" concept.
 	"""
-	def __init__(self, relation, concept=DLTop()):
+	def __init__(self, relation, concept=DLTop):
 		self.concept = concept
 		self.relation = relation
 		self.implied_by = {DLExistsRA(self.relation, x) for x in self.concept.implied_by if x != concept}
@@ -227,8 +225,6 @@ class DLExistsRA(DLConcept):
 	def is_a(self, obj):
 		try:
 			rs = getattr(obj, self.relation)
-			if type(rs) == SymbolicData:
-				rs = rs.data
 
 			if type(rs) == list:
 				for r in rs:
@@ -254,7 +250,7 @@ class DLAllRA(DLConcept):
 	"""
 	@brief      Implementation of the description logical "for all R successors" concept.
 	"""
-	def __init__(self, relation, concept=DLTop()):
+	def __init__(self, relation, concept=DLTop):
 		self.concept = concept
 		self.relation = relation
 		self.implied_by = {DLALLRA(self.relation, x) for x in self.concept.implied_by if x != concept}
@@ -264,8 +260,6 @@ class DLAllRA(DLConcept):
 	def is_a(self, obj):
 		try:
 			rs = getattr(obj, self.relation)
-			if type(rs) == SymbolicData:
-				rs = rs.data
 
 			if type(rs) == list:
 				for r in rs:
@@ -332,8 +326,8 @@ class Reasoner(object):
 	@brief      Reasoner class. Does subsumption resolution for all concepts which are fed to it. Stores the expanded concepts.
 	"""
 	def __init__(self, tbox, abox):
-		self.__top    = DLTop()
-		self.__bottom = DLBottom()
+		self.__top    = DLTop
+		self.__bottom = DLBottom
 		self.abox = abox
 		self.implied_by = {}
 		self.implied_by[self.__top] = set()
@@ -427,7 +421,7 @@ class Reasoner(object):
 		if Id in self.abox:
 			return self.abox[Id]
 		else:
-			return DLBottom()
+			return DLBottom
 
 	def __getitem__(self, atom):
 		return self.get_expanded_concept(atom)
@@ -467,245 +461,26 @@ class Reasoner(object):
 		return '\n'.join(['{:>15}: {}'.format(str(x), str(y)) for x, y in self.tbox.items()])
 
 
-class DLScalar(DLAtom):
-	"""Description logical representation of a scalar."""
-	def __init__(self):
-		super(DLScalar, self).__init__('Scalar')
-
-	def is_a(self, obj):
-		return type(obj) == float or type(obj) == spw.Symbol
-
-class DLString(DLAtom):
-	"""Description logical representation of a string."""
-	def __init__(self):
-		super(DLString, self).__init__('String')
-
-	def is_a(self, obj):
-		return type(obj) == str
-
-class DLVector(DLAtom):
-	"""Description logical representation of a 3d vector."""
-	def __init__(self):
-		super(DLVector, self).__init__('Vector')
-
-	def is_a(self, obj):
-		return type(obj) is spw.Matrix and obj.ncols() == 1 and obj[obj.nrows() - 1] == 0
-
-class DLPoint(DLAtom):
-	"""Description logical representation of a 3d point."""
-	def __init__(self):
-		super(DLPoint, self).__init__('Point')
-
-	def is_a(self, obj):
-		return type(obj) is spw.Matrix and obj.ncols() == 1 and obj[obj.nrows() - 1] == 1
-
-class DLRotation(DLAtom):
-	"""Description logical representation of a 3d rotation."""
-	def __init__(self):
-		super(DLRotation, self).__init__('Rotation')
-
-	def is_a(self, obj):
-		return type(obj) is spw.Matrix and obj.ncols() == 4 and obj.nrows() == 4 and norm(obj[:4, 3:]) == 0
-
-class DLTranslation(DLAtom):
-	"""Description logical representation of a 3d translation."""
-	def __init__(self):
-		super(DLTranslation, self).__init__('Translation')
-
-	def is_a(self, obj):
-		return type(obj) is spw.Matrix and obj.ncols() == 4 and obj.nrows() == 4 and obj[:3, :3] == spw.eye(3)
-
-class DLTransform(DLAtom):
-	"""Description logical representation of a 3d transformation."""
-	def __init__(self):
-		super(DLTransform, self).__init__('Transform')
-
-	def is_a(self, obj):
-		return type(obj) is spw.Matrix and obj.ncols() == 4 and obj.nrows() == 4
-
-class DLCovarianceMatrix(DLAtom):
-	"""Description logical representation of a 3d covariance matrix."""
-	def __init__(self):
-		super(DLCovarianceMatrix, self).__init__('CovarianceMatrix')
-
-	def is_a(self, obj):
-		return type(obj) is spw.Matrix and obj.ncols() == 6 and obj.nrows() == 6
-
-
-class DLStamp(DLAtom):
-	"""Description logical representation of a time stamp."""
-	def __init__(self):
-		super(DLStamp, self).__init__('Stamp')
-
-	def is_a(self, obj):
-		return type(obj) == StampedData
-
-
-class DLSymbolic(DLAtom):
-	"""Description logical representation of symbolic data."""
-	def __init__(self):
-		super(DLSymbolic, self).__init__('Symbolic')
-
-	def is_a(self, obj):
-		return type(obj) == SymbolicData or type(obj) == spw.Symbol or isinstance(obj, spw.Basic) and len(obj.free_symbols) > 0
-
-
-class DLRobot(DLAtom):
-	"""Description logical representation of a robot."""
-	def __init__(self):
-		super(DLRobot, self).__init__('Robot')
-
-	def is_a(self, obj):
-		return isinstance(obj, Robot)
-
-
-class DLGripper(DLAtom):
-	"""Description logical representation of a gripper."""
-	def __init__(self):
-		super(DLGripper, self).__init__('Gripper')
-
-	def is_a(self, obj):
-		return type(obj) is Gripper
-
-
-class DLCamera(DLAtom):
-	"""Description logical representation of a camera."""
-	def __init__(self):
-		super(DLCamera, self).__init__('Camera')
-
-	def is_a(self, obj):
-		return type(obj) is Camera
-
-
-class DLJointState(DLAtom):
-	"""Description logical representation of a joint state."""
-	def __init__(self):
-		super(DLJointState, self).__init__('JointState')
-
-	def is_a(self, obj):
-		return type(obj) is JointState
-
-
-class DLBodyPosture(DLAtom):
-	"""Description logical representation of a robot's complete joint state."""
-	def __init__(self):
-		super(DLBodyPosture, self).__init__('BodyPosture')
-
-	def is_a(self, obj):
-		return type(obj) is dict and len(obj) > 0 and DLJointState().is_a(obj.values()[0])
-
-class DLGMMPoseComponent(DLAtom):
-	def __init__(self):
-		super(DLGMMPoseComponent, self).__init__('GMMPoseComponent')
-
-	def is_a(self, obj):
-		return type(obj) == GaussianPoseComponent
-
-
-# Description logical concept modelling a sphere
-DLSphere   = DLExistsRA('radius', DLScalar())
-
-# Description logical concept modelling a dome
-DLPartialSphere = DLConjunction(DLSphere,  DLExistsRA('angle', DLScalar()))
-
-# Description logical concept modelling a rectangle
-DLRectangle = DLConjunction(DLExistsRA('width', DLScalar()), DLExistsRA('length', DLScalar()))
-
-# Description logical concept modelling a cube
-DLCube      = DLConjunction(DLExistsRA('height', DLScalar()), DLRectangle)
-
-# Description logical concept modelling a cylinder
-DLCylinder  = DLConjunction(DLExistsRA('radius', DLScalar()), DLExistsRA('height', DLScalar()))
-
-# Description logical concept modelling a geometric shape
-DLShape     = DLDisjunction(DLSphere, DLCube, DLCylinder, DLRectangle)
-
-# Description logical concept modelling an piece of data which has an Id
-DLIded      = DLExistsRA('id', DLTop())
-
-# Description logical concept modelling any manipulator
-DLManipulator = DLDisjunction(DLGripper())
-
-# Description logical concept modelling a robot with more than one manipulator
-DLMultiManipulatorRobot   = DLConjunction(DLRobot(), DLExistsRA('grippers', DLManipulator))
-
-# Description logical concept modelling a robot with only one manipulator
-DLSingleManipulatorRobot  = DLConjunction(DLRobot(), DLExistsRA('gripper', DLManipulator))
-
-# Description logical concept modelling any thing which is capable of manipulating things
-DLManipulationCapable     = DLDisjunction(DLMultiManipulatorRobot, DLSingleManipulatorRobot)
-
-# Description logical concept modelling an observer
-DLObserver = DLExistsRA('frame_of_reference', DLTransform())
-
-DLMesh     = DLConjunction(DLShape, DLExistsRA('radius', DLScalar()))
-
-# Description logical concept modelling a physical thing
-DLPhysicalThing  = DLExistsRA('pose', DLTransform())
-
-# Description logical concept modelling a hard-surface object
-DLRigidObject    = DLConjunction(DLPhysicalThing, DLShape, DLExistsRA('mass', DLScalar()))
-
-# Description logical concept modelling an object with a probabilistic location and rotation
-DLProbabilisticThing = DLConjunction(DLPhysicalThing, DLExistsRA('pose_cov', DLCovarianceMatrix()))
-
-
-# Physical thing with its pose represented as gmm
-DLPhysicalGMMThing = DLExistsRA('gmm', DLGMMPoseComponent())
-
-DLRigidGMMObject   = DLConjunction(DLPhysicalGMMThing, DLShape, DLExistsRA('mass', DLScalar()))
-
-
-# Description logical concept modelling an object which is composed of other objects
-DLCompoundObject = DLConjunction(DLRigidObject, DLExistsRA('subObject', DLRigidObject))
-
-# List of all concepts in this file
-BASIC_TBOX_LIST = [DLString(), DLScalar(),
-				   DLVector(), DLPoint(), DLRotation(), DLTranslation(),
-				   DLTransform(), DLStamp(), DLSymbolic(), DLRobot(), DLGripper(), 
-				   DLJointState(), DLBodyPosture(),
-				   DLManipulator, DLMultiManipulatorRobot, DLSingleManipulatorRobot, DLManipulationCapable,
-				   DLSphere, DLPartialSphere, DLRectangle, DLCube, DLCylinder, DLShape, DLIded, DLObserver]
-
-# Add convenient aliases
-BASIC_TBOX = BASIC_TBOX_LIST + [('Sphere', DLSphere),
-							    ('PartialSphere', DLPartialSphere),
-							    ('Rectangle', DLRectangle),
-							    ('Cube', DLCube),
-							    ('Cylinder', DLCylinder),
-							    ('Shape', DLShape),
-				   				('PhysicalThing', DLPhysicalThing),
-				   				('ProbabilisticThing', DLProbabilisticThing),
-				   				('RigidObject', DLRigidObject),
-				   				('CompoundObject', DLCompoundObject),
-				   				('Ided', DLIded),
-				   				('Manipulator', DLManipulator),
-				   				('ManipulationCapable', DLManipulationCapable),
-				   				('Observer', DLObserver),
-				   				DLInclusion(DLCamera(), DLPhysicalThing),
-				   				DLInclusion(DLManipulator, DLPhysicalThing)
-				   				]
-
-from gebsyas.expression_parser import UnaryOp, BinaryOp, Function
-
-def bool_expr_tree_to_dl(node, tbox):
-	"""Turns an expression tree into a DL concept"""
-	tn = type(node)
-	if tn == str:
-		if node in tbox:
-			return tbox[node]
-		else:
-			raise Exception('Atomic concept {} is not defined in TBox'.format(node))
-	elif tn == UnaryOp:
-		if node.op == 'not':
-			return DLNegation(bool_expr_tree_to_dl(node.a, tbox))
-	elif tn == BinaryOp:
-		if node.op == 'and':
-			return DLConjunction(bool_expr_tree_to_dl(node.a, tbox), bool_expr_tree_to_dl(node.b, tbox))
-		elif node.op == 'or':
-			return DLDisjunction(bool_expr_tree_to_dl(node.a, tbox), bool_expr_tree_to_dl(node.b, tbox))
-
-	raise Exception('No way of interpreting node {} of type {} as a dl concept.'.format(node, tn))
+# from gebsyas.expression_parser import UnaryOp, BinaryOp, Function
+
+# def bool_expr_tree_to_dl(node, tbox):
+# 	"""Turns an expression tree into a DL concept"""
+# 	tn = type(node)
+# 	if tn == str:
+# 		if node in tbox:
+# 			return tbox[node]
+# 		else:
+# 			raise Exception('Atomic concept {} is not defined in TBox'.format(node))
+# 	elif tn == UnaryOp:
+# 		if node.op == 'not':
+# 			return DLNegation(bool_expr_tree_to_dl(node.a, tbox))
+# 	elif tn == BinaryOp:
+# 		if node.op == 'and':
+# 			return DLConjunction(bool_expr_tree_to_dl(node.a, tbox), bool_expr_tree_to_dl(node.b, tbox))
+# 		elif node.op == 'or':
+# 			return DLDisjunction(bool_expr_tree_to_dl(node.a, tbox), bool_expr_tree_to_dl(node.b, tbox))
+
+# 	raise Exception('No way of interpreting node {} of type {} as a dl concept.'.format(node, tn))
 
 
 
