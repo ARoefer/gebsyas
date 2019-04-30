@@ -5,15 +5,14 @@ import rospy
 import yaml
 
 from collections import namedtuple
-from gebsyas.data_structures import StampedData, JointState, GaussianPoseComponent
+from gebsyas.data_structures import StampedData, JointState
 from giskardpy.symengine_wrappers import *
 from sensor_msgs.msg import JointState as JointStateMsg
-from gop_gebsyas_msgs.msg import ProbObject as PObject
-from gop_gebsyas_msgs.msg import ObjectPoseGaussianComponent as OPGMsg
-from gop_gebsyas_msgs.msg import SearchObject as SearchObjectMsg
 from iai_bullet_sim.utils import Frame, Vector3, Point3
 from visualization_msgs.msg import Marker as MarkerMsg
 from copy import deepcopy
+
+from gebsyas.core.dl_types import DLShape, DLCube, DLCylinder, DLSphere, DLCylinder, DLCompoundObject
 
 pi = 3.14159265359
 rad2deg = 57.2957795131
@@ -200,3 +199,46 @@ def jsDictToJSMsg(js_dict):
 		js.effort.append(state.effort)
 
 	return js
+
+class Blank:
+	def __str__(self):
+		return '\n'.join(['{}: {}'.format(field, str(getattr(self, field))) for field in dir(self) if field[0] != '_' and not callable(getattr(self, field))])
+
+	def __deepcopy__(self, memo):
+		out = Blank()
+		for attrn in [x  for x in dir(self) if x[0] != '_']:
+			attr = getattr(self, attrn)
+			if isinstance(attr, sp.Basic) or isinstance(attr, sp.Number) or isinstance(attr, sp.Expr) or isinstance(attr, sp.Add) or isinstance(attr, sp.Mul) or isinstance(attr, sp.Min) or isinstance(attr, sp.Max) or isinstance(attr, sp.Matrix):
+				setattr(out, attrn, attr)
+			else:
+				setattr(out, attrn, deepcopy(attr, memo))
+		memo[id(self)] = out
+		return out
+
+
+def bb(**kwargs):
+	out = Blank()
+	for k, v in kwargs.items():
+		setattr(out, k, v)
+	return out
+
+
+def visualize_obj(obj, display, pose, ns='objects', color=None):
+	if DLShape.is_a(obj):
+		if color is None and hasattr(obj, 'color'):
+			color = obj.color
+
+
+		if DLCube.is_a(obj):
+			display.draw_cube(ns, pose, (obj.length, obj.width, obj.height), color[0], color[1], color[2], color[3])
+		elif DLCylinder.is_a(obj):
+			display.draw_cylinder(ns, pose, obj.height, obj.radius, color[0], color[1], color[2], color[3])
+		elif DLSphere.is_a(obj):
+			display.draw_sphere(ns, pos_of(pose), obj.radius, color[0], color[1], color[2], color[3])
+
+	if DLCompoundObject.is_a(obj):
+		if type(obj.subObject) == list:
+			for x in obj.subObject:
+				visualize_obj(x, display, pose * x.pose, ns, color)
+		else:
+			visualize_obj(obj.subObject, display, pose * obj.subObject.pose, ns, color)

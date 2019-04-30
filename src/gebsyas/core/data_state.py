@@ -6,7 +6,7 @@ from multiprocessing import RLock
 
 class DataState(object):
 	def __init__(self, parent=None):
-		super(DataSceneState, self).__init__()
+		super(DataState, self).__init__()
 
 		self.parent = parent
 		self.data_tree = {}
@@ -160,9 +160,8 @@ class DLIterator(DataIterator):
 	def next(self): # Python 3: def __next__(self)
 		while True:
 			Id, nextObj = super(DLIterator, self).next()
-			data = nextObj.data
 
-			if self.dl_concept.is_a(data):
+			if self.dl_concept.is_a(nextObj):
 				return Id, nextObj
 
 

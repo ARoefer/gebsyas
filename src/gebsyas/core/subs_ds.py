@@ -1,6 +1,13 @@
-from giskardpy.symengine_wrappers import sp
+from giskardpy.symengine_wrappers import sp, axis_angle_from_matrix, frame3_axis_angle, point3, vector3, norm
+from gebsyas.core.dl_types import DLVector, \
+                                  DLPoint, \
+                                  DLRotation, \
+                                  DLTranslation, \
+                                  DLTransform
 
 def to_sym(tuple_name):
+    if len(tuple_name) == 0:
+        raise Exception('Can not convert empty name tuples to symbol.')
     return sp.Symbol('__'.join(tuple_name))
 
 class ListStructure(list):
@@ -9,11 +16,11 @@ class ListStructure(list):
         self.name = name
         self.free_symbols = set()
         self.rf = rf
-        for x in self.__list:
-            self.free_symbols = self.free_symbols.union(x.free_symbols) if hasattr(v, 'free_symbols') else self.free_symbols
+        for x in self:
+            self.free_symbols = self.free_symbols.union(x.free_symbols) if hasattr(x, 'free_symbols') else self.free_symbols
 
     def subs(self, sdict):
-        return ListStructure(self.name, self.rf, *[x.subs(sdict) for x in self.__list if hasattr(x, 'subs') else x])
+        return ListStructure(self.name, self.rf, *[x.subs(sdict) if hasattr(x, 'subs') else x for x in self])
 
 
 class Structure(object):
@@ -22,7 +29,7 @@ class Structure(object):
         self.free_symbols = set()
         self.edges = set(kwargs.keys())
         self.rf = rf
-        for n, v in kwargs:
+        for n, v in kwargs.items():
             setattr(self, n, v)
             self.free_symbols = self.free_symbols.union(v.free_symbols) if hasattr(v, 'free_symbols') else self.free_symbols
 
@@ -64,12 +71,41 @@ def ks_from_obj(obj, name, state={}):
     t_msg = type(obj)
     if t_msg == int or t_msg == float:
         sym = to_sym(name)
-        state[sym] = t_msg
+        state[sym] = obj
         def rf(o, state):
             state[sym] = o
         return sym, rf
     elif t_msg == bool or t_msg == str:
         return obj, f_blank
+    elif t_msg is sp.Matrix:
+        if DLPoint.is_a(obj) or DLVector.is_a(obj):
+            syms = [to_sym(name + (x,)) for x in ['x', 'y', 'z']]
+            for x in range(3):
+                state[syms[x]] = obj[x]
+            def rf(o, state):
+                state[syms[0]] = obj[0]
+                state[syms[1]] = obj[1]
+                state[syms[2]] = obj[2]
+            if DLVector.is_a(obj):
+                return vector3(*syms)
+            else:
+                return point3(*syms)
+        elif DLTransform.is_a(obj):
+            syms = [to_sym(name + (x,)) for x in ['ax', 'ay', 'az', 'x', 'y', 'z']]
+            def rf(o, state):
+                axis, angle = axis_angle_from_matrix(o)
+                state[syms[0]] = axis[0] * angle
+                state[syms[1]] = axis[1] * angle
+                state[syms[2]] = axis[2] * angle
+                state[syms[3]] = o[0, 3]
+                state[syms[4]] = o[1, 3]
+                state[syms[5]] = o[2, 3]
+
+            rf(obj, state)
+            axis = vector3(*syms[:3])
+            return frame3_axis_angle(axis / (norm(axis) + 1e-7), norm(axis), syms[3:]), rf
+        else:
+            raise Exception('Can not automatically convert matrix')
     elif t_msg == list or t_msg == tuple:
         objs, rfs = zip(*[ks_from_obj(obj[x], name + (str(x),), state) for x in range(len(obj))])
 
@@ -77,7 +113,7 @@ def ks_from_obj(obj, name, state={}):
             for x in range(len(rfs)):
                 rfs[x](o[x], state)
 
-        return ListStructure(name, rf, *objs)
+        return ListStructure(name, rf, *objs), rf
     else:
         fields = {}
         rfs = {}
@@ -85,11 +121,11 @@ def ks_from_obj(obj, name, state={}):
             if field[0] == '_':
                 continue
             attr = getattr(obj, field)
-            if not callable(attr) and type(attr) != Header:
+            if not callable(attr):
                 fields[field], rfs[field] = ks_from_obj(getattr(obj, field), name + (field,), state)
 
         def rf(o, state):
             for field, f in rfs.items():
                 f(getattr(o, field), state)
 
-        return Structure(name, rf, **fields)
+        return Structure(name, rf, **fields), rf

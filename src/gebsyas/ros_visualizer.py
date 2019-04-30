@@ -1,6 +1,7 @@
 import rospy
 from visualization_msgs.msg import Marker, MarkerArray
-from gebsyas.utils import expr_to_rosmsg
+from std_msgs.msg import ColorRGBA as ColorRGBAMsg
+from gebsyas.ros.auto_serialize import ks_to_rosmsg
 from gebsyas.msg import FloatTable
 from urdf_parser_py.urdf import Sphere, Cylinder, Box, Mesh
 
@@ -26,6 +27,13 @@ def blank_marker(Id, namespace, r, g, b, a, frame):
 	out.frame_locked = True
 	return out
 
+def color(r,g,b,a=1):
+	out = ColorRGBAMsg()
+	out.r = r
+	out.g = g
+	out.b = b
+	out.a = a
+	return out
 
 
 class ROSVisualizer():
@@ -77,21 +85,67 @@ class ROSVisualizer():
 	def draw_sphere(self, namespace, position, radius, r=1, g=0, b=0, a=1, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = Marker.SPHERE
-		marker.pose.position = expr_to_rosmsg(position)
-		marker.scale = expr_to_rosmsg([radius * 2] * 3)
+		marker.pose.position = ks_to_rosmsg(position)
+		marker.scale = ks_to_rosmsg([radius * 2] * 3)
 		self.current_msg[namespace].markers.append(marker)
 
 	def draw_cube(self, namespace, pose, scale, r=0, g=0, b=1, a=1, frame=None):
 		self.draw_shape(namespace, pose, scale, Marker.CUBE, r, g, b, a, frame)
 
-	def draw_cube_batch(self, namespace, pose, size, positions, r=1, g=0, b=0, a=1, frame=None):
+	def draw_points(self, namespace, pose, size, points, r=1, g=0, b=0, a=1, frame=None, colors=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
-		marker.type = Marker.CUBE_LIST
-		marker.points = [expr_to_rosmsg(p) for p in positions]
+		marker.type = Marker.POINTS
+		marker.pose = ks_to_rosmsg(pose)
+		marker.points = [ks_to_rosmsg(p) for p in points]
+		marker.colors = [] if colors is None else [color(*c) for c in colors]
 		marker.scale.x = size
 		marker.scale.y = size
 		marker.scale.z = size
 		self.current_msg[namespace].markers.append(marker)
+
+	def draw_strip(self, namespace, pose, size, points, r=1, g=0, b=0, a=1, frame=None, colors=None):
+		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
+		marker.type = Marker.LINE_STRIP
+		marker.pose = ks_to_rosmsg(pose)
+		marker.points = [ks_to_rosmsg(p) for p in points]
+		marker.colors = [] if colors is None else [color(*c) for c in colors]
+		marker.scale.x = size
+		marker.scale.y = size
+		marker.scale.z = size
+		self.current_msg[namespace].markers.append(marker)
+
+	def draw_lines(self, namespace, pose, size, points, r=1, g=0, b=0, a=1, frame=None, colors=None):
+		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
+		marker.type = Marker.LINE_LIST
+		marker.pose = ks_to_rosmsg(pose)
+		marker.points = [ks_to_rosmsg(p) for p in points]
+		marker.colors = [] if colors is None else [color(*c) for c in colors]
+		marker.scale.x = size
+		marker.scale.y = size
+		marker.scale.z = size
+		self.current_msg[namespace].markers.append(marker)
+
+	def draw_cube_batch(self, namespace, pose, size, positions, r=1, g=0, b=0, a=1, frame=None, colors=None):
+		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
+		marker.type = Marker.CUBE_LIST
+		marker.pose = ks_to_rosmsg(pose)
+		marker.points = [ks_to_rosmsg(p) for p in positions]
+		marker.colors = [] if colors is None else [color(*c) for c in colors]
+		marker.scale.x = size
+		marker.scale.y = size
+		marker.scale.z = size
+		self.current_msg[namespace].markers.append(marker)
+
+	def draw_poses(self, namespace, pose, size, line_width, poses, r=1, g=1, b=1, a=1, frame=None):
+		positions = []
+		for p in poses:
+			pos = p[:, 3]
+			positions += [pos, pos + p[:, 0] * size, pos, pos + p[:, 1] * size, pos, pos + p[:, 2] * size]
+		colors = [(r, 0, 0, a), (r, 0, 0, a), 
+				  (0, g, 0, a), (0, g, 0, a), 
+				  (0, 0, b, a), (0, 0, b, a)] * len(poses)
+		self.draw_lines(namespace, pose, line_width, positions, 1,1,1,1, frame, colors)
+
 
 	def draw_cylinder(self, namespace, pose, length, radius, r=0, g=0, b=1, a=1, frame=None):
 		self.draw_shape(namespace, pose, (radius * 2, radius * 2, length), Marker.CYLINDER, r, g, b, a, frame)
@@ -101,7 +155,7 @@ class ROSVisualizer():
 		marker.type = Marker.ARROW
 		marker.scale.x = width
 		marker.scale.y = 2 * width
-		marker.points.extend([expr_to_rosmsg(start), expr_to_rosmsg(end)])
+		marker.points.extend([ks_to_rosmsg(start), ks_to_rosmsg(end)])
 		self.current_msg[namespace].markers.append(marker)
 
 	def draw_vector(self, namespace, position, vector, r=1, g=1, b=1, a=1, width=0.01, frame=None):
@@ -110,7 +164,7 @@ class ROSVisualizer():
 	def draw_text(self, namespace, position, text, r=1, g=1, b=1, a=1, height=0.08, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = Marker.TEXT_VIEW_FACING
-		marker.pose.position = expr_to_rosmsg(position)
+		marker.pose.position = ks_to_rosmsg(position)
 		marker.scale.z = height
 		marker.text = text
 		self.current_msg[namespace].markers.append(marker)
@@ -118,15 +172,15 @@ class ROSVisualizer():
 	def draw_shape(self, namespace, pose, scale, shape, r=1, g=1, b=1, a=1, frame=None):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = shape
-		marker.pose = expr_to_rosmsg(pose)
-		marker.scale = expr_to_rosmsg(scale)
+		marker.pose = ks_to_rosmsg(pose)
+		marker.scale = ks_to_rosmsg(scale)
 		self.current_msg[namespace].markers.append(marker)
 
 	def draw_mesh(self, namespace, pose, scale, resource, frame=None, r=0, g=0, b=0, a=0, use_mat=True):
 		marker = blank_marker(self.consume_id(namespace), namespace, r, g, b, a, self.__resframe(frame))
 		marker.type = Marker.MESH_RESOURCE
-		marker.pose = expr_to_rosmsg(pose)
-		marker.scale = expr_to_rosmsg(scale)
+		marker.pose = ks_to_rosmsg(pose)
+		marker.scale = ks_to_rosmsg(scale)
 		marker.mesh_resource = resource
 		marker.mesh_use_embedded_materials = use_mat
 		self.current_msg[namespace].markers.append(marker)

@@ -1,4 +1,4 @@
-from gebsyas.dl_reasoning import DLTop,DLBottom, DLInclusion, DLAtom, DLConjunction, DLDisjunction, DLExistsRA
+from gebsyas.core.dl_reasoning import DLTop,DLBottom, DLInclusion, DLAtom, DLConjunction, DLDisjunction, DLExistsRA
 from giskardpy.symengine_robot import Robot, Gripper, Camera
 from gebsyas.data_structures import StampedData, JointState, SymbolicData, GaussianPoseComponent
 from giskardpy.symengine_wrappers import *
@@ -10,7 +10,7 @@ class DLScalar(DLAtom):
         super(DLScalar, self).__init__('Scalar')
 
     def is_a(self, obj):
-        return type(obj) == float or type(obj) == sp.Symbol
+        return type(obj) == float or type(obj) == sp.RealDouble or type(obj) == sp.Symbol
 
 DLScalar = DLScalar()
 
