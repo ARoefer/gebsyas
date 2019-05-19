@@ -41,7 +41,7 @@ if __name__ == '__main__':
     obj_o2 = bb(id='obj', pose=translation3(1,0,0))
 
     hp_true = HingePair(obj_t, point3(0,0,0), true_axis)
-    hp_obs  = PrismaticPair(obj_o, p_error, r_error * axis_rot * unitY)
+    hp_obs  = ScrewPair(obj_o, p_error, r_error * true_axis, 0.2, 0, 0.5)
     
     hp_true.apply(ks)
     hp_obs.apply(ks)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     ax.legend(loc='upper left')
     ax.set_title('Metric Error')
     fig.tight_layout()
-    fig.savefig('errorplot.png')
+    fig.savefig('errorplot_{}_{}.png'.format(hp_true, hp_obs))
 
     rospy.sleep(0.3)
     
