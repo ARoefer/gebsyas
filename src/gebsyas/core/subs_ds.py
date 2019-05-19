@@ -4,6 +4,7 @@ from gebsyas.core.dl_types import DLVector, \
                                   DLRotation, \
                                   DLTranslation, \
                                   DLTransform
+import numpy as np 
 
 def to_sym(tuple_name):
     if len(tuple_name) == 0:
@@ -56,6 +57,15 @@ class Structure(object):
     def subs(self, sdict):
         return Structure(self.name, self.rf, **{n: (v.subs(sdict) if hasattr(v, 'subs') else v) for n, v in [(k, getattr(self, k)) for k in self.edges]})
 
+    def to_flat_dict(self, prefix=''):
+        out = {}
+        for e in self.edges:
+            o = getattr(self, e)
+            if type(o) == Structure:
+                out.update(o.to_flat_dict('{}{}/'.format(prefix, e)))
+            else:
+                out['{}{}'.format(prefix, e)] = o
+        return out
 
 def f_blank(o, state):
     pass
