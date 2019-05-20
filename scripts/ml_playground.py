@@ -14,7 +14,7 @@ from gebsyas.utils                    import bb
 from giskardpy.symengine_wrappers     import inverse_frame
 
 if __name__ == '__main__':
-    observations = generate_shelf_samples(1000)
+    observations = generate_shelf_samples(10)
 
     pmodel = PModel(['none', 'prismatic', 'hinge'])
 
