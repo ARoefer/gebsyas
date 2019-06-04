@@ -347,7 +347,7 @@ class NonOrderedFeature(Feature):
             loss.backward()
 
             with torch.no_grad():
-                report.log_loss((out_prediction.max(0)[1] - true_error_mask).abs().clamp(0,1).sum().item() / len(observations))
+                report.log_loss(loss.item()) #(out_prediction.max(0)[1] - true_error_mask).abs().clamp(0,1).sum().item() / len(observations))
                 self.c_model.sub_(learning_rate * self.c_model.grad)
                 self.c_model.grad.zero_()
 

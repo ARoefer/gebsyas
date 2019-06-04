@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 
+from gebsyas.test.demo_builder import cube, cylinder, sphere
 from gebsyas.kinematics.kinematic_rule import *
 from gebsyas.utils import bb, visualize_obj
 from gebsyas.core.subs_ds import ks_from_obj
@@ -13,19 +14,6 @@ from giskardpy.qp_problem_builder   import QProblemBuilder, JointConstraint,Soft
 def pos_goal(goal, current, weight=1, gain=1, ns=''):
     d = norm(goal - current)
     return {'align {} position'.format(ns): SoftConstraint(-d * gain, -d * gain, weight, d)}
-
-def cube(name, pose, length, width, height, state={}):
-    return ks_from_obj(bb(pose=pose, 
-                          length=length, 
-                          width=width, 
-                          height=height), name, state)
-
-def sphere(name, pose, radius, state={}):
-    return ks_from_obj(bb(pose=pose, radius=radius), name, state)
-
-def cylinder(name, pose, radius, height, state={}):
-    return ks_from_obj(bb(pose=pose, radius=radius, height=height), name, state)
-
 
 class Scenario(object):
     def __init__(self, visualizer):
