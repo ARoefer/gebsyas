@@ -14,22 +14,21 @@ from giskardpy.symengine_wrappers import axis_angle_from_matrix, pos_of
 from gebsyas.core.dl_types import DLScalar, DLVector, DLPoint, DLTransform
 from gebsyas.core.subs_ds  import Structure, ListStructure
 from gebsyas.utils         import bb
+from gebsyas.plotting      import ValueRecorder
 
 COLORS = ['g', 'c', 'm', 'y', 'k', 'w']
 
-class TrainingReport(object):
+class TrainingReport(ValueRecorder):
     def __init__(self, title):
-        super(TrainingReport, self).__init__()
-        self.title = title
-        self.loss  = []
-        self.dloss = [0.0]
+        super(TrainingReport, self).__init__('{} Loss'.format(self.title), 'Loss', r'\$Delta Loss')
+        self.log_data(r'\$Delta Loss', 0.0)
         self._iteration = 0
         self.events = {}
 
     def log_loss(self, loss):
-        if len(self.loss) > 0:
-            self.dloss.append(loss - self.loss[-1])
-        self.loss.append(loss)
+        if len(self.data['Loss']) > 0:
+            self.log_data(r'\$Delta Loss', loss - self.data['Loss'][-1])
+        self.log_data('Loss', loss)
         self._iteration += 1
 
     def log_event(self, event, *args):
@@ -38,15 +37,13 @@ class TrainingReport(object):
         self.events[event].append(tuple((self._iteration,) + args))
 
     def plot(self, ax):
-        cindex  = 0
-        patches = [ax.plot(self.loss, 'r', label='Loss')[0]]#, 
-                   #ax.plot(self.dloss, 'b', label=r'$\Delta Loss$')[0]]
+        super(TrainingReport, self).plot(ax)
         for e, t in self.events.items():
-            patches.append(mlines.Line2D([], [], color=COLORS[cindex % len(COLORS)],  label=e))
+            self.patches.append(mlines.Line2D([], [], color=COLORS[cindex % len(COLORS)],  label=e))
             for x in t:
                 ax.axvline(x=x[0], linewidth=0.5, ymin=0.9, color=COLORS[cindex % len(COLORS)])
-        ax.legend(handles=patches, loc='center right')
-        ax.set_title('{} Loss'.format(self.title))
+            cindex += 1
+        ax.legend(handles=self.patches, loc='center right')
 
 
 class ModelTrainingReport(TrainingReport):
