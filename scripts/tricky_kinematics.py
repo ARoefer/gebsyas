@@ -1,64 +1,16 @@
 #!/usr/bin/env python
 import rospy
 
-from giskardpy.symengine_wrappers import *
-from gebsyas.kinematics.min_qp_builder import HardConstraint, SoftConstraint, ControlledValue, get_diff_symbol, get_int_symbol, get_symbol_type
+from giskardpy.symengine_wrappers      import *
+
+from gebsyas.kinematics.min_qp_builder import HardConstraint, SoftConstraint, ControlledValue
 from gebsyas.kinematics.min_qp_builder import MinimalQPBuilder  as MQPB
 from gebsyas.kinematics.min_qp_builder import TypedQPBuilder    as TQPB
 from gebsyas.kinematics.gradients      import GradientContainer as GC
-from gebsyas.plotting import ValueRecorder, SymbolicRecorder, split_recorders, draw_recorders
-from gebsyas.ros_visualizer import ROSVisualizer
-
-DT_SYM = sp.symbols('dT')
-
-class CommandIntegrator(object):
-    def __init__(self, qp_builder, integration_rules=None, start_state=None, recorded_terms={}):
-        self.qp_builder = qp_builder
-        if type(qp_builder) is TQPB:
-            self.integration_rules = {}
-            for c in qp_builder.cv:
-                for s in qp_builder.free_symbols:
-                    if str(s)[:-2] == str(c)[:-2]:
-                        t_s = get_symbol_type(s)
-                        t_c = get_symbol_type(c)
-                        if t_s <= t_c:
-                            self.integration_rules[s] = s + c * (DT_SYM ** (t_c - t_s))
-
-            if integration_rules is not None:
-                self.integration_rules.update({s: r for s, r in integration_rules.items() if s in self.qp_builder.free_symbols})
-        else:
-            self.integration_rules = integration_rules if integration_rules is not None else {s: s*DT_SYM for s in self.qp_builder.free_symbols}
-        self.start_state = {s: 0.0 for s in self.qp_builder.free_symbols}
-        if start_state is not None:
-            self.start_state.update(start_state)
-        self.recorded_terms = recorded_terms
-
-    def restart(self, title='Integrator'):
-        self.state    = self.start_state.copy()
-        self.recorder = ValueRecorder(title, *[str(s) for s in self.state.keys()])
-        self.sym_recorder = SymbolicRecorder(title, **self.recorded_terms)
-
-    def run(self, dt=0.02, max_iterations=200):
-        self.state[DT_SYM] = dt
-        
-        for x in range(max_iterations):
-            self.sym_recorder.log_symbols(self.state)
-            str_state = {str(s): v for s, v in self.state.items() if s != DT_SYM}
-            for s, v in str_state.items():
-                self.recorder.log_data(s, v)
-
-            cmd = self.qp_builder.get_cmd(str_state)
-            #print(self.qp_builder.last_matrix_str())
-            #if self.qp_builder.equilibrium_reached(1e-1, -1e-1):
-            #    print('Equilibrium point reached after {} iterations'.format(x))
-            #    return
-
-            #print(cmd)
-            for s, i in self.integration_rules.items():
-                update = i.subs(cmd).subs(self.state)
-                # if s in cmd:
-                #     print('Command for {}: {} Update: {}'.format(s, cmd[s], update))
-                self.state[s] = update
+from gebsyas.kinematics.gradients      import get_diff_symbol, get_int_symbol, get_symbol_type
+from gebsyas.kinematics.integrator     import CommandIntegrator, DT_SYM
+from gebsyas.plotting                  import split_recorders, draw_recorders
+from gebsyas.ros_visualizer            import ROSVisualizer
 
 
 if __name__ == '__main__':
@@ -85,17 +37,19 @@ if __name__ == '__main__':
                             recorded_terms={'alpha': spe_alpha})
 
     # Roomba case
-    roo_x, roo_y, roo_v, roo_r, roo_rv = sp.symbols(' '.join(['roo_{}'.format(x) for x in 'x_p y_p l_p r_p lr_p'.split(' ')]))
+    roo_x, roo_y, roo_v, roo_r, roo_rv = sp.symbols(' '.join(['roo_{}'.format(x) for x in 'x_p y_p l_v r_p r_v'.split(' ')]))
     p = frame3_axis_angle(unitZ, roo_r + roo_rv, [roo_x + cos(roo_r + roo_rv) * roo_v, roo_y + sin(roo_r + roo_rv) * roo_v, 0]) * point3(0.1, 0, 0)
     goal_d = norm(point3(2, -4, 0) - p)
-    roo_g  = SoftConstraint(-goal_d.subs({roo_v: 0, roo_rv: 0}), 
-                            -goal_d.subs({roo_v: 0, roo_rv: 0}), 1, goal_d)
+    roo_v_diff  = goal_d.diff(roo_v)
+    roo_rv_diff = goal_d.diff(roo_rv)
+    goal_d = goal_d.subs({roo_v: 0, roo_rv: 0})
+    roo_g  = SoftConstraint(-goal_d, -goal_d, 1, GC(goal_d, {roo_v: roo_v_diff, roo_rv: roo_rv_diff}))
     roo_controlled = {str(c.symbol) : c for c in [ControlledValue(-1, 1, roo_v,  0.01),
                                                   ControlledValue(-0.6, 0.6, roo_rv, 0.01)]}
     roo_integrator = CommandIntegrator(TQPB({}, {'goal': roo_g}, roo_controlled),
-                                       {roo_x: roo_x + cos(roo_r + get_diff_symbol(roo_rv) * DT_SYM) * get_diff_symbol(roo_v) * DT_SYM,
-                                        roo_y: roo_y + sin(roo_r + get_diff_symbol(roo_rv) * DT_SYM) * get_diff_symbol(roo_v) * DT_SYM,
-                                        roo_r: roo_r + get_diff_symbol(roo_rv) * DT_SYM,
+                                       {roo_x: roo_x + cos(roo_r + roo_rv * DT_SYM) * roo_v * DT_SYM,
+                                        roo_y: roo_y + sin(roo_r + roo_rv * DT_SYM) * roo_v * DT_SYM,
+                                        roo_r: roo_r + roo_rv * DT_SYM,
                                         roo_v: 0 * DT_SYM,
                                         roo_rv: 0 * DT_SYM},
                                         recorded_terms={'distance': goal_d})
@@ -105,19 +59,19 @@ if __name__ == '__main__':
     stick_a = sp.symbols('stick_a_p')
     stick_a_limit = HardConstraint(-1 - stick_a, 1 - stick_a, stick_a)
 
-    car_p = car_x + stick_a
+    car_p = car_x
     car_d = 2 - car_x
     car_e_i = Symbol('error_i')
     car_e_d = Symbol('error_d')
     car_u = 1 * car_d #+ 0 * car_e_i + 1.5 * car_e_d
-    car_g = SoftConstraint(car_u, car_u, 1, car_p)
-    car_controlled = {'stick_alpha': ControlledValue(-0.4, 0.4, stick_a, 0.01)}
+    car_g = SoftConstraint(car_u, car_u, 1, GC(car_p, {stick_a: 1}))
+    car_controlled = {'stick_alpha': ControlledValue(-1, 1, stick_a, 0.01)}
 
     car_integrator = CommandIntegrator(TQPB({'stick_limit': stick_a_limit}, 
                                             {'goal'       : car_g},
                                             car_controlled),
                                        {car_x: car_x + stick_a * DT_SYM,
-                                        stick_a: get_diff_symbol(stick_a),
+                                        stick_a: stick_a,
                                         car_e_i: car_d * DT_SYM, # BROKEN
                                         car_e_d: -stick_a},
                                         recorded_terms={'distance': car_d,
@@ -145,7 +99,7 @@ if __name__ == '__main__':
     base_integrator.restart('3Dof Arm Example')
     spe_integrator.restart('Speedo Example')
     roo_integrator.restart('Roomba Example')
-    car_integrator.restart('RC-Car Example (PD-Control)')
+    car_integrator.restart('RC-Car Example')
     door_integrator.restart('Door Example')
 
     base_integrator.run()
@@ -158,18 +112,18 @@ if __name__ == '__main__':
     vis.render()
     #print(base_integrator.qp_builder.last_matrix_str())
     spe_integrator.run()
-    #roo_integrator.run(0.1)
-    #car_integrator.run(0.2)
-    #door_integrator.run(0.1)
+    roo_integrator.run(0.1)
+    car_integrator.run(0.2)
+    door_integrator.run(0.1)
 
     draw_recorders(split_recorders([base_integrator.recorder,
-                    base_integrator.sym_recorder,
                     spe_integrator.recorder,
-                    spe_integrator.sym_recorder, 
                     roo_integrator.recorder,
-                    roo_integrator.sym_recorder, 
                     car_integrator.recorder,
-                    car_integrator.sym_recorder,
-                    door_integrator.recorder,
-                    door_integrator.sym_recorder]), 1.0/3.0, 4).savefig('tricky_kinematics.png')
+                    #door_integrator.recorder,
+                    base_integrator.sym_recorder,
+                    spe_integrator.sym_recorder, 
+                    roo_integrator.sym_recorder, 
+                    car_integrator.sym_recorder #,door_integrator.sym_recorder
+                    ]), 21.0/9.0, 4).savefig('tricky_kinematics.png')
     rospy.sleep(1)
