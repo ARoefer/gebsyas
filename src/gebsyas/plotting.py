@@ -43,6 +43,10 @@ class PlotGroup(object):
 def split_recorders(recorders, threshold=0.1, flatline=1e-4):
     out = []
     for r in recorders:
+        if len(r.data_lim) == 0:
+            out.append(r)
+            continue
+
         g = PlotGroup([PlotProp(a, l, u) for a, (l, u) in r.data_lim.items()])
 
         groups = [g]
@@ -57,7 +61,7 @@ def split_recorders(recorders, threshold=0.1, flatline=1e-4):
                 y = 0
                 while y < len(g.plots):
                     p = g.plots[y]
-                    if p.height / g.height < threshold and p.height > flatline:
+                    if p.height > flatline and p.height / g.height < threshold:
                         new_group = True
                         for h in groups:
                             nl = min(h.median - 0.5 * h.height, p.lower)
