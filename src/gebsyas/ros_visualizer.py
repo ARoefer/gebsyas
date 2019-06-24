@@ -71,11 +71,13 @@ class ROSVisualizer():
 		if len(layers) == 0:
 			layers = self.ids.keys()
 
+		out_msg = MarkerArray()
 		for namespace in layers:
 			Id = self.ids[namespace]
-			self.current_msg[namespace].markers.extend([del_marker(x, namespace) for x in range(Id, self.lastIds[namespace])])
+			out_msg.markers.extend(self.current_msg[namespace].markers)
+			out_msg.markers.extend([del_marker(x, namespace) for x in range(Id, self.lastIds[namespace])])
 
-			self.publisher.publish(self.current_msg[namespace])
+		self.publisher.publish(out_msg)
 
 	def __resframe(self, frame):
 		if frame == None:
