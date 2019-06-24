@@ -5,7 +5,7 @@ from giskardpy.symengine_wrappers import *
 from gebsyas.kinematics.min_qp_builder import HardConstraint, SoftConstraint, ControlledValue, get_diff_symbol, get_int_symbol, get_symbol_type
 from gebsyas.kinematics.min_qp_builder import MinimalQPBuilder  as MQPB
 from gebsyas.kinematics.min_qp_builder import TypedQPBuilder    as TQPB
-from gebsyas.kinematics.min_qp_builder import GradientContainer as GC
+from gebsyas.kinematics.gradients      import GradientContainer as GC
 from gebsyas.plotting import ValueRecorder, SymbolicRecorder, split_recorders, draw_recorders
 from gebsyas.ros_visualizer import ROSVisualizer
 
