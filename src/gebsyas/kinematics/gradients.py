@@ -181,3 +181,13 @@ def log(expr):
     if type(expr) == GradientContainer:
         return GradientContainer(spw.log(expr.expr), {s: d / expr.expr for s, d in expr.gradients.items()})
     return GradientContainer(spw.log(expr))
+
+def sqrt(expr):
+    if type(expr) == GradientContainer:
+        return GradientContainer(spw.sqrt(expr.expr), {s: d / (2 * spw.sqrt(expr.expr)) for s, d in expr.gradients.items()})
+    return GradientContainer(spw.sqrt(expr))
+
+def abs(expr):
+    if type(expr) == GradientContainer:
+        return GradientContainer(spw.fake_Abs(expr.expr), {s: spw.fake_Abs(d) for s, d in expr.gradients.items()})
+    return GradientContainer(spw.fake_Abs(expr))
