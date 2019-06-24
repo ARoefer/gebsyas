@@ -5,8 +5,8 @@ from giskardpy import BACKEND
 from giskardpy.exceptions import QPSolverException
 from giskardpy.qp_solver  import QPSolver
 
-from gebsyas.gradients import *
-from gebsyas.gradients import GradientContainer as GC
+from gebsyas.kinematics.gradients import *
+from gebsyas.kinematics.gradients import GradientContainer as GC
 
 default_bound = 1e9    
 
