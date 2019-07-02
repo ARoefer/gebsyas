@@ -28,20 +28,17 @@ class ControlledValue(object):
         self.symbol = symbol
         self.weight = weight
 
+def extract_expr(expr):
+    return expr if type(expr) != GC else expr.expr
+
+def wrap_expr(expr):
+    return expr if type(expr) == GC else GC(expr)
 
 class MinimalQPBuilder(object):
     def __init__(self, hard_constraints, soft_constraints, controlled_values):
-        hc = hard_constraints.items()
-        sc = soft_constraints.items()
-        cv = controlled_values.items()
-
-        for x in range(len(hc)):
-            if type(hc[x][1].expr) != GC:
-                hc[x] = (hc[x][0], HardConstraint(hc[x][1].lower, hc[x][1].upper, GC(hc[x][1].expr)))
-
-        for x in range(len(sc)):
-            if type(sc[x][1].expr) != GC:
-                sc[x] = (sc[x][0], SoftConstraint(sc[x][1].lower, sc[x][1].upper, sc[x][1].weight,GC(sc[x][1].expr)))
+        hc = [(k, HardConstraint(extract_expr(c.lower), extract_expr(c.upper), wrap_expr(c.expr))) for k, c in hard_constraints.items()]
+        sc = [(k, SoftConstraint(extract_expr(c.lower), extract_expr(c.upper), c.weight, wrap_expr(c.expr))) for k, c in soft_constraints.items()]
+        cv = [(k, ControlledValue(extract_expr(c.lower), extract_expr(c.upper), c.symbol, extract_expr(c.weight))) for k, c in controlled_values.items()]
 
         self.np_g = np.zeros(len(cv + sc))
         self.H    = spw.diag(*[c.weight for _, c in cv + sc])
