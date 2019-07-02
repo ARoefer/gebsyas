@@ -26,13 +26,19 @@ def get_int_symbol(symbol):
         raise Exception('Cannot generate integrated symbol for {}! The type is {}'.format(symbol, s_type))
     return spw.Symbol('{}{}'.format(str(symbol)[:-2], TYPE_SUFFIXES_INV[s_type - 1]))
 
+def is_scalar(expr):
+    return type(expr) == int or type(expr) == float or expr.is_Add or expr.is_AlgebraicNumber or expr.is_Atom or expr.is_Derivative or expr.is_Float or expr.is_Function or expr.is_Integer or expr.is_Mul or expr.is_Number or expr.is_Pow or expr.is_Rational or expr.is_Symbol or expr.is_finite or expr.is_integer or expr.is_number or expr.is_symbol
+
 
 class GradientContainer(object):
     def __init__(self, expr, gradient_exprs=None):
         self.expr         = expr
         self.gradients    = gradient_exprs if gradient_exprs is not None else {}
-        self.free_symbols = expr.free_symbols
+        self.free_symbols = expr.free_symbols if hasattr(expr, 'free_symbols') else set()
         self.free_diff_symbols = {get_diff_symbol(s) for s in self.free_symbols if get_diff_symbol(s) not in self.gradients}
+
+    def copy(self):
+        return GradientContainer(self.expr, self.gradients.copy())
 
     def __contains__(self, symbol):
         return symbol in self.gradients or symbol in self.free_diff_symbols
@@ -53,6 +59,12 @@ class GradientContainer(object):
         self.gradients[symbol] = expr
 
 
+    def __neg__(self):
+        return GradientContainer(-self.expr, {s: -d for s, d in self.gradients.items()})
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __add__(self, other):
         if type(other) == GradientContainer:
             gradients = self.gradients.copy()
@@ -64,6 +76,8 @@ class GradientContainer(object):
             return GradientContainer(self.expr + other.expr, gradients)        
         return GradientContainer(self.expr + other, self.gradients.copy())
 
+    def __rsub__(self, other):
+        return GradientContainer(other) - self
 
     def __sub__(self, other):
         if type(other) == GradientContainer:
@@ -74,7 +88,10 @@ class GradientContainer(object):
                 else:
                     gradients[s] = -d
             return GradientContainer(self.expr - other.expr, gradients)
-        return GradientContainer(self.expr - other, {s: -d for s, d in self.gradients})
+        return GradientContainer(self.expr - other, {s: -d for s, d in self.gradients.items()})
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
 
     def __mul__(self, other):
         if type(other) == GradientContainer:
@@ -85,7 +102,56 @@ class GradientContainer(object):
                 else:
                     gradients[s] = d * self.expr
             return GradientContainer(self.expr * other.expr, gradients)
-        return GradientContainer(self.expr * other, {s: d * other for s, d in self.gradients})
+        return GradientContainer(self.expr * other, {s: d * other for s, d in self.gradients.items()})
+
+    def __iadd__(self, other):
+        if type(other) == GradientContainer:
+            self.expr += other.expr
+            for k, v in other.gradients.items():
+                if k in self.gradients:
+                    self.gradients[k] += v
+                else:
+                    self.gradients[k]  = v
+        else:
+            self.expr += other
+            if hasattr(other, 'free_symbols'):
+                for f in other.free_symbols:
+                    if get_diff_symbol(f) in self.gradients:
+                        self.gradients[get_diff_symbol(f)] += self.expr.diff(f)
+        return self
+
+    def __isub__(self, other):
+        if type(other) == GradientContainer:
+            self.expr += other.expr
+            for k, v in other.gradients.items():
+                if k in self.gradients:
+                    self.gradients[k] -= v
+                else:
+                    self.gradients[k]  = v
+        else:
+            self.expr -= other
+            if hasattr(other, 'free_symbols'):
+                for f in other.free_symbols:
+                    if get_diff_symbol(f) in self.gradients:
+                        self.gradients[get_diff_symbol(f)] -= self.expr.diff(f)
+        return self
+
+    def __imul__(self, other):
+        if type(other) == GradientContainer:
+            self.expr *= other.expr
+            for k, v in other.gradients.items():
+                if k in self.gradients:
+                    self.gradients[k] += v * self.expr
+                else:
+                    self.gradients[k]  = v * self.expr
+        else:
+            temp           = self * other
+            self.expr      = temp.expr
+            self.gradients = temp.gradients
+        return self
+
+    def __div__(self, other):
+        return self.__truediv__(other)
 
     def __truediv__(self, other):
         if type(other) == GradientContainer:
@@ -96,7 +162,7 @@ class GradientContainer(object):
                 else:
                     gradients[s] = -d * self.expr
             return GradientContainer(self.expr / other.expr, {s: d / (other.expr**2) for s, d in gradients.items()})
-        return GradientContainer(self.expr / other, {s: d / (other ** 2) for s, d in self.gradients})
+        return GradientContainer(self.expr / other, {s: d / (other ** 2) for s, d in self.gradients.items()})
 
 
     def __pow__(self, other):
@@ -108,7 +174,12 @@ class GradientContainer(object):
                 else:
                     gradients[s] = spw.log(self.expr) * d * (self.expr ** other.expr)
             return GradientContainer(self.expr**other.expr, gradients)
-        return GradientContainer(self.expr**other, {s: d * other * (self.expr** (other - 1)) for s, d in self.gradients.items()}) 
+        return GradientContainer(self.expr**other, {s: d * other * (self.expr** (other - 1)) for s, d in self.gradients.items()})
+
+    def __str__(self):
+        return '{} ({})'.format(str(self.expr), ', '.join([str(k) for k in self.gradients.keys()]))
+
+GC = GradientContainer
 
 
 def sin(expr):
