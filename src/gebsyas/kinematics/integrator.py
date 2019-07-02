@@ -3,7 +3,7 @@ from gebsyas.plotting                  import ValueRecorder, SymbolicRecorder
 from gebsyas.kinematics.gradients      import get_symbol_type
 from gebsyas.kinematics.min_qp_builder import TypedQPBuilder as TQPB
 
-DT_SYM = sp.symbols('dT')
+DT_SYM = sp.symbols('T_p')
 
 class CommandIntegrator(object):
     def __init__(self, qp_builder, integration_rules=None, start_state=None, recorded_terms={}):
