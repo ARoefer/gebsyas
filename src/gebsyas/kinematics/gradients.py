@@ -112,82 +112,82 @@ class GradientContainer(object):
 
 
 def sin(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.sin(expr.expr), {s: spw.cos(expr.expr) * d for s, d in expr.gradients.items()})
-    return GradientContainer(spw.sin(expr))
+    if type(expr) == GC:
+        return GC(spw.sin(expr.expr), {s: spw.cos(expr.expr) * d for s, d in expr.gradients.items()})
+    return spw.sin(expr)
 
 def cos(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.cos(expr.expr), {s: -spw.sin(expr.expr) * d for s, d in expr.gradients.items()})
-    return GradientContainer(spw.cos(expr))
+    if type(expr) == GC:
+        return GC(spw.cos(expr.expr), {s: -spw.sin(expr.expr) * d for s, d in expr.gradients.items()})
+    return spw.cos(expr)
 
 def tan(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.tan(expr.expr), {s: d * (1 + spw.tan(expr.expr)**2) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.tan(expr))
+    if type(expr) == GC:
+        return GC(spw.tan(expr.expr), {s: d * (1 + spw.tan(expr.expr)**2) for s, d in expr.gradients.items()})
+    return spw.tan(expr)
 
 def asin(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.asin(expr.expr), {s: d / spw.sqrt(1 - expr.expr**2) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.asin(expr))
+    if type(expr) == GC:
+        return GC(spw.asin(expr.expr), {s: d / spw.sqrt(1 - expr.expr**2) for s, d in expr.gradients.items()})
+    return spw.asin(expr)
 
 def acos(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.acos(expr.expr), {s: -d / spw.sqrt(1 - expr.expr**2) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.acos(expr))
+    if type(expr) == GC:
+        return GC(spw.acos(expr.expr), {s: -d / spw.sqrt(1 - expr.expr**2) for s, d in expr.gradients.items()})
+    return spw.acos(expr)
 
 def atan(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.atan(expr.expr), {s: d / (1 + expr.expr**2) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.atan(expr))
+    if type(expr) == GC:
+        return GC(spw.atan(expr.expr), {s: d / (1 + expr.expr**2) for s, d in expr.gradients.items()})
+    return spw.atan(expr)
 
 def sinh(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.sinh(expr.expr), {s: d * spw.cosh(expr.expr) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.sinh(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.sinh(expr.expr), {s: d * spw.sp.cosh(expr.expr) for s, d in expr.gradients.items()})
+    return spw.sp.sinh(expr)
 
 def cosh(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.cosh(expr.expr), {s: d * spw.sinh(expr.expr) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.cosh(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.cosh(expr.expr), {s: d * spw.sp.sinh(expr.expr) for s, d in expr.gradients.items()})
+    return spw.sp.cosh(expr)
 
 def tanh(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.tanh(expr.expr), {s: d * (1 - spw.tanh(expr.expr)**2) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.tanh(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.tanh(expr.expr), {s: d * (1 - spw.sp.tanh(expr.expr)**2) for s, d in expr.gradients.items()})
+    return spw.sp.tanh(expr)
 
 def asinh(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.asinh(expr.expr), {s: d / spw.sqrt(expr.expr**2 + 1) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.asinh(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.asinh(expr.expr), {s: d / spw.sqrt(expr.expr**2 + 1) for s, d in expr.gradients.items()})
+    return spw.sp.asinh(expr)
 
 def acosh(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.acosh(expr.expr), {s: d / (spw.sqrt(expr.expr - 1) * spw.sqrt(expr.expr + 1)) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.acosh(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.acosh(expr.expr), {s: d / spw.sqrt(expr.expr**2 - 1) for s, d in expr.gradients.items()})
+    return spw.sp.acosh(expr)
 
 def atanh(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.atanh(expr.expr), {s: d / (1 - expr.expr**2) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.atanh(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.atanh(expr.expr), {s: d / (1 - expr.expr**2) for s, d in expr.gradients.items()})
+    return spw.sp.atanh(expr)
 
 
 def exp(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.exp(expr.expr), {s: d * spw.exp(expr.expr) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.exp(expr))
+    if type(expr) == GC:
+        return GC(spw.sp.exp(expr.expr), {s: d * spw.sp.exp(expr.expr) for s, d in expr.gradients.items()})
+    return spw.exp(expr)
     
 def log(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.log(expr.expr), {s: d / expr.expr for s, d in expr.gradients.items()})
-    return GradientContainer(spw.log(expr))
+    if type(expr) == GC:
+        return GC(spw.log(expr.expr), {s: d / expr.expr for s, d in expr.gradients.items()})
+    return spw.log(expr)
 
 def sqrt(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.sqrt(expr.expr), {s: d / (2 * spw.sqrt(expr.expr)) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.sqrt(expr))
+    if type(expr) == GC:
+        return GC(spw.sqrt(expr.expr), {s: d / (2 * spw.sqrt(expr.expr)) for s, d in expr.gradients.items()})
+    return spw.sqrt(expr)
 
 def abs(expr):
-    if type(expr) == GradientContainer:
-        return GradientContainer(spw.fake_Abs(expr.expr), {s: spw.fake_Abs(d) for s, d in expr.gradients.items()})
-    return GradientContainer(spw.fake_Abs(expr))
+    if type(expr) == GC:
+        return GC(spw.fake_Abs(expr.expr), {s: d * expr.expr / spw.sqrt(expr.expr ** 2) for s, d in expr.gradients.items()})
+    return spw.fake_Abs(expr)
