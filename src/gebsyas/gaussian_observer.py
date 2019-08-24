@@ -1,12 +1,13 @@
 import numpy as np
 
 from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol
-from kineverse.gradients.gradient_math import point3, vector3, x_of, norm, cross, tan, GC
-from kineverse.motion.min_qp_builder   import TypedQPBuilder as TQPB \
-                                              GeomQPBuilder  as GQPB \
-                                              SoftConstraint as SC
+from kineverse.gradients.gradient_math import point3, vector3, x_of, pos_of, dot, norm, cross, tan, GC, spw
+from kineverse.motion.min_qp_builder   import TypedQPBuilder as TQPB, \
+                                              GeomQPBuilder  as GQPB, \
+                                              SoftConstraint as SC, \
+                                              ControlledValue
 from kineverse.motion.integrator       import CommandIntegrator
-from kineverse.visualization.bpb_visualizer import ROSBPBVisualizer
+from kineverse.type_sets               import symbolic_types
 
 class Camera(object):
     def __init__(self, pose, fov, aspect_ratio=1.0):
@@ -56,9 +57,9 @@ class GaussianInspector(object):
         self.eigen_vecs = [vector3(*syms) for syms in self.sym_eigen_vecs]
 
         # Looking along axes of uncertainty
-        view_dir = x_of(camera.pose) * vector3(1,0,0)
+        view_dir = x_of(camera.pose)
 
-        sc_eigen_vecs = {'look along eigen {}'.format(x):
+        self.sc_eigen_vecs = {'look along eigen {}'.format(x):
                             SC(-norm(cross(view_dir, e)),
                                -norm(cross(view_dir, e)),
                                 norm(e),
@@ -76,7 +77,7 @@ class GaussianInspector(object):
         camera_to_obj    = self.gauss_position - pos_of(self.camera.pose)
         camera_to_obj   /= norm(camera_to_obj) + 1e-3
         view_align       = dot(view_dir, camera_to_obj)
-        sc_obs_distance  = {'observation distance': SC(min_obs_fraction - projected_radius,
+        self.sc_obs_distance = {'observation distance': SC(min_obs_fraction - projected_radius,
                                                        max_obs_fraction - projected_radius, 
                                                        1, 
                                                        GC(projected_radius)),
@@ -104,16 +105,16 @@ class GaussianInspector(object):
 
         robot_symbols      = self.camera.pose.free_symbols
         controlled_symbols = {get_diff_symbol(s) for s in robot_symbols}
-        all_sybols         = robot_symbols.union(controlled_symbols)
+        all_symbols        = robot_symbols.union(controlled_symbols)
         self.world         = self.km.get_active_geometry(all_symbols)
         hard_constraints   = self.km.get_constraints_by_symbols(all_symbols)
 
         # Generating full constraint set
         to_remove = set()
         controlled_values = {}
-        for k, c in constraints.items():
+        for k, c in hard_constraints.items():
             if type(c.expr) is spw.Symbol and c.expr in controlled_symbols:
-                weight = 0.01 if c.expr != roomba_joint.lin_vel and c.expr != roomba_joint.ang_vel else 0.2
+                weight = 0.01
                 controlled_values[str(c.expr)] = ControlledValue(c.lower, c.upper, c.expr, weight)
                 to_remove.add(k)
 
@@ -121,14 +122,14 @@ class GaussianInspector(object):
             if str(s) not in controlled_values:
                 controlled_values[str(s)] = ControlledValue(-1e9, 1e9, s, 0.01)
 
-        constraints = {k: c for k, c in constraints.items() if k not in to_remove}
+        hard_constraints = {k: c for k, c in hard_constraints.items() if k not in to_remove}
 
-        soft_constraints = self.sc_eigen_vecs.copy()
+        soft_constraints = self.sc_obs_distance.copy()
         soft_constraints.update(self.sc_eigen_vecs)
-        soft_constraints.update(self.sc_obs_distance)
-        soft_constraints.update(self.sc_cone_constraints)
-        self.collision_free_solver = TQPB(constraints, soft_constraints, controlled_values)
-        self.collision_solver      = GQPB(self.world, constraints, soft_constraints, controlled_values, visualizer=visualizer)
+        #soft_constraints.update(self.sc_obs_distance)
+        #soft_constraints.update(self.sc_cone_constraints)
+        self.collision_free_solver = TQPB(hard_constraints, soft_constraints, controlled_values)
+        self.collision_solver      = GQPB(self.world, hard_constraints, soft_constraints, controlled_values, visualizer=visualizer)
 
 
 
@@ -171,5 +172,35 @@ class GaussianInspector(object):
         # Rate results by their last errors
         # Add best to the explored view cones
         # Return sorted, rated results as 6D camera poses
+
+        integrators = []
+        for x in range(samples):
+            state = self.state.copy()
+            state[self.sym_loc_x] = state[self.sym_gaussian_x] + (np.random.random() * 2 * spread - spread)
+            state[self.sym_loc_y] = state[self.sym_gaussian_y] + (np.random.random() * 2 * spread - spread)
+            state[self.sym_loc_a] = np.random.random() * np.pi * 2
+            integrators.append(CommandIntegrator(self.collision_solver, start_state=state))
+            integrators[-1].restart('Integrator {}'.format(x))
+
+        for x in range(num_iterations):
+            for i in integrators:
+                i.run(int_factor, 5)
+
+
+        results = []
+        constraints = [c for c in self.sc_eigen_vecs.values() + self.sc_obs_distance.values()]
+        for i in integrators:
+            state = i.state
+
+            error = 0
+            for c in constraints:
+                lower = c.lower if type(c.lower) not in symbolic_types else c.lower.subs(state)
+                upper = c.upper if type(c.upper) not in symbolic_types else c.upper.subs(state)
+                error += max(lower, 0) - min(upper, 0)
+            
+            results.append((error, self.camera.pose.subs(i.state)))
+
+        return sorted(results) 
+
 
 

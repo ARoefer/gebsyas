@@ -3,10 +3,10 @@ import math
 import numpy as np
 import pybullet as pb
 
-from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform, hsva_to_rgba
+from iai_bullet_sim.basic_simulator import SimulatorPlugin, invert_transform, hsva_to_rgba, transform_point
 from iai_bullet_sim.rigid_body import RigidBody
 from iai_bullet_sim.multibody import SimpleBaseDriver
-from iai_bullet_sim.utils import Frame
+from iai_bullet_sim.utils import Frame, AABB
 
 from gebsyas.msg import LocalizedPoseStamped as LPSMsg
 from gebsyas.utils import expr_to_rosmsg
@@ -133,7 +133,7 @@ class ProbPerceptionPublisher(SimulatorPlugin):
         self.object_cov = {}
         self.visualizer = ROSVisualizer('probabilistic_vis', 'map')
 
-
+    @profile
     def post_physics_update(self, simulator, deltaT):
         """Implements post physics step behavior.
 
@@ -347,6 +347,7 @@ class GMMObjectPublisher(SimulatorPlugin):
         self.topic_prefix = topic_prefix
         self._enabled = True
 
+    @profile
     def post_physics_update(self, simulator, deltaT):
         if not self._enabled:
             return
@@ -443,6 +444,7 @@ class FakeGMMObjectPublisher(SimulatorPlugin):
         self.topic_prefix = topic_prefix
         self._enabled = True
 
+    @profile
     def post_physics_update(self, simulator, deltaT):
         if not self._enabled:
             return
@@ -664,6 +666,100 @@ class RobotMirror(SimulatorPlugin):
         return cls(body, init_dict['state_topic'], init_dict['localization_topic'])
 
 
+from sensor_msgs.msg import Image as ImageMsg
+import cv2
+import cv_bridge
+
+class RGBDCamera(SimulatorPlugin):
+    def __init__(self, multibody, camera_link, offset, topic_prefix, type, width, height, fov, near, far):
+        self.multibody    = multibody
+        self.camera_link  = camera_link
+        self.topic_prefix = topic_prefix
+        self.offset       = offset
+        self.width        = width
+        self.height       = height
+        self.fov          = fov
+        self.near         = near
+        self.far          = far
+        self.type         = type
+        self.projection_matrix = pb.computeProjectionMatrixFOV(fov * (180 / np.pi), width / float(height), near, far)
+        self._bridge   = cv_bridge.CvBridge()
+        self.__enabled = False
+
+        self._frame_id = None
+
+        self.pub_image = rospy.Publisher('{}/rgb'.format(self.topic_prefix), ImageMsg, queue_size=1, tcp_nodelay=True)
+        self.pub_depth = rospy.Publisher('{}/depth'.format(self.topic_prefix), ImageMsg, queue_size=1, tcp_nodelay=True)
+        self.pub_mask  = rospy.Publisher('{}/mask'.format(self.topic_prefix), ImageMsg, queue_size=1, tcp_nodelay=True)
+        self.__enabled = True
+
+    def disable(self, simulator):
+        """Disables the publisher.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
+        self.__enabled = False
+        self.pub_image.unregister()
+        self.pub_depth.unregister()
+        self.pub_mask.unregister()
+
+    @profile
+    def post_physics_update(self, simulator, deltaT):
+        if not self.__enabled:
+            return
+
+        if self._frame_id is None:
+            self._frame_id = '{}/{}'.format(simulator.get_body_id(self.multibody.bId()), self.camera_link)
+
+        camera_transform = self.multibody.get_link_state(self.camera_link).worldFrame
+        view_matrix = pb.computeViewMatrix(transform_point(camera_transform, self.offset), transform_point(camera_transform, [5, 0, 0]), (0,0,1))
+
+        if simulator.mode == 'gui':
+            _, _, rgb, depth, segmenatation = pb.getCameraImage(self.width, self.height, view_matrix, self.projection_matrix, renderer=pb.ER_BULLET_HARDWARE_OPENGL)
+        else:
+            _, _, rgb, depth, segmenatation = pb.getCameraImage(self.width, self.height, view_matrix, self.projection_matrix)#, shadow=0, renderer=pb.ER_TINY_RENDERER)
+
+
+
+        rgb_message = self._bridge.cv2_to_imgmsg(rgb.reshape((self.height, self.width, 4))[:,:,:3].astype(np.uint8), 'rgb8')
+        depth_message = self._bridge.cv2_to_imgmsg(depth.reshape((self.height, self.width)).astype(np.float32))
+        #mask_message  = self._bridge.cv2_to_imgmsg(segmenatation.reshape((self.height, self.width)))
+        rgb_message.header.frame_id = self._frame_id
+        rgb_message.header.stamp    = rospy.Time.now()
+        depth_message.header = rgb_message.header
+        #mask_message.header  = rgb_message.header
+        self.pub_image.publish(rgb_message)
+        self.pub_depth.publish(depth_message)
+        #self.pub_mask.publish(mask_message)
+
+
+    def to_dict(self, simulator):
+        return {'body': simulator.get_body_id(self.multibody.bId()),
+                'camera_link' : self.camera_link,
+                'offset'      : self.offset,
+                'topic_prefix': self.topic_prefix,
+                'type'        : self.type,
+                'width'       : self.width,
+                'height'      : self.height,
+                'fov'         : self.fov,
+                'near'        : self.near,
+                'far'         : self.far}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return cls(body, init_dict['camera_link'], 
+                         init_dict['offset'], 
+                         init_dict['topic_prefix'],
+                         init_dict['type'],
+                         init_dict['width'],
+                         init_dict['height'],
+                         init_dict['fov'],
+                         init_dict['near'],
+                         init_dict['far'])
+
+
 def create_search_object_message(body, name):
     msg = SearchObjectMsg()
     msg.id = body.bId()
@@ -674,3 +770,159 @@ def create_search_object_message(body, name):
     return msg
 
 
+from iai_bullet_sim.basic_simulator import vec3_to_list
+from iai_bullet_sim.ros_plugins import rotation3_quaternion
+from faster_rcnn_object_detector.msg import BBoxInfo as BBoxInfoMsg
+
+def aabb_to_matrix(aabb):
+    pass
+
+
+class ObjectDetector(SimulatorPlugin):
+    def __init__(self, multibody, camera_link, topic, width, height, fov, near, far):
+        self.multibody   = multibody
+        self.camera_link = camera_link
+        self.topic       = topic
+        self.width       = width
+        self.height      = height
+        self.fov         = fov
+        self.fov_threshold = fov * 0.5
+        self.near        = near
+        self.far         = far
+        self.__enabled = True
+
+        self.__numpy_mode = hasattr(pb, 'rayTestBatch_numpy')
+        self._frame_id = None
+
+
+        r = np.tan(0.5 * fov) * near
+        t = r * (width / float(height))
+        # self._projection_matrix = np.array([[near / r,        0,                            0,                                0],
+        #                                     [       0, near / t,                            0,                                0],
+        #                                     [       0,        0, (-far - near) / (far - near), (-2 * far * near) / (far - near)],
+        #                                     [       0,        0,                           -1,                                0]])
+        # # Project along x-axis to be aligned with the "x forwards" convention
+        # self._projection_matrix = np.array([[0, 1, 0, 0], 
+        #                                     [0, 0, 1, 0], 
+        #                                     [1, 0, 0, 0], 
+        #                                     [0, 0, 0, 1]]).dot(self._projection_matrix)
+        # Primitive projection. Projects y into x, z into y- points in view should range from -0.5 to 0.5
+        self._projection_matrix = np.array([[0,        -r, 0, 0],
+                                            [0,         0, t, 0],
+                                            [1 / near,  0, 0, 0]])
+        self._screen_translation = np.array([[0.5 * width,             0, 0.5 * width],
+                                             [          0, -0.5 * height, 0.5 * height]])
+        self._frustum_vertices = np.array([[near, -r,  t, 1],
+                                           [near, -r, -t, 1],
+                                           [near,  r, -t, 1],
+                                           [near,  r,  t, 1],
+                                           [ far, -r,  t, 1],
+                                           [ far, -r, -t, 1],
+                                           [ far,  r, -t, 1],
+                                           [ far,  r,  t, 1]]).T
+        self._aabb_vertex_template = np.array([[1, 1, 1, 1],
+                                               [1, 1, 0, 1],
+                                               [1, 0, 1, 1],
+                                               [1, 0, 0, 1],
+                                               [0, 1, 1, 1],
+                                               [0, 1, 0, 1],
+                                               [0, 0, 1, 1],
+                                               [0, 0, 0, 1]])
+        self.pub_bbox = rospy.Publisher(self.topic, BBoxInfoMsg, queue_size=20, tcp_nodelay=True)
+
+
+    def disable(self, simulator):
+        """Disables the publisher.
+        :type simulator: iai_bullet_sim.basic_simulator.BasicSimulator
+        """
+        self.__enabled = False
+        self.pub_bbox.unregister()
+
+
+    @profile
+    def post_physics_update(self, simulator, deltaT):
+        if not self.__enabled:
+            return
+
+        if self._frame_id is None:
+            self._frame_id = '{}/{}'.format(simulator.get_body_id(self.multibody.bId()), self.camera_link)
+
+        camera_transform = self.multibody.get_link_state(self.camera_link).worldFrame
+
+        transform = np.hstack((np.zeros((4,3)), np.array([[camera_transform.position.x],[camera_transform.position.y],[camera_transform.position.z],[0]])))
+        transform = rotation3_quaternion(camera_transform.quaternion.x,
+                                         camera_transform.quaternion.y,
+                                         camera_transform.quaternion.z,
+                                         camera_transform.quaternion.w) + transform
+        transformed_frustum_points = transform.dot(self._frustum_vertices)
+        max_coords = transformed_frustum_points.max(1)
+        min_coords = transformed_frustum_points.min(1)
+
+        aabbs       = [(body, body.get_AABB()) for body, _ in simulator.get_overlapping(AABB(min_coords, max_coords), {self.multibody})]
+        aabb_matrix = np.array([[vec3_to_list(aabb.min) + [1], vec3_to_list(aabb.max) + [1]] for _, aabb in aabbs]) # n_aabbs x 4 x 2
+        positions   = (aabb_matrix.sum(1) * 0.5).T # 4 x n_aabbs
+        dimensions  = (aabb_matrix[:,1,:] - aabb_matrix[:,0,:])
+        looped_position = np.repeat(transform[:, 3:], len(aabbs), 1)
+        r_positions = positions - looped_position # 4 x n_aabbs
+
+        dirs = r_positions / np.sqrt((r_positions * r_positions).sum(0))
+        ray_starts  = (looped_position + dirs * self.near) # Start positions at "near" distance from camera. Not quite accurate...
+        print('positions: {}\ndimensions: {}\nlooped_position: {}\nr_positions: {}\nray_starts: {}'.format(positions.shape, dimensions.shape, looped_position.shape, r_positions.shape, ray_starts.shape))
+
+
+
+        if self.__numpy_mode:
+            #print('Passing numpy array to pybullet...')
+            indices, hits = pb.rayTestBatch_numpy(ray_starts.T, positions.T, physicsClientId=simulator.client_id())
+        else:
+            raise Exception('Object Detector is only built for use with a numpy-compiled bullet engine.')
+        
+        idx_matrix = np.array([body.bId() for body, _ in aabbs]).reshape((len(aabbs), 1))
+        positive_hits = np.equal(indices[:,:1], idx_matrix)
+
+        print('hits:\n{}\nconcat matrix:\n{}\npositive hits: {}'.format(hits, np.hstack((indices[:,:1], idx_matrix)), positive_hits))
+
+        inv_transform = np.eye(4)
+        inv_transform[:3, :3] = transform[:3, :3].T
+        inv_transform[:3,  3] = -inv_transform[:3, :3].dot(transform[:3, 3])
+
+        projection_matrix = self._projection_matrix.dot(inv_transform)
+        for x in range(len(aabbs)):
+            if positive_hits[x, 0]:
+                msg = BBoxInfoMsg()
+
+                vertices = (self._aabb_vertex_template * dimensions[x]).T
+                print('vertices: {}\nprojection_matrix: {}'.format(vertices.shape, projection_matrix.shape))
+                projected_vertices = projection_matrix.dot(vertices)
+                projected_vertices = self._screen_translation.dot(np.divide(projected_vertices, projected_vertices[2,:]).clip(-0.5, 0.5))
+                print(projected_vertices)
+                msg.bbox_xmin, msg.bbox_ymin = projected_vertices.min(axis=1).flatten()
+                msg.bbox_xmax, msg.bbox_ymax = projected_vertices.max(axis=1)
+                msg.max_label = simulator.get_body_id(idx_matrix[x,0]).split('.')[0]
+                msg.max_score = 1.0
+                print(msg)
+                self.pub_bbox.publish(msg)
+
+
+    def to_dict(self, simulator):
+        return {'body': simulator.get_body_id(self.multibody.bId()),
+                'camera_link': self.camera_link,
+                'topic'      : self.topic,
+                'width'      : self.width,
+                'height'     : self.height,
+                'fov'        : self.fov,
+                'near'       : self.near,
+                'far'        : self.far}
+
+    @classmethod
+    def factory(cls, simulator, init_dict):
+        body = simulator.get_body(init_dict['body'])
+        if body is None:
+            raise Exception('Body "{}" does not exist in the context of the given simulation.'.format(init_dict['body']))
+        return cls(body, init_dict['camera_link'], 
+                         init_dict['topic'],
+                         init_dict['width'],
+                         init_dict['height'],
+                         init_dict['fov'],
+                         init_dict['near'],
+                         init_dict['far'])
