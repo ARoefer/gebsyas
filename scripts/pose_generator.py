@@ -1,5 +1,7 @@
+#!/usr/bin/env python
 import rospy
 import math
+import sys
 
 from urdf_parser_py.urdf import URDF
 
@@ -13,13 +15,19 @@ from kineverse.urdf_fix                    import urdf_filler
 from kineverse.utils                       import res_pkg_path
 from gebsyas.view_pose_generator           import ViewPoseGenerator
 from gebsyas.gaussian_observer             import Camera
+from gebsyas.sdf_loader                    import load_world_from_xml
 
 if __name__ == '__main__':
     rospy.init_node('view_pose_generator')
 
     km = GeometryModel()
     
-    urdf_fetch = URDF.from_xml_file(res_pkg_path('package://fetch_description/robots/fetch.urdf'))
+    if len(sys.argv) >= 2:
+        world_path = res_pkg_path(sys.argv[1])
+        print('Loading world file {}'.format(world_path))
+        load_world_from_xml(km, world_path)
+    
+    urdf_fetch = URDF.from_xml_file(res_pkg_path('package://gebsyas/robots/fetch_armless.urdf'))
 
     load_urdf(km, 'fetch', urdf_fetch, 'odom')
 
