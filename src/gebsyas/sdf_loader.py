@@ -154,7 +154,8 @@ def world_loader(model, prefix, world_node, pose, use_name=True):
         handle_include_tag(model, prefix, include_node)
 
     for model_node in world_node.findall('model'):
-        model_loader(model, prefix, model_node, pose)
+        if model_node.get('name')[:6].lower() != 'ground':
+            model_loader(model, prefix, model_node, pose)
 
     state_node = world_node.find('state')
     for model_node in state_node.findall('model'):
