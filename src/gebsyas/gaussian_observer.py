@@ -1,7 +1,8 @@
 import numpy as np
 
-from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol
+from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol, erase_type
 from kineverse.gradients.gradient_math import point3, vector3, x_of, pos_of, dot, norm, cross, tan, GC, spw
+from kineverse.model.paths             import Path
 from kineverse.motion.min_qp_builder   import TypedQPBuilder as TQPB, \
                                               GeomQPBuilder  as GQPB, \
                                               SoftConstraint as SC, \
@@ -32,12 +33,13 @@ class GaussianComponent(object):
 max_view_cones = 10
 
 class GaussianInspector(object):
-    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, min_obs_fraction=0.2, max_obs_fraction=1.0, permitted_vc_overlap=0.2, visualizer=None):
+    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, distance_fn, permitted_vc_overlap=0.2, visualizer=None):
         self.km     = km
         self.examined_view_cones = {}
         self.camera = camera
         self.state  = {}
         self.gc     = None
+        self.distance_fn = distance_fn
 
         localization_vars = {sym_loc_x, sym_loc_y, sym_loc_a}
         if len(camera.pose.free_symbols.intersection(localization_vars)) < 3:
@@ -47,6 +49,8 @@ class GaussianInspector(object):
         self.sym_loc_y = sym_loc_y 
         self.sym_loc_a = sym_loc_a
 
+        self.sym_min_dist = create_pos('min_obs_distance')
+        self.sym_max_dist = create_pos('max_obs_distance')
         #self.visualizer = visualizer if visualizer is not None else ROSBPBVisualizer('/debug_vis', 'map')
 
         self.gauss_position = point3(*[create_pos('gaussian_{}'.format(d)) for d in ['x','y','z']])
@@ -77,14 +81,18 @@ class GaussianInspector(object):
         camera_to_obj    = self.gauss_position - pos_of(self.camera.pose)
         camera_to_obj   /= norm(camera_to_obj) + 1e-3
         view_align       = dot(view_dir, camera_to_obj)
-        self.sc_obs_distance = {'observation distance': SC(min_obs_fraction - projected_radius,
-                                                       max_obs_fraction - projected_radius, 
-                                                       1, 
-                                                       GC(projected_radius)),
-                            'look at': SC(1 - view_align, 
-                                          1 - view_align, 
-                                          1, 
-                                          GC(view_align))}
+        self.sc_obs_distance = {'observation distance': SC(self.sym_min_dist - obj_dist,
+                                                           self.sym_max_dist - obj_dist, 
+                                                           1, 
+                                                           GC(projected_radius)),
+                                'look at': SC(1 - view_align, 
+                                              1 - view_align, 
+                                              1, 
+                                              GC(view_align))}
+        # 'observation distance': SC(min_obs_fraction - projected_radius,
+        #                            max_obs_fraction - projected_radius, 
+        #                            1, GC(projected_radius))
+
 
         # Avoiding overlap with another view cone
         cone_axis     = vector3(*[create_pos('view_{}'.format(d)) for d in ['x','y','z']])
@@ -118,6 +126,8 @@ class GaussianInspector(object):
                 controlled_values[str(c.expr)] = ControlledValue(c.lower, c.upper, c.expr, weight)
                 to_remove.add(k)
 
+        self.js_alias = {s: str(Path(erase_type(s))[-1]) for s in controlled_symbols if s not in localization_vars}
+
         for s in controlled_symbols:
             if str(s) not in controlled_values:
                 controlled_values[str(s)] = ControlledValue(-1e9, 1e9, s, 0.01)
@@ -131,8 +141,9 @@ class GaussianInspector(object):
         self.collision_free_solver = TQPB(hard_constraints, soft_constraints, controlled_values)
         self.collision_solver      = GQPB(self.world, hard_constraints, soft_constraints, controlled_values, visualizer=visualizer)
 
-
-
+    def set_observation_distance(self, min_dist, max_dist):
+        self.state[self.sym_min_dist] = min_dist
+        self.state[self.sym_max_dist] = max_dist
 
     def set_gaussian_component(self, gc, obj_radius=0.2):    
         # Compute eigen vectors of covariance and write them to the state
@@ -166,6 +177,9 @@ class GaussianInspector(object):
         if self.gc is None:
             raise Exception('Set a gaussion component before trying to solve for a view pose.')
 
+        if self.sym_min_dist not in self.state or self.sym_max_dist not in self.state:
+            raise Exception('Set minimum and maximum observation distance before computing view poses.')
+
         # Initialize samples
         # Create batch of integrators
         # Update batch in parallel
@@ -191,14 +205,16 @@ class GaussianInspector(object):
         constraints = [c for c in self.sc_eigen_vecs.values() + self.sc_obs_distance.values()]
         for i in integrators:
             state = i.state
+            js = {jn: state[s] for s, jn in self.js_alias.items()}
+            nav_pose = [state[self.sym_loc_x], state[self.sym_loc_y], state[self.sym_loc_a]]
 
-            error = 0
+            error = self.distance_fn([state[self.sym_loc_x], state[self.sym_loc_y], state[self.sym_loc_a]])
             for c in constraints:
                 lower = c.lower if type(c.lower) not in symbolic_types else c.lower.subs(state)
                 upper = c.upper if type(c.upper) not in symbolic_types else c.upper.subs(state)
                 error += max(lower, 0) - min(upper, 0)
             
-            results.append((error, self.camera.pose.subs(i.state)))
+            results.append((error, self.camera.pose.subs(i.state), js, nav_pose))
 
         return sorted(results) 
 
