@@ -390,8 +390,9 @@ class ObservationController(InEqBulletController):
                 if gmm_object.gmm[x].weight > 0.0:
                     flat_gc_pos = diag(1,1,0,1) * pos_of(gmm_object.gmm[x].pose)
                     r2gc   = flat_gc_pos - flat_robot_pos
-                    # rating = math.exp(rating_scale * norm(r2gc)) / (gmm_object.gmm[x].weight * object_weight)
-                    rating = norm(r2gc) / (gmm_object.gmm[x].weight * object_weight)
+                    rating = math.exp(rating_scale * norm(r2gc)) / (gmm_object.gmm[x].weight * object_weight)
+                    # rating = norm(r2gc) / (gmm_object.gmm[x].weight * object_weight)
+                    # rating = 10.0 / (gmm_object.gmm[x].weight * object_weight)
                     color = hsva_to_rgba((1.0 - gmm_object.gmm[x].weight) * 0.65, 1, 1, 0.7)
                     self.visualizer.draw_arrow('gmm_ratings', arrow_start, flat_gc_pos + draw_offset, *color)
                     self.visualizer.draw_text('gmm_ratings', arrow_start + 0.5 * r2gc, '{:.2f}'.format(float(rating)))

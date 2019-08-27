@@ -81,7 +81,7 @@ class MultiObjectSearchAndDeliveryAction(Action):
         while not rospy.is_shutdown() and not len(self.searched_ids) == 0:
             context.log('New searched ids: {}'.format(', '.join(self.searched_ids)))
             observation_controller.reset_search()
-            b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.1, 0.9)
+            b_found_object, m_lf, t_log = run_observation_controller(robot, observation_controller, context.agent, 0.01, 0.9)
             if b_found_object:
                 found_obj = observation_controller.get_current_object()
                 found_obj.pose = sorted(found_obj.gmm)[-1].pose

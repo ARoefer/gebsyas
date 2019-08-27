@@ -94,8 +94,11 @@ class OcclusionMap(object):
             #     return True
             # NOTE: only if uninformed_search mode
             print("occlusion angle = ", abs(wrap_to_circle(self.min_corner[0] - self.max_corner[0])))
-            if abs(wrap_to_circle(self.min_corner[0] - self.max_corner[0])) >= 0.8:
-                return True
+            # if norm(self.coords - point3(-1.37, -5.51, 0)) < 1.0:
+            #     if abs(wrap_to_circle(self.min_corner[0] - self.max_corner[0])) >= 1.3:
+            #         return True
+            # if abs(wrap_to_circle(self.min_corner[0] - self.max_corner[0])) >= :
+            #     return True
 
         return c_dist(self.min_corner[0], self.max_corner[0]) <= 0.2 and wrap_to_circle(self.min_corner[0] - self.max_corner[0]) > 0
 
