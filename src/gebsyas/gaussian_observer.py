@@ -1,8 +1,10 @@
 import numpy as np
 
+from giskardpy.exceptions import QPSolverException
 from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol, erase_type
 from kineverse.gradients.gradient_math import point3, vector3, x_of, pos_of, dot, norm, cross, tan, GC, spw
 from kineverse.model.paths             import Path
+from kineverse.model.geometry_model    import closest_distance_constraint
 from kineverse.motion.min_qp_builder   import TypedQPBuilder as TQPB, \
                                               GeomQPBuilder  as GQPB, \
                                               SoftConstraint as SC, \
@@ -31,9 +33,11 @@ class GaussianComponent(object):
 
 
 max_view_cones = 10
+MAX_RESETS = 50
+
 
 class GaussianInspector(object):
-    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, distance_fn, permitted_vc_overlap=0.2, visualizer=None):
+    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, distance_fn, permitted_vc_overlap=0.2, collision_link_paths=[], visualizer=None):
         self.km     = km
         self.examined_view_cones = {}
         self.camera = camera
@@ -64,10 +68,11 @@ class GaussianInspector(object):
         view_dir = x_of(camera.pose)
 
         self.sc_eigen_vecs = {'look along eigen {}'.format(x):
-                            SC(-norm(cross(view_dir, e)),
-                               -norm(cross(view_dir, e)),
+                            SC(norm(e)-norm(cross(view_dir, e)),
+                               norm(e)-norm(cross(view_dir, e)),
                                 norm(e),
                                 GC(norm(cross(view_dir, e)))) for x, e in enumerate(self.eigen_vecs)}
+        total_eigen_vec_value = sum([c.weight for c in self.sc_eigen_vecs.values()])
 
         # Taking a good observation distance
         obj_dist = norm(pos_of(self.camera.pose) - self.gauss_position)
@@ -83,11 +88,11 @@ class GaussianInspector(object):
         view_align       = dot(view_dir, camera_to_obj)
         self.sc_obs_distance = {'observation distance': SC(self.sym_min_dist - obj_dist,
                                                            self.sym_max_dist - obj_dist, 
-                                                           1, 
+                                                           5 + total_eigen_vec_value, 
                                                            GC(projected_radius)),
                                 'look at': SC(1 - view_align, 
                                               1 - view_align, 
-                                              1, 
+                                              1 + total_eigen_vec_value, 
                                               GC(view_align))}
         # 'observation distance': SC(min_obs_fraction - projected_radius,
         #                            max_obs_fraction - projected_radius, 
@@ -116,23 +121,28 @@ class GaussianInspector(object):
         all_symbols        = robot_symbols.union(controlled_symbols)
         self.world         = self.km.get_active_geometry(all_symbols)
         hard_constraints   = self.km.get_constraints_by_symbols(all_symbols)
+        self.state = {s: 0.0 for s in robot_symbols}
 
         # Generating full constraint set
         to_remove = set()
         controlled_values = {}
         for k, c in hard_constraints.items():
-            if type(c.expr) is spw.Symbol and c.expr in controlled_symbols:
+            if type(c.expr) is spw.Symbol and c.expr in controlled_symbols and str(c.expr) not in controlled_values:
                 weight = 0.01
                 controlled_values[str(c.expr)] = ControlledValue(c.lower, c.upper, c.expr, weight)
                 to_remove.add(k)
 
-        self.js_alias = {s: str(Path(erase_type(s))[-1]) for s in controlled_symbols if s not in localization_vars}
+        self.js_alias = {s: str(Path(erase_type(s))[-1]) for s in robot_symbols if s not in localization_vars}
 
         for s in controlled_symbols:
             if str(s) not in controlled_values:
                 controlled_values[str(s)] = ControlledValue(-1e9, 1e9, s, 0.01)
 
         hard_constraints = {k: c for k, c in hard_constraints.items() if k not in to_remove}
+        for cp in collision_link_paths:
+            for x in range(8):
+                hard_constraints['{} collision_avoidance {}'.format(cp, x)] = closest_distance_constraint(self.km.get_data(cp + ('pose',)), spw.eye(4), cp, Path('anon/{}'.format(x)))
+                #hard_constraints['{} collision_avoidance {}'.format(cp, x)].lower += 0.1
 
         soft_constraints = self.sc_obs_distance.copy()
         soft_constraints.update(self.sc_eigen_vecs)
@@ -140,6 +150,7 @@ class GaussianInspector(object):
         #soft_constraints.update(self.sc_cone_constraints)
         self.collision_free_solver = TQPB(hard_constraints, soft_constraints, controlled_values)
         self.collision_solver      = GQPB(self.world, hard_constraints, soft_constraints, controlled_values, visualizer=visualizer)
+        self.visualizer = visualizer
 
     def set_observation_distance(self, min_dist, max_dist):
         self.state[self.sym_min_dist] = min_dist
@@ -171,9 +182,12 @@ class GaussianInspector(object):
                 self.state[sym[0]] = val[0]
                 self.state[sym[1]] = val[1]
                 self.state[sym[2]] = val[2]
+        
+        self.gc = gc
+        #print('State after setting gc:\n  {}'.format('\n  '.join(['{}: {}'.format(k,v) for k, v in self.state.items()])))
 
     # Return sorted list of resolved camera 6d poses.
-    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20, spread=3.0):
+    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20):
         if self.gc is None:
             raise Exception('Set a gaussion component before trying to solve for a view pose.')
 
@@ -190,22 +204,37 @@ class GaussianInspector(object):
         integrators = []
         for x in range(samples):
             state = self.state.copy()
-            state[self.sym_loc_x] = state[self.sym_gaussian_x] + (np.random.random() * 2 * spread - spread)
-            state[self.sym_loc_y] = state[self.sym_gaussian_y] + (np.random.random() * 2 * spread - spread)
-            state[self.sym_loc_a] = np.random.random() * np.pi * 2
+            angle  = (np.random.random() - 0.5) * 2 * np.pi
+            radius =  np.random.normal(0.5 * (self.state[self.sym_max_dist] + self.state[self.sym_min_dist]), np.sqrt((self.state[self.sym_max_dist] - self.state[self.sym_min_dist]) * 0.5 ))
+            state[self.sym_loc_x] = state[self.sym_gaussian_x] + np.cos(angle) * radius
+            state[self.sym_loc_y] = state[self.sym_gaussian_y] + np.sin(angle) * radius
+            state[self.sym_loc_a] = angle - np.pi
             integrators.append(CommandIntegrator(self.collision_solver, start_state=state))
             integrators[-1].restart('Integrator {}'.format(x))
 
-        for x in range(num_iterations):
-            for i in integrators:
-                i.run(int_factor, 5)
-
+        for x, i in enumerate(integrators):
+            self.collision_solver.reset_solver()
+            print('Optimizing sample {} for gc {} of object {}'.format(x, self.gc.id, self.gc.obj_id))
+            resets = 0
+            while resets < MAX_RESETS:
+                try:
+                    i.run(int_factor, num_iterations)
+                    self.visualizer.draw_world('final_states', self.world, r=0, b=0)
+                    break
+                except QPSolverException as e:
+                    if e.message == 'INIT_FAILED_HOTSTART':
+                        if resets < MAX_RESETS:
+                            print('Solver reported a failed hot start. Retrying - Attempt {}/{}'.format(resets + 1, MAX_RESETS))
+                            resets += 1
+                            self.collision_solver.reset_solver()
+                        else:
+                            raise Exception('Solver hot start failed too often.')
 
         results = []
         constraints = [c for c in self.sc_eigen_vecs.values() + self.sc_obs_distance.values()]
         for i in integrators:
             state = i.state
-            js = {jn: state[s] for s, jn in self.js_alias.items()}
+            js = {jn: state[s] for s, jn in self.js_alias.items() if s in state}
             nav_pose = [state[self.sym_loc_x], state[self.sym_loc_y], state[self.sym_loc_a]]
 
             error = self.distance_fn([state[self.sym_loc_x], state[self.sym_loc_y], state[self.sym_loc_a]])

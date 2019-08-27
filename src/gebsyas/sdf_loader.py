@@ -15,7 +15,7 @@ def print_return(f):
         return result
     return out
 
-@print_return
+#@print_return
 def res_uri(uri):
     parts = uri.split('://')
     if len(parts) == 2:
@@ -25,29 +25,29 @@ def res_uri(uri):
                 return r
     return parts[0]
 
-@print_return
+#@print_return
 def load_xml(path):
     return ET.parse(res_uri(path)).getroot()
 
-@print_return
+#@print_return
 def load_world_xml(path):
     return load_xml(path).find('world')
 
-@print_return
+#@print_return
 def load_model_xml(path):
     return load_xml(path).find('model')
 
-@print_return
+#@print_return
 def load_world_from_xml(model, path):
     for world_node in load_xml(path).findall('world'):
         world_loader(model, Path([]), world_node, spw.eye(4))
 
-@print_return
+#@print_return
 def load_model_from_xml(model, path):
     for model_node in load_xml(path).findall('model'):
         model_loader(model, Path([]), model_node, spw.eye(4))    
 
-@print_return
+#@print_return
 def handle_pose_tag(pose_tag, path, frames={}):
     if pose_tag is None:
         return spw.eye(4)
@@ -60,7 +60,7 @@ def handle_pose_tag(pose_tag, path, frames={}):
         return frames[pose_tag.get('frame')] * out
     return out
 
-@print_return
+#@print_return
 def handle_include_tag(model, prefix, include_node):
     uri  = include_node.find('uri')
     if uri is None:
@@ -79,7 +79,7 @@ def handle_include_tag(model, prefix, include_node):
         elif uri[:8] == 'world://':
             world_loader(model, prefix, load_world_xml(uri[8:]))
 
-@print_return
+#@print_return
 def handle_geometry_node(part_path, geometry_node):
     if geometry_node.find('empty') is not None:
         return None
@@ -100,11 +100,12 @@ def handle_geometry_node(part_path, geometry_node):
         return Geometry(part_path, spw.eye(4), 'mesh', scale, resolved_path)
     elif box_node is not None:
         size =  vector3(*[float(x) for x in box_node.find('size').text.split(' ') if len(x) > 0])
+        print('box size: {}\nText was: {}'.format(size, box_node.find('size').text))
         return Geometry(part_path, spw.eye(4), 'box', size)
     else:
         print('Currently only empty, sphere, cylinder, mesh, box are supported.')
 
-@print_return
+#@print_return
 def model_loader(model, prefix, model_node, pose, use_name=True):
     if use_name:
         prefix = prefix + (model_node.get('name'), )
@@ -143,7 +144,7 @@ def model_loader(model, prefix, model_node, pose, use_name=True):
     
     model.set_data(prefix, urdf_container)
 
-@print_return
+#@print_return
 def world_loader(model, prefix, world_node, pose, use_name=True):
     if use_name:
         prefix = prefix + (world_node.get('name'), )

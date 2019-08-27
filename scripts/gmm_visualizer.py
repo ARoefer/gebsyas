@@ -40,7 +40,7 @@ class SearchObjectVisualizer(object):
                     else:
                         color = (0.3, 0.3, 0.3, 0.5)
 
-                    self.visualizer.draw_shape('cov', M, np.sqrt(w).astype(float), 2, *color)
+                    self.visualizer.draw_shape('cov', M, np.sqrt(np.abs(w)).astype(float), 2, *color)
                     
         self.visualizer.render()
 
@@ -61,4 +61,7 @@ if __name__ == '__main__':
     node = SearchObjectVisualizer(sub_topic, pub_topic, frame)
 
     while not rospy.is_shutdown():
-        pass
+        try:
+            rospy.sleep(1000)
+        except:
+            pass

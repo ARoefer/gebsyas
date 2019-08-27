@@ -6,7 +6,7 @@ import sys
 from urdf_parser_py.urdf import URDF
 
 from kineverse.gradients.diff_logic        import create_pos
-from kineverse.gradients.gradient_math     import translation3, rotation3_axis_angle, vector3
+from kineverse.gradients.gradient_math     import translation3, rotation3_axis_angle, vector3, spw
 from kineverse.model.paths                 import Path
 from kineverse.model.geometry_model        import GeometryModel
 from kineverse.operations.basic_operations import CreateComplexObject
@@ -31,6 +31,9 @@ if __name__ == '__main__':
 
     load_urdf(km, 'fetch', urdf_fetch, 'odom')
 
+    print('\n'.join(km.list_constraints()))
+    print('\n'.join(['{}:\n  {}'.format(k, v) for k, v in km.get_constraints_by_symbols({spw.Symbol('fetch__torso_lift_joint_v')}).items()]))
+
     sym_x = create_pos('localization_x')
     sym_y = create_pos('localization_y')
     sym_a = create_pos('localization_a')
@@ -45,7 +48,7 @@ if __name__ == '__main__':
 
     camera = Camera(km.get_data('fetch/links/head_camera_link/pose'), 54 * (math.pi / 180), 4.0/3.0)
 
-    generator = ViewPoseGenerator(km, camera, sym_x, sym_y, sym_a, '/observed_objects', '/view_poses')
+    generator = ViewPoseGenerator(km, camera, sym_x, sym_y, sym_a, '/get_view_poses', [Path('fetch/links/base_collision_link')])
 
     while not rospy.is_shutdown():
         rospy.sleep(1000)
