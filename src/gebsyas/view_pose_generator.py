@@ -28,12 +28,12 @@ class ViewPoseGenerator(object):
     def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, service_name, collision_link_paths=[]):
         self.km = km
 
-        self.visualizer = ROSBPBVisualizer('debug_vis', 'map') if rospy.get_param('visualization', True) else None
-        print('Generator is set to visualize')
-        self.n_iterations     = rospy.get_param('iterations', 100)
-        self.n_samples        = rospy.get_param('samples', 10)
-        self.integration_step = max(0.02, min(1.0, rospy.get_param('integration_step', 0.2)))
-        visualize_iterations  = rospy.get_param('visualize_iterations', False)
+        self.visualizer = ROSBPBVisualizer('debug_vis', 'map') if rospy.get_param('~visualization', True) else None
+        self.n_iterations     = rospy.get_param('~iterations', 100)
+        self.n_samples        = rospy.get_param('~samples', 10)
+        self.integration_step = max(0.02, min(1.0, rospy.get_param('~integration_step', 0.2)))
+        visualize_iterations  = rospy.get_param('~visualize_iterations', False)
+        print('Visualize final pose: {}\nVisualize iterations: {}\nMax iterations: {}\nSamples per component: {}\nIntegration step: {}'.format(self.visualizer is not None, visualize_iterations, self.n_iterations, self.n_samples, self.integration_step))
 
         if self.visualizer is not None and visualize_iterations:
             self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, self.visualizer) 
