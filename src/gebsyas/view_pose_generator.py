@@ -21,15 +21,24 @@ from nav_msgs.srv    import GetPlan    as GetPlanSrv
 from sensor_msgs.msg import JointState as JointStateMsg
 
 from kineverse.visualization.bpb_visualizer import ROSBPBVisualizer
+from kineverse.network.ros_conversion       import encode_pose
 
 
 class ViewPoseGenerator(object):
     def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, service_name, collision_link_paths=[]):
         self.km = km
 
-        self.visualizer = ROSBPBVisualizer('debug_vis', 'map')
+        self.visualizer = ROSBPBVisualizer('debug_vis', 'map') if rospy.get_param('visualization', True) else None
+        print('Generator is set to visualize')
+        self.n_iterations     = rospy.get_param('iterations', 100)
+        self.n_samples        = rospy.get_param('samples', 10)
+        self.integration_step = max(0.02, min(1.0, rospy.get_param('integration_step', 0.2)))
+        visualize_iterations  = rospy.get_param('visualize_iterations', False)
 
-        self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, self.visualizer) 
+        if self.visualizer is not None and visualize_iterations:
+            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, self.visualizer) 
+        else:
+            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, None) 
 
         self.service   = rospy.Service(service_name, GetViewPosesSrv, self.srv_generate_view_poses)
         self.srv_compute_path = rospy.ServiceProxy('/move_base/make_plan', GetPlanSrv)
@@ -40,6 +49,7 @@ class ViewPoseGenerator(object):
         self.goal_pose = PoseStampedMsg()
         self.goal_pose.header.frame_id = 'map'
         self.pub_pose_debug = rospy.Publisher('/debug_generated_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
+        self.pub_initial_pose_debug = rospy.Publisher('/debug_initial_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
         
         self.visualizer.begin_draw_cycle('world')
         self.visualizer.draw_world('world', self.km.kw)
@@ -71,7 +81,10 @@ class ViewPoseGenerator(object):
         try:
             pose_array_msg = PoseArrayMsg()
             pose_array_msg.header.frame_id = 'map'
-            self.visualizer.begin_draw_cycle('final_states')
+            init_array_msg = PoseArrayMsg()
+            init_array_msg.header.frame_id = 'map'
+            if self.visualizer is not None:
+                self.visualizer.begin_draw_cycle('final_states')
             for obj in req.objects:
                 view_list = ViewPoseListMsg()
                 self.gi.set_observation_distance(obj.min_observation_distance,
@@ -87,7 +100,8 @@ class ViewPoseGenerator(object):
                     self.gi.set_gaussian_component(gc, 0.3)
 
                     lowest_rating = -1
-                    for rating, pose, js, nav_pose in self.gi.get_view_poses(100, 0.25, 5):
+                    initial_poses_list = []
+                    for x, (rating, pose, js, nav_pose) in enumerate(self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, initial_poses_list)):
                         msg = ViewPoseMsg()
                         msg.obj_id      = obj.id
                         msg.gaussian_id = gmm_msg.id
@@ -102,6 +116,7 @@ class ViewPoseGenerator(object):
                         view_list.views.append(msg)
                         if lowest_rating == -1:
                             pose_array_msg.poses.append(msg.pose)
+                            init_array_msg.poses.append(encode_pose(initial_poses_list[x]))
                         #    lowest_rating = rating
                         elif rating < lowest_rating:
                             pose_array_msg.poses[-1] = msg.pose
@@ -112,9 +127,12 @@ class ViewPoseGenerator(object):
                         msg.base_position.angular.z = nav_pose[2]
                 res.views.append(view_list)
 
-            self.visualizer.render('final_states')
+            if self.visualizer is not None:
+                self.visualizer.render('final_states')
             pose_array_msg.header.stamp = rospy.Time.now()
+            init_array_msg.header.stamp = pose_array_msg.header.stamp
             self.pub_pose_debug.publish(pose_array_msg)
+            self.pub_initial_pose_debug.publish(init_array_msg)
         except Exception as e:
             traceback.print_exc()
             print(e)

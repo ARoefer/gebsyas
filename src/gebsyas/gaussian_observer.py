@@ -187,7 +187,7 @@ class GaussianInspector(object):
         #print('State after setting gc:\n  {}'.format('\n  '.join(['{}: {}'.format(k,v) for k, v in self.state.items()])))
 
     # Return sorted list of resolved camera 6d poses.
-    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20):
+    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20, pose_constainer=None):
         if self.gc is None:
             raise Exception('Set a gaussion component before trying to solve for a view pose.')
 
@@ -211,6 +211,8 @@ class GaussianInspector(object):
             state[self.sym_loc_a] = angle - np.pi
             integrators.append(CommandIntegrator(self.collision_solver, start_state=state))
             integrators[-1].restart('Integrator {}'.format(x))
+            if pose_constainer is not None:
+                pose_constainer.append(self.camera.pose.subs(state))
 
         for x, i in enumerate(integrators):
             self.collision_solver.reset_solver()
@@ -219,7 +221,6 @@ class GaussianInspector(object):
             while resets < MAX_RESETS:
                 try:
                     i.run(int_factor, num_iterations)
-                    self.visualizer.draw_world('final_states', self.world, r=0, b=0)
                     break
                 except QPSolverException as e:
                     if e.message == 'INIT_FAILED_HOTSTART':
