@@ -23,9 +23,12 @@ if __name__ == '__main__':
     km = GeometryModel()
     
     if len(sys.argv) >= 2:
-        world_path = res_pkg_path(sys.argv[1])
-        print('Loading world file {}'.format(world_path))
-        load_world_from_xml(km, world_path)
+        for a in sys.argv[1:]:
+            if not ':=' in a:
+                world_path = res_pkg_path(sys.argv[1])
+                print('Loading world file {}'.format(world_path))
+                load_world_from_xml(km, world_path)
+                break
     
     urdf_fetch = URDF.from_xml_file(res_pkg_path('package://gebsyas/robots/fetch_armless.urdf'))
 
