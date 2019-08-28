@@ -51,9 +51,10 @@ class ViewPoseGenerator(object):
         self.pub_pose_debug = rospy.Publisher('/debug_generated_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
         self.pub_initial_pose_debug = rospy.Publisher('/debug_initial_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
         
-        self.visualizer.begin_draw_cycle('world')
-        self.visualizer.draw_world('world', self.km.kw)
-        self.visualizer.render('world')
+        if self.visualizer:
+            self.visualizer.begin_draw_cycle('world')
+            self.visualizer.draw_world('world', self.km.kw)
+            self.visualizer.render('world')
 
     # goal as x, y, a in map
     def compute_path_length(self, goal):
