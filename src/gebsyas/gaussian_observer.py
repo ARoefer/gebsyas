@@ -145,7 +145,7 @@ class GaussianInspector(object):
                 #hard_constraints['{} collision_avoidance {}'.format(cp, x)].lower += 0.1
 
         soft_constraints = self.sc_obs_distance.copy()
-        soft_constraints.update(self.sc_eigen_vecs)
+        #soft_constraints.update(self.sc_eigen_vecs)
         #soft_constraints.update(self.sc_obs_distance)
         #soft_constraints.update(self.sc_cone_constraints)
         self.collision_free_solver = TQPB(hard_constraints, soft_constraints, controlled_values)
