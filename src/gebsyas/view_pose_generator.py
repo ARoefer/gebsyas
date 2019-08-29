@@ -32,6 +32,7 @@ class ViewPoseGenerator(object):
         self.n_iterations     = rospy.get_param('~iterations', 100)
         self.n_samples        = rospy.get_param('~samples', 10)
         self.integration_step = max(0.02, min(1.0, rospy.get_param('~integration_step', 0.2)))
+        self.equilibrium      = rospy.get_param('~equilibrium', 0.05)
         visualize_iterations  = rospy.get_param('~visualize_iterations', False)
         print('Visualize final pose: {}\nVisualize iterations: {}\nMax iterations: {}\nSamples per component: {}\nIntegration step: {}'.format(self.visualizer is not None, visualize_iterations, self.n_iterations, self.n_samples, self.integration_step))
 
@@ -102,7 +103,7 @@ class ViewPoseGenerator(object):
 
                     lowest_rating = -1
                     initial_poses_list = []
-                    for x, (rating, pose, js, nav_pose) in enumerate(self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, initial_poses_list)):
+                    for x, (rating, pose, js, nav_pose) in enumerate(self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, initial_poses_list, equilibrium=self.equilibrium)):
                         msg = ViewPoseMsg()
                         msg.obj_id      = obj.id
                         msg.gaussian_id = gmm_msg.id
