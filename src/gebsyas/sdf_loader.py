@@ -578,7 +578,8 @@ def world_to_static_links(sdf_world, prefix):
     for n, m in sdf_world.models.items():
         if n in sdf_world.state.model_state:
             m = m.apply_state(sdf_world.state.model_state[n])
-        out.update(model_to_static_links(m, prefix))
+        if m.static:
+          out.update(model_to_static_links(m, prefix))
     return out
 
 
