@@ -1,0 +1,9 @@
+<launch>
+    <env name="GAZEBO_MODEL_PATH" value="/home/logan/.gazebo/models:$(optenv GAZEBO_MODEL_PATH)" />
+    <arg name="sdf_file" default="$(find gop_gebsyas_simulation)/sdf/test_world.sdf"/>
+    <!-- <arg name="sdf_file" default="/home/logan/.ros/object_search_test1.sdf"/> -->
+
+    <node pkg="gebsyas" type="go_to_view_pose.py" name="go_to_view_pose" output="screen"/>
+    <node pkg="gebsyas" type="pose_generator.py" name="pose_generator" args="$(arg sdf_file)" output="screen"/>
+    <node pkg="gebsyas" type="gmm_visualizer.py" name="gmm_visualizer"/>
+</launch>
