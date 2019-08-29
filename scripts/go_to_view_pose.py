@@ -16,6 +16,13 @@ pub_joint_cmd = None
 def srv_go_to_pose(req):
     view = req.view_pose
 
+    js_cmd = JointStateMsg()
+    js_cmd.header.stamp = rospy.Time.now()
+    js_cmd.name = ['head_tilt_joint', 'head_pan_joint', 'torso_lift_joint']
+    js_cmd.position = [0.3, 0.0, 0.15]
+    for x in range(50):
+        pub_joint_cmd.publish(js_cmd)
+
     goal = MoveBaseGoal()
     goal.target_pose.pose.position.x = view.base_position.linear.x
     goal.target_pose.pose.position.y = view.base_position.linear.y
@@ -26,15 +33,19 @@ def srv_go_to_pose(req):
 
     nav_client.send_goal(goal)
 
-    js_cmd = view.joint_state
-    js_cmd.header.stamp = rospy.Time.now()
-    pub_joint_cmd.publish(js_cmd)
-
     nav_client.wait_for_result()
     result = nav_client.get_result()
 
+    js_cmd = view.joint_state
+    js_cmd.header.stamp = rospy.Time.now()
+    for x in range(50):
+        pub_joint_cmd.publish(js_cmd)
+
     res = GoToViewPoseResponseMsg()
     res.success = True #result.status.status == GoalStatusMsg.SUCCEEDED
+
+    rospy.sleep(2.0);
+
     return res
 
 if __name__ == '__main__':
