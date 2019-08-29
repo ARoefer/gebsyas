@@ -37,7 +37,7 @@ MAX_RESETS = 50
 
 
 class GaussianInspector(object):
-    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, distance_fn, permitted_vc_overlap=0.2, collision_link_paths=[], visualizer=None):
+    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, distance_fn, permitted_vc_overlap=0.2, collision_link_paths=[], visualizer=None, tilt_limit_min=0.4, tilt_limit_max=0.9):
         self.km     = km
         self.examined_view_cones = {}
         self.camera = camera
@@ -94,8 +94,8 @@ class GaussianInspector(object):
                                               1 - view_align, 
                                               1 + total_eigen_vec_value, 
                                               GC(view_align)),
-                                'limit_tilt': SC(-sin(0.9) - view_dir[2],
-                                                 -sin(0.4) - view_dir[2],
+                                'limit_tilt': SC(-sin(tilt_limit_max) - view_dir[2],
+                                                 -sin(tilt_limit_min) - view_dir[2],
                                                  5 + total_eigen_vec_value,
                                                  view_dir[2])}
         # 'observation distance': SC(min_obs_fraction - projected_radius,

@@ -34,12 +34,14 @@ class ViewPoseGenerator(object):
         self.integration_step = max(0.02, min(1.0, rospy.get_param('~integration_step', 0.2)))
         self.equilibrium      = rospy.get_param('~equilibrium', 0.05)
         visualize_iterations  = rospy.get_param('~visualize_iterations', False)
-        print('Visualize final pose: {}\nVisualize iterations: {}\nMax iterations: {}\nSamples per component: {}\nIntegration step: {}'.format(self.visualizer is not None, visualize_iterations, self.n_iterations, self.n_samples, self.integration_step))
+        tilt_limit_min        = min(rospy.get_param('~tilt_limit_min', 0.4), math.pi * 0.5)
+        tilt_limit_max        = max(tilt_limit_min, min(rospy.get_param('~tilt_limit_max', 0.9), math.pi * 0.5))
+        print('Visualize final pose: {}\nVisualize iterations: {}\nMax iterations: {}\nSamples per component: {}\nIntegration step: {}\nEquilibrium threshold: {}\nTilt range: [{}, {}]\n'.format(self.visualizer is not None, visualize_iterations, self.n_iterations, self.n_samples, self.integration_step, self.equilibrium, tilt_limit_min, tilt_limit_max))
 
         if self.visualizer is not None and visualize_iterations:
-            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, self.visualizer) 
+            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, self.visualizer, tilt_limit_min, tilt_limit_max) 
         else:
-            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, None) 
+            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, None, tilt_limit_min, tilt_limit_max) 
 
         self.service   = rospy.Service(service_name, GetViewPosesSrv, self.srv_generate_view_poses)
         self.srv_compute_path = rospy.ServiceProxy('/move_base/make_plan', GetPlanSrv)
