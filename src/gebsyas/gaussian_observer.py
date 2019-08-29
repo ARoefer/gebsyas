@@ -202,9 +202,11 @@ class GaussianInspector(object):
         # Return sorted, rated results as 6D camera poses
 
         integrators = []
+        angle_step  = ((2 * np.pi) / len(samples))
+        offset      = np.random.random() * angle_step
         for x in range(samples):
-            state = self.state.copy()
-            angle  = (np.random.random() - 0.5) * 2 * np.pi
+            state  = self.state.copy()
+            angle  = offset + angle_step * x
             radius =  np.random.normal(0.5 * (self.state[self.sym_max_dist] + self.state[self.sym_min_dist]), np.sqrt((self.state[self.sym_max_dist] - self.state[self.sym_min_dist]) * 0.5 ))
             state[self.sym_loc_x] = state[self.sym_gaussian_x] + np.cos(angle) * radius
             state[self.sym_loc_y] = state[self.sym_gaussian_y] + np.sin(angle) * radius
