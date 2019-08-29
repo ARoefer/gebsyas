@@ -15,7 +15,7 @@ from kineverse.urdf_fix                    import urdf_filler
 from kineverse.utils                       import res_pkg_path
 from gebsyas.view_pose_generator           import ViewPoseGenerator
 from gebsyas.gaussian_observer             import Camera
-from gebsyas.sdf_loader                    import load_world_from_xml
+from gebsyas.sdf_loader                    import load_static_sdf_to_model
 
 if __name__ == '__main__':
     rospy.init_node('view_pose_generator')
@@ -27,7 +27,7 @@ if __name__ == '__main__':
             if not ':=' in a:
                 world_path = res_pkg_path(sys.argv[1])
                 print('Loading world file {}'.format(world_path))
-                load_world_from_xml(km, world_path)
+                load_static_sdf_to_model(km, Path('static'), world_path)
                 break
     
     urdf_fetch = URDF.from_xml_file(res_pkg_path('package://gebsyas/robots/fetch_armless.urdf'))
