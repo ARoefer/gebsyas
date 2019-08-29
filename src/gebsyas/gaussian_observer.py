@@ -187,7 +187,7 @@ class GaussianInspector(object):
         #print('State after setting gc:\n  {}'.format('\n  '.join(['{}: {}'.format(k,v) for k, v in self.state.items()])))
 
     # Return sorted list of resolved camera 6d poses.
-    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20, pose_constainer=None):
+    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20, pose_constainer=None, equilibrium=0.05):
         if self.gc is None:
             raise Exception('Set a gaussion component before trying to solve for a view pose.')
 
@@ -212,7 +212,7 @@ class GaussianInspector(object):
             state[self.sym_loc_x] = state[self.sym_gaussian_x] + np.cos(angle) * radius
             state[self.sym_loc_y] = state[self.sym_gaussian_y] + np.sin(angle) * radius
             state[self.sym_loc_a] = angle - np.pi
-            integrators.append(CommandIntegrator(self.collision_solver, start_state=state))
+            integrators.append(CommandIntegrator(self.collision_solver, start_state=state, equilibrium=equilibrium))
             integrators[-1].restart('Integrator {}'.format(x))
             if pose_constainer is not None:
                 pose_constainer.append(self.camera.pose.subs(state))
