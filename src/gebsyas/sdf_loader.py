@@ -174,12 +174,14 @@ class SDFGeometry(object):
             return None
 
     def apply_scale(self, scale):
+        scaled_size  = spw.Matrix([self.size[0]  * scale[0], self.size[1]  * scale[1], self.size[2]  * scale[2]])
+        scaled_scale = spw.Matrix([self.scale[0] * scale[0], self.scale[1] * scale[1], self.scale[2] * scale[2]])
         return SDFGeometry(self.type, 
-                           self.size.mul_matrix(scale), 
+                           scaled_size, 
                            self.radius * scale[0], 
                            self.length * scale[2], 
                            self.mesh, 
-                           self.scale.mul_matrix(scale))
+                           scaled_scale)
 
 
 class SDFCollision(object):
@@ -533,7 +535,7 @@ def collision_sdf_to_geometry(sdf_collisions):
             if c.geometry.type == 'box':
                 out[n] = Geometry('map', c.pose.transform, c.geometry.type, scale=c.geometry.size, mesh=None)
             elif c.geometry.type == 'cylinder':
-                out[n] = Geometry('map', c.pose.transform, c.geometry.type, scale=vector3(c.geometry.radius * 2, c.geometry.length, c.geometry.radius * 2), mesh=None)
+                out[n] = Geometry('map', c.pose.transform, c.geometry.type, scale=vector3(c.geometry.radius * 2, c.geometry.radius * 2, c.geometry.length), mesh=None)
             elif c.geometry.type == 'sphere':
                 out[n] = Geometry('map', c.pose.transform, c.geometry.type, scale=vector3(c.geometry.radius * 2, 
                             c.geometry.radius * 2, 
@@ -604,6 +606,6 @@ def geom_to_str(geom):
 
 def link_to_str(link):
     if link.collision != None:
-        return 'Link:\nParent: {}\nCollision:\n{}'.format(link.parent, '\n'.join(['{}:\n{}'.format(k, geom_to_str(c)) for k,c in link.collision.items()]))
+        return 'Link:\nParent: {}\nPose: \n{}\nCollision:\n{}'.format(link.parent, link.pose, '\n'.join(['{}:\n{}'.format(k, geom_to_str(c)) for k,c in link.collision.items()]))
     else:
         return 'Link:\nParent: {}'.format(link.parent)
