@@ -2,7 +2,7 @@ import numpy as np
 
 from giskardpy.exceptions import QPSolverException
 from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol, erase_type
-from kineverse.gradients.gradient_math import point3, vector3, x_of, pos_of, dot, norm, cross, tan, GC, spw
+from kineverse.gradients.gradient_math import point3, vector3, x_of, pos_of, dot, norm, cross, tan, sin, GC, spw
 from kineverse.model.paths             import Path
 from kineverse.model.geometry_model    import closest_distance_constraint
 from kineverse.motion.min_qp_builder   import TypedQPBuilder as TQPB, \
@@ -93,7 +93,11 @@ class GaussianInspector(object):
                                 'look at': SC(1 - view_align, 
                                               1 - view_align, 
                                               1 + total_eigen_vec_value, 
-                                              GC(view_align))}
+                                              GC(view_align)),
+                                'limit_tilt': SC(-sin(0.9) - view_dir[2],
+                                                 -sin(0.4) - view_dir[2],
+                                                 5 + total_eigen_vec_value,
+                                                 view_dir[2])}
         # 'observation distance': SC(min_obs_fraction - projected_radius,
         #                            max_obs_fraction - projected_radius, 
         #                            1, GC(projected_radius))
