@@ -1,9 +1,27 @@
 <launch>
+    <arg name="iterations"           default="100"   doc="Maximum number of iterations per generated sample"/> 
+    <arg name="samples"              default="10"    doc="Number of samples drawn per gaussian component"/>
+    <arg name="integration_step"     default="0.2"   doc="Step size in optimization. Larger means faster convergance but also more ocsillation"/>
+    <arg name="equilibrium"          default="0.05"  doc="Threshold for early optimization termination. 0 = perfect solution."/>
+    <arg name="visualize_iterations" default="false" doc="Visualize the intermediate steps of the optimization"/>
+    <arg name="tilt_limit_min"       default="0.4"   doc="Minimal camera tilt in rad"/>
+    <arg name="tilt_limit_max"       default="0.9"   doc="Maximal camera tilt in rad"/>
+
     <env name="GAZEBO_MODEL_PATH" value="/home/logan/.gazebo/models:$(optenv GAZEBO_MODEL_PATH)" />
     <arg name="sdf_file" default="$(find gop_gebsyas_simulation)/sdf/test_world.sdf"/>
     <!-- <arg name="sdf_file" default="$(find gop_gebsyas_simulation)/sdf/test1.sdf"/> -->
 
     <node pkg="gebsyas" type="go_to_view_pose.py" name="go_to_view_pose" output="screen"/>
-    <node pkg="gebsyas" type="pose_generator.py" name="pose_generator" args="$(arg sdf_file)" output="screen"/>
+
+    <node pkg="gebsyas" type="pose_generator.py" name="pose_generator" args="$(arg sdf_file)" output="screen">
+        <param name="iterations"           value="$(arg iterations)"/>
+        <param name="samples"              value="$(arg samples)"/>
+        <param name="integration_step"     value="$(arg integration_step)"/>
+        <param name="equilibrium"          value="$(arg equilibrium)"/>
+        <param name="visualize_iterations" value="$(arg visualize_iterations)"/>
+        <param name="tilt_limit_min"       value="$(arg tilt_limit_min)"/>
+        <param name="tilt_limit_max"       value="$(arg tilt_limit_max)"/>
+    </node>
+    
     <node pkg="gebsyas" type="gmm_visualizer.py" name="gmm_visualizer"/>
 </launch>
