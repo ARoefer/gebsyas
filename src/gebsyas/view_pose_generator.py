@@ -93,6 +93,9 @@ class ViewPoseGenerator(object):
                 view_list = ViewPoseListMsg()
                 self.gi.set_observation_distance(obj.min_observation_distance,
                                                  obj.max_observation_distance)
+                view_poses = []
+                initial_poses_list = []
+
                 for gmm_msg in obj.object_pose_gmm:
                     gc = GaussianComponent(obj.id, 
                                            gmm_msg.id, 
@@ -102,33 +105,29 @@ class ViewPoseGenerator(object):
                                             gmm_msg.cov_pose.covariance, 0)
 
                     self.gi.set_gaussian_component(gc, 0.3)
+                    result = self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, initial_poses_list, equilibrium=self.equilibrium)
+                    view_poses.extend(zip([gmm_msg.id] * len(result), result))
 
-                    lowest_rating = -1
-                    initial_poses_list = []
-                    for x, (rating, pose, js, nav_pose) in enumerate(self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, initial_poses_list, equilibrium=self.equilibrium)):
-                        msg = ViewPoseMsg()
-                        msg.obj_id      = obj.id
-                        msg.gaussian_id = gmm_msg.id
-                        msg.pose.position.x = pose[0,3]
-                        msg.pose.position.y = pose[1,3]
-                        msg.pose.position.z = pose[2,3]
-                        qx, qy, qz, qw  = real_quat_from_matrix(pose)
-                        msg.pose.orientation.x = qx
-                        msg.pose.orientation.y = qy
-                        msg.pose.orientation.z = qz
-                        msg.pose.orientation.w = qw
-                        view_list.views.append(msg)
-                        if lowest_rating == -1:
-                            pose_array_msg.poses.append(msg.pose)
-                            init_array_msg.poses.append(encode_pose(initial_poses_list[x]))
-                        #    lowest_rating = rating
-                        elif rating < lowest_rating:
-                            pose_array_msg.poses[-1] = msg.pose
-                        #print('Final js:\n  {}'.format('\n  '.join(['{}: {}'.format(k, v) for k, v in js.items()])))
-                        msg.joint_state.name, msg.joint_state.position = zip(*js.items())
-                        msg.base_position.linear.x  = nav_pose[0]
-                        msg.base_position.linear.y  = nav_pose[1]
-                        msg.base_position.angular.z = nav_pose[2]
+                for x, (gmm_id, (rating, pose, js, nav_pose)) in enumerate(sorted(view_poses)):
+                    msg = ViewPoseMsg()
+                    msg.obj_id      = obj.id
+                    msg.gaussian_id = gmm_id
+                    msg.pose.position.x = pose[0,3]
+                    msg.pose.position.y = pose[1,3]
+                    msg.pose.position.z = pose[2,3]
+                    qx, qy, qz, qw  = real_quat_from_matrix(pose)
+                    msg.pose.orientation.x = qx
+                    msg.pose.orientation.y = qy
+                    msg.pose.orientation.z = qz
+                    msg.pose.orientation.w = qw
+                    view_list.views.append(msg)
+                    pose_array_msg.poses.append(msg.pose)
+                    init_array_msg.poses.append(encode_pose(initial_poses_list[x]))
+                    #print('Final js:\n  {}'.format('\n  '.join(['{}: {}'.format(k, v) for k, v in js.items()])))
+                    msg.joint_state.name, msg.joint_state.position = zip(*js.items())
+                    msg.base_position.linear.x  = nav_pose[0]
+                    msg.base_position.linear.y  = nav_pose[1]
+                    msg.base_position.angular.z = nav_pose[2]
                 res.views.append(view_list)
 
             if self.visualizer is not None:
