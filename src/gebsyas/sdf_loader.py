@@ -383,9 +383,9 @@ class SDFJoint(object):
         elif self.type == 'screw':
             self.thread_pitch = parse_float_node(joint_node.find('thread_pitch'), 1.0)
         elif self.type in {'revolute', 'revolute2', 'ball'}:
-            self.axis = SDFAxis(joint_node.find('axis'))
+            self.axis = SDFAxis.from_xml(joint_node.find('axis'))
             if self.type == 'revolute2' or self.type == 'ball':
-                self.axis2 = SDFAxis(joint_node.find('axis2'))
+                self.axis2 = SDFAxis.from_xml(joint_node.find('axis2'))
 
 
 class SDFJointState(object):
