@@ -37,13 +37,12 @@ MAX_RESETS = 50
 
 
 class GaussianInspector(object):
-    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, distance_fn, permitted_vc_overlap=0.2, collision_link_paths=[], visualizer=None, tilt_limit_min=0.4, tilt_limit_max=0.9):
+    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, permitted_vc_overlap=0.2, collision_link_paths=[], visualizer=None, tilt_limit_min=0.4, tilt_limit_max=0.9):
         self.km     = km
         self.examined_view_cones = {}
         self.camera = camera
         self.state  = {}
         self.gc     = None
-        self.distance_fn = distance_fn
 
         localization_vars = {sym_loc_x, sym_loc_y, sym_loc_a}
         if len(camera.pose.free_symbols.intersection(localization_vars)) < 3:
@@ -245,7 +244,7 @@ class GaussianInspector(object):
             js = {jn: state[s] for s, jn in self.js_alias.items() if s in state}
             nav_pose = [state[self.sym_loc_x], state[self.sym_loc_y], state[self.sym_loc_a]]
 
-            error = self.distance_fn([state[self.sym_loc_x], state[self.sym_loc_y], state[self.sym_loc_a]])
+            error = 0.0
             for c in constraints:
                 lower = c.lower if type(c.lower) not in symbolic_types else c.lower.subs(state)
                 upper = c.upper if type(c.upper) not in symbolic_types else c.upper.subs(state)
