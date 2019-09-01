@@ -34,16 +34,22 @@ def srv_go_to_pose(req):
     nav_client.send_goal(goal)
 
     nav_client.wait_for_result()
-    result = nav_client.get_result()
+
+    res = GoToViewPoseResponseMsg()
+
+    if(nav_client.get_state() == GoalStatusMsg.SUCCEEDED):
+        rospy.loginfo("moved base successfully")
+    else:
+        rospy.loginfo("failed to move base to goal pose: ", nav_client.get_state())
+        res.success = False
+        return res
 
     js_cmd = view.joint_state
     js_cmd.header.stamp = rospy.Time.now()
     for x in range(50):
         pub_joint_cmd.publish(js_cmd)
 
-    res = GoToViewPoseResponseMsg()
-    res.success = True #result.status.status == GoalStatusMsg.SUCCEEDED
-
+    res.success = True
     rospy.sleep(2.0);
 
     return res
