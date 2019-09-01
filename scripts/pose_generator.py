@@ -25,7 +25,7 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         for a in sys.argv[1:]:
             if not ':=' in a:
-                world_path = res_pkg_path(sys.argv[1])
+                world_path = res_pkg_path(a)
                 print('Loading world file {}'.format(world_path))
                 load_static_sdf_to_model(km, Path('static'), world_path)
                 break
