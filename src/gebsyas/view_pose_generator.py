@@ -39,9 +39,9 @@ class ViewPoseGenerator(object):
         print('Visualize final pose: {}\nVisualize iterations: {}\nMax iterations: {}\nSamples per component: {}\nIntegration step: {}\nEquilibrium threshold: {}\nTilt range: [{}, {}]\n'.format(self.visualizer is not None, visualize_iterations, self.n_iterations, self.n_samples, self.integration_step, self.equilibrium, tilt_limit_min, tilt_limit_max))
 
         if self.visualizer is not None and visualize_iterations:
-            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, self.visualizer, tilt_limit_min, tilt_limit_max) 
+            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, 0.2, collision_link_paths, self.visualizer, tilt_limit_min, tilt_limit_max) 
         else:
-            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, self.compute_path_length, 0.2, collision_link_paths, None, tilt_limit_min, tilt_limit_max) 
+            self.gi = GaussianInspector(km, camera, sym_loc_x, sym_loc_y, sym_loc_a, 0.2, collision_link_paths, None, tilt_limit_min, tilt_limit_max) 
 
         self.service   = rospy.Service(service_name, GetViewPosesSrv, self.srv_generate_view_poses)
         self.srv_compute_path = rospy.ServiceProxy('/move_base/make_plan', GetPlanSrv)
@@ -112,6 +112,7 @@ class ViewPoseGenerator(object):
                     msg = ViewPoseMsg()
                     msg.obj_id      = obj.id
                     msg.gaussian_id = gmm_id
+                    msg.nav_distance = self.compute_path_length(nav_pose)
                     msg.pose.position.x = pose[0,3]
                     msg.pose.position.y = pose[1,3]
                     msg.pose.position.z = pose[2,3]
