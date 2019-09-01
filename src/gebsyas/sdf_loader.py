@@ -571,14 +571,14 @@ def model_to_static_links(sdf_model, prefix, root_pose=spw.eye(4), frames={}):
     return out
 
 
-def world_to_static_links(sdf_world, prefix):
+def world_to_links(sdf_world, prefix, static_only=True):
     prefix = prefix + (sdf_world.name, )
 
     out = {}
     for n, m in sdf_world.models.items():
         if n in sdf_world.state.model_state:
             m = m.apply_state(sdf_world.state.model_state[n])
-        if m.static:
+        if m.static or not static_only:
           out.update(model_to_static_links(m, prefix))
     return out
 
@@ -586,7 +586,7 @@ def world_to_static_links(sdf_world, prefix):
 def load_static_sdf_to_model(km, prefix, sdf_path):
     sdf = SDF(load_xml(res_sdf_path(sdf_path)))
 
-    for p, l in world_to_static_links(sdf.worlds.values()[0], prefix).items():
+    for p, l in world_to_links(sdf.worlds.values()[0], prefix).items():
         if len([True for x in p if 'ground' in x]) == 0:
             for x in range(1, len(p)):
                 if not km.has_data(p[:x]):
