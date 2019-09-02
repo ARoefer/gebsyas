@@ -68,6 +68,12 @@ class ViewPoseGenerator(object):
         self.goal_pose.pose.orientation.w = math.cos(goal[2] * 0.5)
         self.robot_pose.header.stamp = self.goal_pose.header.stamp
         path = self.srv_compute_path(self.robot_pose, self.goal_pose, 0.1).plan
+        if len(path.poses) == 0:
+            print('Planer returned empty path. Retrying...')
+            path = self.srv_compute_path(self.robot_pose, self.goal_pose, 0.1).plan
+            if len(path.poses) == 0:
+                print('Planner still returned empty path. Returning -1')
+                return -1
 
         length     = 0.0
         last_point = self.robot_pose.pose.position
@@ -113,6 +119,8 @@ class ViewPoseGenerator(object):
                     msg.obj_id      = obj.id
                     msg.gaussian_id = gmm_id
                     msg.nav_distance = self.compute_path_length(nav_pose)
+                    if msg.nav_distance == -1:
+                        continue
                     msg.pose.position.x = pose[0,3]
                     msg.pose.position.y = pose[1,3]
                     msg.pose.position.z = pose[2,3]
