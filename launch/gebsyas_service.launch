@@ -1,4 +1,6 @@
 <launch>
+    <env name="GAZEBO_MODEL_PATH" value="$(env HOME)/.gazebo/models:$(find fetch_gazebo)/models:$(find gop_gebsyas_simulation)/models:$(optenv GAZEBO_MODEL_PATH)" />
+
     <arg name="iterations"           default="100"   doc="Maximum number of iterations per generated sample"/>
     <arg name="samples"              default="10"    doc="Number of samples drawn per gaussian component"/>
     <arg name="integration_step"     default="0.2"   doc="Step size in optimization. Larger means faster convergance but also more ocsillation"/>
@@ -7,7 +9,6 @@
     <arg name="tilt_limit_min"       default="0.4"   doc="Minimal camera tilt in rad"/>
     <arg name="tilt_limit_max"       default="0.9"   doc="Maximal camera tilt in rad"/>
 
-    <env name="GAZEBO_MODEL_PATH" value="/home/logan/.gazebo/models:$(optenv GAZEBO_MODEL_PATH)" />
     <arg name="sdf_file" default="test_world.sdf"/>
 
     <node pkg="gebsyas" type="go_to_view_pose.py" name="go_to_view_pose" output="screen"/>
