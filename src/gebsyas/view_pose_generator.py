@@ -55,8 +55,11 @@ class ViewPoseGenerator(object):
         self.pub_initial_pose_debug = rospy.Publisher('/debug_initial_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
         
         if self.visualizer:
+            draw_filter = {str(p) for p in collision_link_paths}
             self.visualizer.begin_draw_cycle('world')
-            self.visualizer.draw_world('world', self.km.kw)
+            for name, obj in self.km._collision_objects.items():
+                if name not in draw_filter:
+                    self.visualizer.draw_collision_object('world', obj)
             self.visualizer.render('world')
 
     # goal as x, y, a in map
