@@ -88,7 +88,7 @@ class GaussianInspector(object):
         self.sc_obs_distance = {'observation distance': SC(self.sym_min_dist - obj_dist,
                                                            self.sym_max_dist - obj_dist, 
                                                            5 + total_eigen_vec_value, 
-                                                           GC(projected_radius)),
+                                                           obj_dist),
                                 'look at': SC(1 - view_align, 
                                               1 - view_align, 
                                               1 + total_eigen_vec_value, 
