@@ -40,7 +40,7 @@ def srv_go_to_pose(req):
     if(nav_client.get_state() == GoalStatusMsg.SUCCEEDED):
         rospy.loginfo("moved base successfully")
     else:
-        rospy.loginfo("failed to move base to goal pose: ", nav_client.get_state())
+        rospy.loginfo("failed to move base to goal pose")
         res.success = False
         return res
 
