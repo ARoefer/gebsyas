@@ -10,10 +10,21 @@
     <arg name="tilt_limit_max"       default="0.9"   doc="Maximal camera tilt in rad"/>
 
     <arg name="sdf_file" default="test_world.sdf"/>
+    <arg name="use_collision" default="true"/>
 
     <node pkg="gebsyas" type="go_to_view_pose.py" name="go_to_view_pose" output="screen"/>
 
-    <node pkg="gebsyas" type="pose_generator.py" name="pose_generator" args="$(find gop_gebsyas_simulation)/sdf/$(arg sdf_file)" output="screen">
+    <node pkg="gebsyas" type="pose_generator.py" name="pose_generator" args="$(find gop_gebsyas_simulation)/sdf/$(arg sdf_file)" output="screen" if="$(arg use_collision)">
+        <param name="iterations"           value="$(arg iterations)"/>
+        <param name="samples"              value="$(arg samples)"/>
+        <param name="integration_step"     value="$(arg integration_step)"/>
+        <param name="equilibrium"          value="$(arg equilibrium)"/>
+        <param name="visualize_iterations" value="$(arg visualize_iterations)"/>
+        <param name="tilt_limit_min"       value="$(arg tilt_limit_min)"/>
+        <param name="tilt_limit_max"       value="$(arg tilt_limit_max)"/>
+    </node>
+
+    <node pkg="gebsyas" type="pose_generator.py" name="pose_generator" output="screen" unless="$(arg use_collision)">
         <param name="iterations"           value="$(arg iterations)"/>
         <param name="samples"              value="$(arg samples)"/>
         <param name="integration_step"     value="$(arg integration_step)"/>
