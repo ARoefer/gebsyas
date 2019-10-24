@@ -1,7 +1,7 @@
 import numpy as np
 
 from giskardpy.exceptions import QPSolverException
-from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol, erase_type
+from kineverse.gradients.diff_logic    import create_pos, get_diff_symbol, erase_type, Symbol
 from kineverse.gradients.gradient_math import point3, vector3, x_of, pos_of, dot, norm, cross, tan, sin, GC, spw
 from kineverse.model.paths             import Path
 from kineverse.model.geometry_model    import closest_distance_constraint
@@ -34,6 +34,10 @@ class GaussianComponent(object):
 
 max_view_cones = 10
 MAX_RESETS = 50
+
+def subsample_list(l, n_elem):
+    step = len(l) / float(n_elem - 1)
+    return [l[int(np.round(x * step))] for x in range(n_elem - 1)] + [l[-1]]
 
 
 class GaussianInspector(object):
@@ -190,7 +194,7 @@ class GaussianInspector(object):
         #print('State after setting gc:\n  {}'.format('\n  '.join(['{}: {}'.format(k,v) for k, v in self.state.items()])))
 
     # Return sorted list of resolved camera 6d poses.
-    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20, pose_constainer=None, equilibrium=0.05):
+    def get_view_poses(self, num_iterations=100, int_factor=0.25, samples=20, debug_trajectory=None, equilibrium=0.05):
         if self.gc is None:
             raise Exception('Set a gaussion component before trying to solve for a view pose.')
 
@@ -217,8 +221,6 @@ class GaussianInspector(object):
             state[self.sym_loc_a] = angle - np.pi
             integrators.append(CommandIntegrator(self.collision_solver, start_state=state, equilibrium=equilibrium))
             integrators[-1].restart('Integrator {}'.format(x))
-            if pose_constainer is not None:
-                pose_constainer.append(self.camera.pose.subs(state))
 
         for x, i in enumerate(integrators):
             self.collision_solver.reset_solver()
@@ -250,9 +252,13 @@ class GaussianInspector(object):
                 upper = c.upper if type(c.upper) not in symbolic_types else c.upper.subs(state)
                 error += max(lower, 0) - min(upper, 0)
             
-            results.append((error, self.camera.pose.subs(i.state), js, nav_pose))
+            results.append((error, self.camera.pose.subs(i.state), js, nav_pose, i.recorder.data))
 
-        return sorted(results) 
+        out = sorted(results)
+        if debug_trajectory is not None:
+            for _, _, _, _, t in out:
+                debug_trajectory.append({Symbol(k): subsample_list(v, min(len(v), 3)) for k, v in t.items()})
+        return [t[:4] for t in out]
 
 
 

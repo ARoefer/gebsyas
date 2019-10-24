@@ -20,12 +20,18 @@ from gop_gebsyas_msgs.srv import GetViewPosesResponse as GetViewPosesResponseMsg
 from nav_msgs.srv    import GetPlan    as GetPlanSrv
 from sensor_msgs.msg import JointState as JointStateMsg
 
-from kineverse.visualization.bpb_visualizer import ROSBPBVisualizer
+from kineverse.gradients.diff_logic         import Position
+from kineverse.model.paths                  import Path
 from kineverse.network.ros_conversion       import encode_pose
+from kineverse.visualization.bpb_visualizer import ROSBPBVisualizer
 
+tucked_arm = {'wrist_roll_joint': 0.0, 'shoulder_pan_joint': 1.32, 'elbow_flex_joint': 1.72, 'forearm_roll_joint': 0.0, 'upperarm_roll_joint': -0.2, 'wrist_flex_joint': 1.66, 'shoulder_lift_joint': 1.4}
+
+def str_list(l):
+    return [str(x) for x in l]
 
 class ViewPoseGenerator(object):
-    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, service_name, collision_link_paths=[]):
+    def __init__(self, km, camera, sym_loc_x, sym_loc_y, sym_loc_a, service_name, collision_link_paths=[], vismodel=None):
         self.km = km
 
         self.visualizer = ROSBPBVisualizer('debug_vis', 'map') if rospy.get_param('~visualization', True) else None
@@ -54,6 +60,10 @@ class ViewPoseGenerator(object):
         self.pub_pose_debug = rospy.Publisher('/debug_generated_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
         self.pub_initial_pose_debug = rospy.Publisher('/debug_initial_view_poses', PoseArrayMsg, queue_size=1, tcp_nodelay=True)
         
+
+        print('Camera free_symbols:\n{}'.format('\n'.join(str_list(camera.pose.free_symbols))))
+        joint_prefix = Path(next(iter(camera.pose.free_symbols)))[:-1]
+
         if self.visualizer:
             draw_filter = {str(p) for p in collision_link_paths}
             self.visualizer.begin_draw_cycle('world')
@@ -61,7 +71,10 @@ class ViewPoseGenerator(object):
                 if name not in draw_filter:
                     self.visualizer.draw_collision_object('world', obj)
             self.visualizer.render('world')
-
+            
+            if vismodel is not None:
+                self.robot_subworld = vismodel.get_active_geometry(camera.pose.free_symbols, static_state={Position((joint_prefix + (k,)).to_symbol()): v for k, v in tucked_arm.items()}, include_static=False) if vismodel is not None else None
+                
     # goal as x, y, a in map
     def compute_path_length(self, goal):
         self.goal_pose.header.stamp = rospy.Time.now()
@@ -97,13 +110,13 @@ class ViewPoseGenerator(object):
             init_array_msg = PoseArrayMsg()
             init_array_msg.header.frame_id = 'map'
             if self.visualizer is not None:
-                self.visualizer.begin_draw_cycle('final_states')
+                self.visualizer.begin_draw_cycle('final_states', 'opt_traj')
             for obj in req.objects:
                 view_list = ViewPoseListMsg()
                 self.gi.set_observation_distance(obj.min_observation_distance,
                                                  obj.max_observation_distance)
                 view_poses = []
-                initial_poses_list = []
+                opt_trajectories = []
 
                 for gmm_msg in obj.object_pose_gmm:
                     gc = GaussianComponent(obj.id, 
@@ -114,10 +127,10 @@ class ViewPoseGenerator(object):
                                             gmm_msg.cov_pose.covariance, 0)
 
                     self.gi.set_gaussian_component(gc, 0.3)
-                    result = self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, initial_poses_list, equilibrium=self.equilibrium)
-                    view_poses.extend(zip([gmm_msg.id] * len(result), result))
+                    result = self.gi.get_view_poses(self.n_iterations, self.integration_step, self.n_samples, opt_trajectories, equilibrium=self.equilibrium)
+                    view_poses.extend(zip([gmm_msg.id] * len(result), result, opt_trajectories))
 
-                for x, (gmm_id, (rating, pose, js, nav_pose)) in enumerate(sorted(view_poses)):
+                for x, (gmm_id, (rating, pose, js, nav_pose), traj) in enumerate(sorted(view_poses)):
                     msg = ViewPoseMsg()
                     msg.obj_id      = obj.id
                     msg.gaussian_id = gmm_id
@@ -134,7 +147,12 @@ class ViewPoseGenerator(object):
                     msg.pose.orientation.w = qw
                     view_list.views.append(msg)
                     pose_array_msg.poses.append(msg.pose)
-                    init_array_msg.poses.append(encode_pose(initial_poses_list[x]))
+
+                    if self.robot_subworld is not None:
+                        traj.update({s: [0.0] * len(traj.values()[0]) for s in self.robot_subworld.free_symbols.difference(traj.keys())})
+                        for x in range(len(traj.values()[0])):
+                            self.robot_subworld.update_world({s: v[x] for s, v in traj.items()})
+                            self.visualizer.draw_world('opt_traj', self.robot_subworld)
                     #print('Final js:\n  {}'.format('\n  '.join(['{}: {}'.format(k, v) for k, v in js.items()])))
                     msg.joint_state.name, msg.joint_state.position = zip(*js.items())
                     msg.base_position.linear.x  = nav_pose[0]
@@ -143,11 +161,9 @@ class ViewPoseGenerator(object):
                 res.views.append(view_list)
 
             if self.visualizer is not None:
-                self.visualizer.render('final_states')
+                self.visualizer.render('final_states', 'opt_traj')
             pose_array_msg.header.stamp = rospy.Time.now()
-            init_array_msg.header.stamp = pose_array_msg.header.stamp
             self.pub_pose_debug.publish(pose_array_msg)
-            self.pub_initial_pose_debug.publish(init_array_msg)
         except Exception as e:
             traceback.print_exc()
             print(e)

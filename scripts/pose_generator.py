@@ -20,8 +20,9 @@ from gebsyas.sdf_loader                    import load_static_sdf_to_model
 if __name__ == '__main__':
     rospy.init_node('view_pose_generator')
 
-    km = GeometryModel()
-    
+    km  = GeometryModel()
+    km2 = GeometryModel()
+
     if len(sys.argv) >= 2:
         for a in sys.argv[1:]:
             if not ':=' in a:
@@ -30,9 +31,11 @@ if __name__ == '__main__':
                 load_static_sdf_to_model(km, Path('static'), world_path)
                 break
     
-    urdf_fetch = URDF.from_xml_file(res_pkg_path('package://gebsyas/robots/fetch_armless.urdf'))
+    urdf_fetch  = URDF.from_xml_file(res_pkg_path('package://gebsyas/robots/fetch_armless.urdf'))
+    urdf_fetch2 = URDF.from_xml_file(res_pkg_path('package://fetch_description/robots/fetch.urdf'))
 
-    load_urdf(km, 'fetch', urdf_fetch, 'odom')
+    load_urdf(km,  'fetch', urdf_fetch,  'odom')
+    load_urdf(km2, 'fetch', urdf_fetch2, 'odom')
 
     print('\n'.join(km.list_constraints()))
     print('\n'.join(['{}:\n  {}'.format(k, v) for k, v in km.get_constraints_by_symbols({spw.Symbol('fetch__torso_lift_joint_v')}).items()]))
@@ -43,15 +46,20 @@ if __name__ == '__main__':
 
     to_map_transform = translation3(sym_x, sym_y, 0) * rotation3_axis_angle(vector3(0,0,1), sym_a)
     connection_op    = CreateComplexObject(Path('fetch/links/base_link/pose'), to_map_transform)
-    km.apply_operation_after(connection_op, 'set base_link transform', 'create fetch/base_link')
+    km.apply_operation_after('set base_link transform', 'create fetch/base_link', connection_op)
     km.clean_structure()
     km.dispatch_events()
+
+    connection_op    = CreateComplexObject(Path('fetch/links/base_link/pose'), to_map_transform)
+    km2.apply_operation_after('set base_link transform', 'create fetch/base_link', connection_op)
+    km2.clean_structure()
+    km2.dispatch_events()
 
     # Fetch the static collision model
 
     camera = Camera(km.get_data('fetch/links/head_camera_link/pose'), 54 * (math.pi / 180), 4.0/3.0)
 
-    generator = ViewPoseGenerator(km, camera, sym_x, sym_y, sym_a, '/get_view_poses', [Path('fetch/links/base_collision_link')])
+    generator = ViewPoseGenerator(km, camera, sym_x, sym_y, sym_a, '/get_view_poses', [Path('fetch/links/base_collision_link')], km2)
 
     while not rospy.is_shutdown():
         rospy.sleep(1000)
